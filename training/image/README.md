@@ -15,9 +15,9 @@ pip install accelerate deepspeed
 ## 数据准备
 
 ```bash
-# 将 VLMPuzzle 数据集转换为 DiffSynth-Studio 格式
+# 将 VideoThinkBench 数据集转换为 DiffSynth-Studio 格式
 python -m data.tools.prepare_image_data \
-    --dataset_root /path/to/VLMPuzzle/dataset \
+    --dataset_root /path/to/VideoThinkBench/dataset \
     --output_path ./data/metadata.json
 
 # 输出: data/metadata.json
@@ -30,7 +30,7 @@ python -m data.tools.prepare_image_data \
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
 # 启动训练
-bash train_sft.sh --dataset_root /path/to/VLMPuzzle/dataset
+bash train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset
 
 # 可选参数:
 #   --output_dir ./outputs/train
@@ -54,24 +54,33 @@ bash train_sft.sh --dataset_root /path/to/VLMPuzzle/dataset
 | lora_rank | 32 | LoRA Rank |
 | max_pixels | 1048576 | 最大像素数 (1024×1024) |
 
-## 验证
+## 推理预检与验证
 
 ```bash
-python evaluators/image/validate_model.py \
-    --lora_path ./outputs/train/Qwen-Image-Edit-2511_lora/epoch-4.safetensors \
-    --metadata_path /path/to/VLMPuzzle/dataset/maze_square/data.json \
-    --output_dir ./outputs/validate \
-    --num_samples 10
+# 预检（少量样本）
+vtb eval infer \
+    --modality image \
+    --dataset ./data/metadata.json \
+    --model-path /path/to/model_base \
+    --lora ./outputs/train/Qwen-Image-Edit-2511_lora/epoch-4.safetensors \
+    --mode precheck \
+    --num-samples 5 \
+    --diffsynth-path "${DIFFSYNTH_PATH}" \
+    --output-dir ./outputs/precheck
+
+# 验证（批量样本）
+vtb eval infer \
+    --modality image \
+    --dataset ./data/metadata.json \
+    --model-path /path/to/model_base \
+    --lora ./outputs/train/Qwen-Image-Edit-2511_lora/epoch-4.safetensors \
+    --mode validate \
+    --num-samples 10 \
+    --diffsynth-path "${DIFFSYNTH_PATH}" \
+    --output-dir ./outputs/validate
 ```
 
-## 预检
-
-```bash
-python evaluators/image/infer_precheck.py \
-    --metadata_path /path/to/VLMPuzzle/dataset/maze_square/data.json \
-    --output_dir ./outputs/precheck \
-    --num_samples 5
-```
+如需同时输出离线规则评测结果，可使用 `vtb eval run --with-offline --manifest /abs/path/canonical_manifest.jsonl`。
 
 ## 输出格式
 

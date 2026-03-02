@@ -406,14 +406,22 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
         wall_mask = self._wall_mask(puzzle_pixels)
         safe_radius = self._endpoint_safe_radius(record, source_canvas_size, candidate_image_rgb.size)
         wall_mask = self._suppress_endpoint_walls(wall_mask, [start_point, goal_point], safe_radius)
+
+        # Exempt the red endpoint marker regions drawn on puzzle images.
+        marker_bboxes = self._endpoint_marker_bboxes(puzzle_pixels, [start_point, goal_point], safe_radius)
+        if marker_bboxes:
+            marker_margin = max(1, min(4, int(round(safe_radius * 0.25))))
+            wall_mask = self._suppress_endpoint_bboxes(wall_mask, marker_bboxes, marker_margin)
+
         endpoint_bboxes = self._endpoint_bboxes(record, source_canvas_size, candidate_image_rgb.size)
         if endpoint_bboxes:
             bbox_margin = max(2, min(6, int(round(safe_radius * 0.5))))
             wall_mask = self._suppress_endpoint_bboxes(wall_mask, endpoint_bboxes, bbox_margin)
         overlaps_walls = bool(np.any(red_mask & wall_mask))
 
-        start_seed = self._nearest_red(red_mask, start_point)
-        goal_seed = self._nearest_red(red_mask, goal_point)
+        endpoint_search_radius = max(self.ENDPOINT_SEARCH_RADIUS, safe_radius)
+        start_seed = self._nearest_red(red_mask, start_point, radius=endpoint_search_radius)
+        goal_seed = self._nearest_red(red_mask, goal_point, radius=endpoint_search_radius)
         touches_start = start_seed is not None
         touches_goal = goal_seed is not None
 
@@ -709,6 +717,7 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
         self,
         red_mask: np.ndarray,
         point: Tuple[float, float],
+        radius: Optional[int] = None,
     ) -> Optional[Tuple[int, int]]:
         height, width = red_mask.shape
         cx = int(round(point[0]))
@@ -717,8 +726,8 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
         cy = max(0, min(height - 1, cy))
         if red_mask[cy, cx]:
             return (cy, cx)
-        radius = self.ENDPOINT_SEARCH_RADIUS
-        for delta in range(1, radius + 1):
+        max_radius = self.ENDPOINT_SEARCH_RADIUS if radius is None else max(0, int(radius))
+        for delta in range(1, max_radius + 1):
             min_x = max(0, cx - delta)
             max_x = min(width - 1, cx + delta)
             min_y = max(0, cy - delta)
@@ -734,6 +743,60 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
                 if red_mask[max_y, x]:
                     return (max_y, x)
         return None
+
+    def _component_from_seed(
+        self,
+        mask: np.ndarray,
+        seed: Tuple[int, int],
+    ) -> np.ndarray:
+        height, width = mask.shape
+        component = np.zeros((height, width), dtype=bool)
+        queue: deque[Tuple[int, int]] = deque([seed])
+        component[seed[0], seed[1]] = True
+        while queue:
+            y, x = queue.popleft()
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                ny = y + dy
+                nx = x + dx
+                if 0 <= ny < height and 0 <= nx < width:
+                    if mask[ny, nx] and not component[ny, nx]:
+                        component[ny, nx] = True
+                        queue.append((ny, nx))
+        return component
+
+    def _endpoint_marker_bboxes(
+        self,
+        puzzle_pixels: np.ndarray,
+        endpoints: Iterable[Tuple[float, float]],
+        safe_radius: int,
+    ) -> List[Tuple[float, float, float, float]]:
+        puzzle_red_mask = self._red_mask(puzzle_pixels)
+        if not puzzle_red_mask.any():
+            return []
+
+        height, width = puzzle_red_mask.shape
+        padding = max(2, min(8, int(round(safe_radius * 0.5))))
+        bboxes: List[Tuple[float, float, float, float]] = []
+        for endpoint in endpoints:
+            if endpoint is None:
+                continue
+            seed = self._nearest_red(
+                puzzle_red_mask,
+                endpoint,
+                radius=max(self.ENDPOINT_SEARCH_RADIUS, safe_radius * 2),
+            )
+            if seed is None:
+                continue
+            component = self._component_from_seed(puzzle_red_mask, seed)
+            ys, xs = np.nonzero(component)
+            if ys.size == 0 or xs.size == 0:
+                continue
+            left = max(0, int(xs.min()) - padding)
+            top = max(0, int(ys.min()) - padding)
+            right = min(width, int(xs.max()) + padding + 1)
+            bottom = min(height, int(ys.max()) + padding + 1)
+            bboxes.append((float(left), float(top), float(right), float(bottom)))
+        return bboxes
 
     def _connected(
         self,

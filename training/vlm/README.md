@@ -11,9 +11,9 @@ pip install ms-swift peft vllm datasets
 ## 数据准备
 
 ```bash
-# 将 VLMPuzzle 数据集转换为 ms-swift 格式
+# 将 VideoThinkBench 数据集转换为 ms-swift 格式
 python -m data.tools.prepare_vlm_data \
-    --data_root /path/to/VLMPuzzle/dataset \
+    --data_root /path/to/VideoThinkBench/dataset \
     --output_dir ./data
 
 # 输出:
@@ -57,21 +57,24 @@ GRPO 使用自定义奖励函数（`training/vlm/rewards/vlm_rewards.py`）：
 | Eyeballing | 1.0=正确, 0.0=错误, -1.0=格式错误 |
 | Maze | 0.0~1.0=部分匹配, -1.0=格式错误 |
 
-## 验证
+## 推理预检与验证
 
 ```bash
-python evaluators/vlm/validate_model.py \
-    --model_path /path/to/Qwen3-VL-32B \
-    --data_path data/train_sft.jsonl \
-    --output_dir output/validate_vlm \
-    --num_samples 50
-```
+# 预检（少量样本）
+vtb eval infer \
+    --modality vlm \
+    --dataset data/train_sft.jsonl \
+    --model-path /path/to/Qwen3-VL-32B \
+    --mode precheck \
+    --num-samples 5 \
+    --output-dir output/precheck_vlm
 
-## 预检
-
-```bash
-python evaluators/vlm/infer_precheck.py \
-    --model_path /path/to/Qwen3-VL-32B \
-    --data_path data/train_sft.jsonl \
-    --num_samples 5
+# 验证（批量样本）
+vtb eval infer \
+    --modality vlm \
+    --dataset data/train_sft.jsonl \
+    --model-path /path/to/Qwen3-VL-32B \
+    --mode validate \
+    --num-samples 50 \
+    --output-dir output/validate_vlm
 ```

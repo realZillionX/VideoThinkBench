@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "videothinkbench"
+version = "0.1.0"
+description = "VideoThinkBench unified data generation and evaluation toolkit"
+requires-python = ">=3.10"
+
+[project.scripts]
+videothinkbench = "vtb.cli:main"
+vtb = "vtb.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["vtb*"]

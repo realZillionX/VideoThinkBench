@@ -88,7 +88,14 @@ if [ -z "${DIFFSYNTH_PATH}" ]; then
     echo "Error: DIFFSYNTH_PATH not set"; exit 1
 fi
 if [ ! -f "${DATASET_PATH}" ]; then
-    echo "Error: Dataset CSV not found: ${DATASET_PATH}"; exit 1
+    if [ -n "${DATASET_BASE_PATH}" ] && [ -d "${DATASET_BASE_PATH}" ]; then
+        echo "Dataset CSV not found. Generating with VideoThinkBench data pipeline..."
+        python3 -m data.tools.prepare_video_data \
+            --dataset_root "${DATASET_BASE_PATH}" \
+            --output_path "${DATASET_PATH}"
+    else
+        echo "Error: Dataset CSV not found: ${DATASET_PATH}"; exit 1
+    fi
 fi
 
 if [ $(( (NUM_FRAMES - 1) % 4 )) -ne 0 ]; then

@@ -11,63 +11,22 @@ from pathlib import Path
 from typing import Any, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 from dataclasses import dataclass
 
+from vtb.utils.nato import extract_first_nato_letter
+
 PathLike = Union[str, Path]
 RecordT = TypeVar("RecordT")
 
 
-_NATO_WORDS = [
-    # Variants first where applicable
-    "ALPHA", "ALFA",
-    "BRAVO",
-    "CHARLIE",
-    "DELTA",
-    "ECHO",
-    "FOXTROT",
-    "GOLF",
-    "HOTEL",
-    "INDIA",
-    "JULIET", "JULIETT",
-    "KILO",
-    "LIMA",
-    "MIKE",
-    "NOVEMBER",
-    "OSCAR",
-    "PAPA",
-    "QUEBEC",
-    "ROMEO",
-    "SIERRA",
-    "TANGO",
-    "UNIFORM",
-    "VICTOR",
-    "WHISKEY",
-    "XRAY", "X-RAY",
-    "YANKEE",
-    "ZULU",
-]
 def extract_first_nato_word(text: str) -> Optional[str]:
-    """Return the first NATO phonetic code word found in `text`.
+    """Return the first NATO option letter found in `text`.
 
-    - Matches are case-insensitive and must align to word boundaries.
-    - Accepts common variants (e.g., ALFA/ALPHA, JULIET/JULIETT, XRAY/X-RAY).
-    - Returns the normalized upper-case code word as found in `_NATO_WORDS`.
-    - Returns None when no code word is present.
+    This keeps legacy evaluator naming, but the returned value is always
+    normalized single-letter ``A-Z`` for downstream option matching.
     """
 
     if not text:
         return None
-    import re
-
-    # Build a single regex from the word list with word boundaries.
-    # Use alternation ordered as in _NATO_WORDS so variants keep priority.
-    pattern = r"\b(?:(%s))\b" % ("|".join(map(re.escape, _NATO_WORDS)))
-    regex = re.compile(pattern, flags=re.IGNORECASE)
-    match = regex.findall(text)
-    if not match:
-        return None
-    # Normalize to the canonical upper-case variant from the list
-    found = match[0]
-    found_upper = found.upper()
-    return found_upper[0]
+    return extract_first_nato_letter(text)
 
 class AbstractPuzzleGenerator(ABC, Generic[RecordT]):
     """Base class for dataset builders that emit puzzle records."""
@@ -379,16 +338,7 @@ class AbstractPuzzleEvaluator(ABC):
         transcript: str
     ) -> Optional[str]:
         """Extract the first NATO code word from a transcript string."""
-        nato=extract_first_nato_word(transcript)
-        if nato:
-            return nato
-        remove_chars = '.,!?;:"\'()[]{}<>*/'
-        
-        for word in transcript.split()[::-1]:
-            word = word.strip(remove_chars)
-            if word in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-                return word
-        return None
+        return extract_first_nato_word(transcript)
 
 
 class EvaluationPayloadReader:

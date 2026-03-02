@@ -1,0 +1,49 @@
+from __future__ import annotations
+
+import re
+from typing import Optional
+
+
+MAZE_TRAIN_PROMPT = "Draw a red path connecting two red dots without touching the black walls."
+
+VLM_SFT_SUFFIX = "\nDo not output the thinking process. Output the answer directly."
+VLM_GRPO_SUFFIX = "\nPlease think step by step and output your final answer within <answer>...</answer> tags."
+
+
+def normalize_eyeballing_prompt(prompt: str) -> str:
+    patterns_to_remove = [
+        r"\s*Speak out[^.]*\.[^.]*\.",
+        r"\s*In portrait[^.]*\.",
+        r"\s*Static camera\.",
+    ]
+    result = prompt
+    for pattern in patterns_to_remove:
+        result = re.sub(pattern, "", result, flags=re.IGNORECASE)
+    result = " ".join(result.split())
+    if result and not result.endswith("."):
+        result += "."
+    return result.strip()
+
+
+def normalize_prompt_for_task(task_group: str, prompt_raw: str) -> str:
+    if task_group == "maze":
+        return MAZE_TRAIN_PROMPT
+    if task_group == "eyeballing":
+        return normalize_eyeballing_prompt(prompt_raw)
+    return (prompt_raw or "").strip()
+
+
+def build_vlm_user_prompt(prompt_train: str, mode: str) -> str:
+    suffix = VLM_SFT_SUFFIX if mode == "sft" else VLM_GRPO_SUFFIX
+    return f"<image> {prompt_train}{suffix}".strip()
+
+
+def detect_task_group(record: dict, puzzle_name: Optional[str] = None) -> Optional[str]:
+    if "correct_option" in record:
+        return "eyeballing"
+    if "solution_path_cell_ids" in record:
+        return "maze"
+    task_type = str(record.get("task_type") or puzzle_name or "")
+    if task_type.startswith("maze"):
+        return "maze"
+    return None
