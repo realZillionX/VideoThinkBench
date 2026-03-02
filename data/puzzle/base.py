@@ -305,13 +305,41 @@ class AbstractPuzzleEvaluator(ABC):
         whisper_model: str = "base",
         script_path: Optional[PathLike] = None,
     ) -> Dict[str, Any]:
-        """Run the shared transcription script and return the raw JSON payload string when available."""
+        """Run shared transcription and return parsed JSON payload when available."""
 
         out_dir = Path(attempt_dir)
-        video = out_dir / "video_1.mp4"
-        if not video.exists() or not video.is_file():
+        if not out_dir.exists() or not out_dir.is_dir():
             return {}
-        script = Path(script_path) if script_path is not None else Path.cwd() / "scripts" / "transcribe_video.py"
+
+        video: Optional[Path] = None
+        video_patterns = ("video_1.mp4", "video_*.mp4", "*.mp4", "*.webm", "*.mov")
+        for pattern in video_patterns:
+            for candidate in out_dir.glob(pattern):
+                if candidate.exists() and candidate.is_file():
+                    video = candidate
+                    break
+            if video is not None:
+                break
+        if video is None:
+            return {}
+
+        script: Optional[Path] = None
+        if script_path is not None:
+            candidate = Path(script_path).expanduser()
+            if candidate.exists() and candidate.is_file():
+                script = candidate
+        else:
+            candidate_scripts = [
+                Path.cwd() / "scripts" / "transcribe_video.py",
+                Path(__file__).resolve().parents[2] / "scripts" / "transcribe_video.py",
+            ]
+            for candidate in candidate_scripts:
+                if candidate.exists() and candidate.is_file():
+                    script = candidate
+                    break
+        if script is None:
+            return {}
+
         json_out = out_dir / "transcription.json"
 
         cmd: List[str] = [
@@ -329,9 +357,24 @@ class AbstractPuzzleEvaluator(ABC):
             cmd.extend(["--engine", "local", "--whisper-model", whisper_model])
 
         completed = subprocess.run(cmd, capture_output=True, text=True)
-        with open(json_out, "r", encoding="utf-8") as f:
-            stdout_stripped = f.read().strip()
-            return json.loads(stdout_stripped)
+        transcript_path: Optional[Path] = None
+        if json_out.exists() and json_out.is_file():
+            transcript_path = json_out
+        else:
+            lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+            if lines:
+                candidate = Path(lines[-1])
+                if candidate.exists() and candidate.is_file():
+                    transcript_path = candidate
+
+        if transcript_path is None:
+            return {}
+
+        try:
+            payload = json.loads(transcript_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        return payload if isinstance(payload, dict) else {}
     
     @staticmethod
     def extract_first_nato_word(

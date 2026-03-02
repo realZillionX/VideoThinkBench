@@ -79,8 +79,29 @@ class RayEvaluator(AbstractPuzzleEvaluator):
         if video_path is not None:
             # Run transcriber
             json_out = attempt_dir / "transcription.json"
+            candidate_scripts = [
+                Path.cwd() / "scripts" / "transcribe_video.py",
+                Path(__file__).resolve().parents[4] / "scripts" / "transcribe_video.py",
+            ]
+            script_path: Optional[Path] = None
+            for script_candidate in candidate_scripts:
+                if script_candidate.exists() and script_candidate.is_file():
+                    script_path = script_candidate
+                    break
+
+            if script_path is None:
+                is_correct = False
+                return RayEvaluationResult(
+                    puzzle_id=puzzle_id,
+                    predicted_option=None,
+                    correct_option=correct,
+                    is_correct=is_correct,
+                    video_path=video_path.as_posix(),
+                    transcript_json_path=None,
+                )
+
             cmd: List[str] = [
-                str(Path.cwd() / "scripts" / "transcribe_video.py"),
+                script_path.as_posix(),
                 video_path.as_posix(),
                 "--output-json",
                 json_out.as_posix(),
@@ -93,14 +114,30 @@ class RayEvaluator(AbstractPuzzleEvaluator):
                 cmd.extend(["--engine", "local"])  # default whisper
 
             completed = subprocess.run([str(Path().resolve() / cmd[0])] + cmd[1:], capture_output=True, text=True)
-            # Best-effort parse: transcriber prints JSON path on success when --output-json is provided
-            out_path = Path(completed.stdout.strip().splitlines()[-1].strip())
-            if out_path.exists():
+            # Best-effort parse: prefer explicit output file, then stdout last path.
+            out_path: Optional[Path] = None
+            if json_out.exists() and json_out.is_file():
+                out_path = json_out
+            else:
+                stdout_lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+                if stdout_lines:
+                    candidate = Path(stdout_lines[-1])
+                    if candidate.exists() and candidate.is_file():
+                        out_path = candidate
+
+            if out_path is not None:
                 transcript_json_path = out_path
-                payload = json.loads(out_path.read_text(encoding="utf-8"))
-                nato_letter = payload.get("first_nato_word")
-                if isinstance(nato_letter, str) and nato_letter:
-                    predicted = nato_letter.strip().upper()[0]
+                try:
+                    payload = json.loads(out_path.read_text(encoding="utf-8"))
+                except Exception:
+                    payload = {}
+                nato_word = payload.get("first_nato_word")
+                if isinstance(nato_word, str) and nato_word.strip():
+                    predicted = AbstractPuzzleEvaluator.extract_first_nato_word(nato_word.strip())
+                if predicted is None:
+                    transcript_text = payload.get("transcript")
+                    if isinstance(transcript_text, str) and transcript_text.strip():
+                        predicted = AbstractPuzzleEvaluator.extract_first_nato_word(transcript_text.strip())
 
         is_correct = (predicted == correct) if predicted else False
         return RayEvaluationResult(
@@ -143,4 +180,3 @@ def main(argv: Optional[List[str]] = None) -> None:
 
 if __name__ == "__main__":
     main()
-

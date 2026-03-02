@@ -9,11 +9,11 @@ from vtb.eval.offline.common import resolve_candidate_image
 
 def _maze_evaluator_class(task_type: str):
     if task_type.startswith("maze_hexagon"):
-        from data.puzzle.maze.maze_hexagon.evaluator import MazeEvaluator as EvaluatorClass
+        from data.puzzle.maze.maze_hexagon.evaluator import MazeHexagonEvaluator as EvaluatorClass
 
         return EvaluatorClass
     if task_type.startswith("maze_labyrinth"):
-        from data.puzzle.maze.maze_labyrinth.evaluator import MazeEvaluator as EvaluatorClass
+        from data.puzzle.maze.maze_labyrinth.evaluator import MazeLabyrinthEvaluator as EvaluatorClass
 
         return EvaluatorClass
     from data.puzzle.maze.maze_square.evaluator import MazeEvaluator as EvaluatorClass
