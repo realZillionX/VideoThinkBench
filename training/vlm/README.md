@@ -2,6 +2,8 @@
 
 使用 ms-swift 框架对 Qwen3-VL 模型进行 SFT 和 GRPO 训练。
 
+以下命令默认在仓库根目录执行。
+
 ## 环境要求
 
 ```bash
@@ -12,7 +14,7 @@ pip install ms-swift peft vllm datasets
 
 ```bash
 # 将 VideoThinkBench 数据集转换为 ms-swift 格式
-python -m data.tools.prepare_vlm_data \
+python3 scripts/prepare_vlm_data.py \
     --data_root /path/to/VideoThinkBench/dataset \
     --output_dir ./data
 
@@ -24,7 +26,7 @@ python -m data.tools.prepare_vlm_data \
 ## Phase 1: SFT 监督微调
 
 ```bash
-bash train_sft.sh --model_path /path/to/Qwen3-VL-32B-Thinking
+bash training/vlm/train_sft.sh --model_path /path/to/Qwen3-VL-32B-Thinking
 
 # 可选参数:
 #   --dataset data/train_sft.jsonl
@@ -37,7 +39,7 @@ bash train_sft.sh --model_path /path/to/Qwen3-VL-32B-Thinking
 在 SFT 完成后，加载 checkpoint 继续 GRPO 训练：
 
 ```bash
-bash train_grpo.sh \
+bash training/vlm/train_grpo.sh \
     --model_path output/sft_qwen3_vl/checkpoint-100 \
     --data_path data/train_grpo.jsonl \
     --output_dir output/grpo_qwen3_vl
@@ -61,7 +63,7 @@ GRPO 使用自定义奖励函数（`training/vlm/rewards/vlm_rewards.py`）：
 
 ```bash
 # 预检（少量样本）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality vlm \
     --dataset data/train_sft.jsonl \
     --model-path /path/to/Qwen3-VL-32B \
@@ -70,7 +72,7 @@ vtb eval infer \
     --output-dir output/precheck_vlm
 
 # 验证（批量样本）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality vlm \
     --dataset data/train_sft.jsonl \
     --model-path /path/to/Qwen3-VL-32B \

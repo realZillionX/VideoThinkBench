@@ -32,6 +32,7 @@ set -e
 # Parse Arguments
 # ============================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 METADATA_PATH="${SCRIPT_DIR}/data/metadata.json"
 OUTPUT_PATH="${SCRIPT_DIR}/outputs/train/Qwen-Image-Edit-2511_lora"
 DATASET_ROOT=""
@@ -140,7 +141,7 @@ if [ ! -f "${METADATA_PATH}" ]; then
     fi
     
     echo "Generating metadata from dataset via VideoThinkBench unified data pipeline..."
-    python3 -m data.tools.prepare_image_data \
+    python3 "${REPO_ROOT}/scripts/prepare_image_data.py" \
         --dataset_root "${DATASET_ROOT}" \
         --output_path "${METADATA_PATH}"
 fi

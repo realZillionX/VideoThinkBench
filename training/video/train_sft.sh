@@ -25,6 +25,7 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 DATASET_PATH="${SCRIPT_DIR}/dataset.csv"
 DATASET_BASE_PATH=""
@@ -90,7 +91,7 @@ fi
 if [ ! -f "${DATASET_PATH}" ]; then
     if [ -n "${DATASET_BASE_PATH}" ] && [ -d "${DATASET_BASE_PATH}" ]; then
         echo "Dataset CSV not found. Generating with VideoThinkBench data pipeline..."
-        python3 -m data.tools.prepare_video_data \
+        python3 "${REPO_ROOT}/scripts/prepare_video_data.py" \
             --dataset_root "${DATASET_BASE_PATH}" \
             --output_path "${DATASET_PATH}"
     else

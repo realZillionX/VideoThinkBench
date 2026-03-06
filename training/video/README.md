@@ -2,6 +2,8 @@
 
 使用 DiffSynth-Studio 框架对 Wan2.2-TI2V-5B 模型进行 LoRA SFT 训练。
 
+以下命令默认在仓库根目录执行。
+
 ## 环境要求
 
 ```bash
@@ -43,12 +45,12 @@ export MODEL_BASE_PATH=/path/to/Wan2.2-TI2V-5B
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
 # 先转换 VideoThinkBench 数据为 CSV
-python -m data.tools.prepare_video_data \
+python3 scripts/prepare_video_data.py \
     --dataset_root /path/to/VideoThinkBench/dataset \
     --output_path ./dataset/train_video.csv
 
 # 单机
-bash train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 1
+bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 1
 
 # 可选参数:
 #   --output_dir ./output/wan_lora
@@ -61,7 +63,7 @@ bash train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/Vi
 
 ```bash
 # 多机（示例：15 节点 × 8 GPU）
-bash train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 15 --gpus_per_node 8 --machine_rank 0
+bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 15 --gpus_per_node 8 --machine_rank 0
 ```
 
 **可用参数**:
@@ -125,7 +127,7 @@ output/wan_lora/
 
 ```bash
 # 预检（建议先跑 1-5 条）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality video \
     --dataset ./dataset/train_video.csv \
     --dataset-root /path/to/VideoThinkBench/dataset \
@@ -137,7 +139,7 @@ vtb eval infer \
     --output-dir ./outputs/precheck_video
 
 # 验证（批量样本）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality video \
     --dataset ./dataset/train_video.csv \
     --dataset-root /path/to/VideoThinkBench/dataset \
@@ -151,13 +153,13 @@ vtb eval infer \
 ## 离线规则评测（Maze／Eyeballing）
 
 ```bash
-vtb eval offline \
+python3 cli.py eval offline \
     --manifest /abs/path/canonical_manifest.jsonl \
     --task-group maze \
     --pred-root ./outputs/validate_video/samples \
     --output-dir ./outputs/offline_maze
 
-vtb eval offline \
+python3 cli.py eval offline \
     --manifest /abs/path/canonical_manifest.jsonl \
     --task-group eyeballing \
     --pred-root ./outputs/validate_video/samples \

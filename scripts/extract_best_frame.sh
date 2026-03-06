@@ -4,7 +4,7 @@
 
 
 # Color-Filling Tasks
-python evaluators/frame_matching/find_best_frame.py \
+python3 evaluators/frame_matching/find_best_frame.py \
     --results_dir output/ \
     --tasks color_size color_grid color_hexagon color_overlap_squares polygon_sides_color rectangle_height_color \
     --compare_width 512 \
@@ -13,7 +13,7 @@ python evaluators/frame_matching/find_best_frame.py \
 
 
 # Shape-Drawing Tasks
-python evaluators/frame_matching/find_best_frame.py \
+python3 evaluators/frame_matching/find_best_frame.py \
     --results_dir output/ \
     --tasks size_grid shape_reflect shape_size_grid size_cycle \
     --compare_width 512 \

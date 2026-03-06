@@ -6,13 +6,13 @@
 
 使用示例：
     # 评估单个视频
-    python src/evaluate_videos.py --video path/to/video.mp4 --question "What is 2+2?" --answer "4"
+    python3 evaluators/textcentric/evaluate_videos.py --video path/to/video.mp4 --question "What is 2+2?" --answer "4"
 
     # 批量评估视频（从JSON文件）
-    python src/evaluate_videos.py --batch videos.json --output output/evaluation
+    python3 evaluators/textcentric/evaluate_videos.py --batch videos.json --output output/evaluation
 
     # 评估视频目录
-    python src/evaluate_videos.py --video-dir output/videos --questions questions.json --output output/evaluation
+    python3 evaluators/textcentric/evaluate_videos.py --video-dir output/videos --questions questions.json --output output/evaluation
 """
 
 import os
@@ -188,10 +188,10 @@ def main():
 使用示例:
 
 1. 评估单个视频:
-   python src/evaluate_videos.py --video video.mp4 --question "What is 2+2?" --answer "4" --output output/
+   python3 evaluators/textcentric/evaluate_videos.py --video video.mp4 --question "What is 2+2?" --answer "4" --output output/
 
 2. 从JSON文件批量评估:
-   python src/evaluate_videos.py --batch videos.json --output output/ --threads 8
+   python3 evaluators/textcentric/evaluate_videos.py --batch videos.json --output output/ --threads 8
 
    JSON格式:
    [
@@ -205,7 +205,7 @@ def main():
    ]
 
 3. 评估视频目录:
-   python src/evaluate_videos.py --video-dir output/videos --questions questions.json --output output/evaluation
+   python3 evaluators/textcentric/evaluate_videos.py --video-dir output/videos --questions questions.json --output output/evaluation
 
 4种评估指标:
   1. 视频最后一帧是否显示正确答案

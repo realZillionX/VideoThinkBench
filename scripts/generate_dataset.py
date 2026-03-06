@@ -1,12 +1,18 @@
 """Unified dataset generation entrypoint for VideoThinkBench.
 
-This wrapper keeps the historical `data.tools.generate_dataset` entry while
-routing to the new VideoThinkBench pipeline.
+This wrapper preserves the legacy generate-dataset workflow while routing to
+the current VideoThinkBench pipeline.
 """
 
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from data.generate import run_generation
 

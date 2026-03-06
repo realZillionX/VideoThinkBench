@@ -20,12 +20,14 @@ videothinkbench = "cli:main"
 
 [tool.setuptools]
 include-package-data = true
+py-modules = ["cli"]
 
 [tool.setuptools.packages.find]
 include = [
     "data*",
     "evaluators*",
     "tasks*",
+    "training*",
     "utils*",
 ]
 namespaces = false

@@ -1,4 +1,4 @@
-python data/textcentric/request_videos.py \
+python3 data/textcentric/request_videos.py \
     --model sora_video2-landscape \
     --dataset_root ../VideoThinkBench/minitest_Text-Centric_Reasoning \
     --datasets GSM8K \

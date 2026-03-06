@@ -13,7 +13,7 @@ NO_OPTION_TASKS=(color_grid color_hexagon color_overlap_squares polygon_sides_co
 # Tasks that require the options line (sets `provide_options` flag)
 OPTION_TASKS=(color_size size_grid shape_reflect shape_size_grid size_cycle)
 
-python evaluators/infer/test_VLM.py \
+python3 evaluators/infer/test_VLM.py \
     --model "$MODEL" \
     --tasks "${NO_OPTION_TASKS[@]}" \
     --data_root "$DATA_DIR" \
@@ -24,7 +24,7 @@ python evaluators/infer/test_VLM.py \
     --max_request_attempts 5 \
     --request_attempt_delay 2
 
-python evaluators/infer/test_VLM.py \
+python3 evaluators/infer/test_VLM.py \
     --model "$MODEL" \
     --tasks "${OPTION_TASKS[@]}" \
     --data_root "$DATA_DIR" \

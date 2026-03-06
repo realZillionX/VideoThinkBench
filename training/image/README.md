@@ -2,6 +2,8 @@
 
 使用 DiffSynth-Studio 框架对 Qwen-Image-Edit-2511 模型进行 LoRA SFT 训练。
 
+以下命令默认在仓库根目录执行。
+
 ## 环境要求
 
 ```bash
@@ -16,7 +18,7 @@ pip install accelerate deepspeed
 
 ```bash
 # 将 VideoThinkBench 数据集转换为 DiffSynth-Studio 格式
-python -m data.tools.prepare_image_data \
+python3 scripts/prepare_image_data.py \
     --dataset_root /path/to/VideoThinkBench/dataset \
     --output_path ./data/metadata.json
 
@@ -30,7 +32,7 @@ python -m data.tools.prepare_image_data \
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
 # 启动训练
-bash train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset
+bash training/image/train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset
 
 # 可选参数:
 #   --output_dir ./outputs/train
@@ -58,7 +60,7 @@ bash train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset
 
 ```bash
 # 预检（少量样本）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality image \
     --dataset ./data/metadata.json \
     --model-path /path/to/model_base \
@@ -69,7 +71,7 @@ vtb eval infer \
     --output-dir ./outputs/precheck
 
 # 验证（批量样本）
-vtb eval infer \
+python3 cli.py eval infer \
     --modality image \
     --dataset ./data/metadata.json \
     --model-path /path/to/model_base \
@@ -80,7 +82,21 @@ vtb eval infer \
     --output-dir ./outputs/validate
 ```
 
-如需同时输出离线规则评测结果，可使用 `vtb eval run --with-offline --manifest /abs/path/canonical_manifest.jsonl`。
+如需同时输出离线规则评测结果，可使用以下命令。
+
+```bash
+python3 cli.py eval run \
+    --modality image \
+    --dataset ./data/metadata.json \
+    --model-path /path/to/model_base \
+    --lora ./outputs/train/Qwen-Image-Edit-2511_lora/epoch-4.safetensors \
+    --mode validate \
+    --num-samples 10 \
+    --diffsynth-path "${DIFFSYNTH_PATH}" \
+    --output-dir ./outputs/validate \
+    --with-offline \
+    --manifest /abs/path/canonical_manifest.jsonl
+```
 
 ## 输出格式
 

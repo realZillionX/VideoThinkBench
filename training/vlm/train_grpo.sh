@@ -15,4 +15,4 @@ export HF_DATASETS_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export MS_OFFLINE=1
 
-python "${SCRIPT_DIR}/train_grpo.py" "$@"
+python3 "${SCRIPT_DIR}/train_grpo.py" "$@"

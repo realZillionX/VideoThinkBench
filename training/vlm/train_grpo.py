@@ -3,7 +3,7 @@ VLM GRPO Training Script (Qwen3-VL)
 Using ms-swift GRPOTrainer with custom reward functions
 
 Usage:
-    python train_grpo.py \
+    python3 train_grpo.py \
         --model_path /path/to/Qwen3-VL-32B \
         --data_path train_grpo.jsonl \
         --output_dir output/grpo_qwen3_vl
