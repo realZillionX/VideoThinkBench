@@ -16,22 +16,20 @@ dependencies = [
 ]
 
 [project.scripts]
-videothinkbench = "vtb.cli:main"
-vtb = "vtb.cli:main"
+videothinkbench = "cli:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.packages.find]
 include = [
-    "vtb*",
-    "data",
-    "data.puzzle*",
-    "visual_puzzles",
-    "visual_puzzles.eval",
-    "visual_puzzles.gen_data",
+    "data*",
+    "evaluators*",
+    "tasks*",
+    "utils*",
 ]
-namespaces = true
+namespaces = false
 
 [tool.setuptools.package-data]
-visual_puzzles = ["assets/*", "fonts/*"]
+data.visual_puzzles = ["fonts/*", "example_data/*/*.json", "example_data/*/*.png"]
+evaluators.textcentric = ["config/*.yaml"]
