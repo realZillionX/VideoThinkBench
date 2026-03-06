@@ -14,7 +14,13 @@ def main() -> None:
     parser.add_argument("--dataset_root", type=str, default=None, help="Dataset root directory containing data.json files")
     parser.add_argument("--manifest", type=str, default=None, help="Canonical manifest path")
     parser.add_argument("--output_path", type=str, default="./dataset/train_video.csv")
-    parser.add_argument("--task_groups", type=str, nargs="+", default=["eyeballing", "maze"], choices=["eyeballing", "maze"])
+    parser.add_argument(
+        "--task_groups",
+        type=str,
+        nargs="+",
+        default=["eyeballing", "maze", "visual_puzzle"],
+        choices=["eyeballing", "maze", "visual_puzzle"],
+    )
 
     args = parser.parse_args()
 

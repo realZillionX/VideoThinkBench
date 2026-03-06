@@ -13,7 +13,10 @@ from vtb.utils.prompts import build_vlm_user_prompt
 def _solution_text(sample: CanonicalSample) -> str:
     if sample.task_group == "maze":
         return json.dumps(sample.answer.path_cell_ids or [], ensure_ascii=False)
-    return str(sample.answer.correct_option or "").strip().upper()
+    solution = str(sample.answer.correct_option or "").strip()
+    if sample.task_group == "eyeballing":
+        return solution.upper()
+    return solution
 
 
 def _build_entry(sample: CanonicalSample, mode: str) -> dict:

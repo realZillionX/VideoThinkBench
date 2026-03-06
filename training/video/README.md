@@ -96,10 +96,30 @@ bash train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/Vi
 
 ## 自动续训
 
-脚本支持自动从中断处恢复：
+脚本支持自动从中断处恢复，包括**完整的训练状态保存**：
+
+### 保存内容
+每个 checkpoint 保存时，除 LoRA 权重外，还会自动保存一个 `training_state_*.pt` 文件，包含：
+- **Optimizer 状态**（AdamW 的一阶/二阶动量估计）
+- **Scheduler 状态**
+- **Step counter**
+
+### 恢复行为
 - 自动检测 `output_path` 下最新的 checkpoint
-- 自动加载权重并恢复进度
+- 恢复 LoRA 权重 + Optimizer/Scheduler 状态 + Step counter
+- 以 **epoch 为粒度**恢复：如果在 epoch 中间中断，该 epoch 会从头重训（但 optimizer 状态已恢复，训练质量不受影响）
+- DataLoader 使用固定 seed，保证相同 epoch 的数据顺序可复现
 - 直接重新运行脚本即可
+
+### 输出文件结构
+```
+output/wan_lora/
+├── epoch-0.safetensors          # LoRA 权重
+├── training_state_epoch-0.pt    # 训练状态
+├── step-250.safetensors         # 步间 checkpoint
+├── training_state_step-250.pt   # 对应训练状态
+└── wan_train_logs/              # TensorBoard 日志
+```
 
 ## 推理预检与验证
 

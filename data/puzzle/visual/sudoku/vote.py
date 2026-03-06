@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-from puzzle.base import EvaluationPayloadReader, AbstractVoteSummarizer
+from data.puzzle.base import EvaluationPayloadReader, AbstractVoteSummarizer
 
 Position = Tuple[int, int]
 

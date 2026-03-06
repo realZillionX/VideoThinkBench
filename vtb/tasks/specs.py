@@ -45,6 +45,19 @@ MAZE_TASKS: List[str] = [
     "maze_labyrinth",
 ]
 
+VISUAL_PUZZLE_TASKS: List[str] = [
+    "color_grid",
+    "color_hexagon",
+    "color_overlap_squares",
+    "color_size",
+    "polygon_sides_color",
+    "rectangle_height_color",
+    "shape_reflect",
+    "shape_size_grid",
+    "size_cycle",
+    "size_grid",
+]
+
 
 def _camel_task(task_name: str) -> str:
     return "".join(chunk.capitalize() for chunk in task_name.split("_"))
@@ -58,6 +71,13 @@ def build_task_specs() -> Dict[str, TaskSpec]:
             group="eyeballing",
             module=f"data.puzzle.eyeballing.{task}.generator",
             class_name=f"{_camel_task(task)}Generator",
+        )
+    for task in VISUAL_PUZZLE_TASKS:
+        specs[task] = TaskSpec(
+            name=task,
+            group="visual_puzzle",
+            module="visual_puzzles.gen_data.data_generation",
+            class_name=f"{_camel_task(task)}Pattern",
         )
 
     specs["maze_square"] = TaskSpec(

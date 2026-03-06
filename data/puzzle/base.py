@@ -438,5 +438,4 @@ __all__ = [
     "EvaluationPayloadReader",
     "AbstractVoteSummarizer",
     "PathLike",
-    "transcribe_video",
 ]

@@ -7,10 +7,31 @@ name = "videothinkbench"
 version = "0.1.0"
 description = "VideoThinkBench unified data generation and evaluation toolkit"
 requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24.0",
+    "opencv-python>=4.8.0",
+    "Pillow>=10.0.0",
+    "requests>=2.31.0",
+    "tqdm>=4.66.0",
+]
 
 [project.scripts]
 videothinkbench = "vtb.cli:main"
 vtb = "vtb.cli:main"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
-include = ["vtb*"]
+include = [
+    "vtb*",
+    "data",
+    "data.puzzle*",
+    "visual_puzzles",
+    "visual_puzzles.eval",
+    "visual_puzzles.gen_data",
+]
+namespaces = true
+
+[tool.setuptools.package-data]
+visual_puzzles = ["assets/*", "fonts/*"]

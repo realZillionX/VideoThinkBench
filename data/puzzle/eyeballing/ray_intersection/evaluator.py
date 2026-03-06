@@ -54,7 +54,7 @@ class RayIntersectionEvaluator(PointTargetPuzzleEvaluator):
         return result
 
 
-__all__ = ["RayIntersectionEvaluator", "RayIntersectionEvaluationResult"]
+__all__ = ["RayIntersectionEvaluator"]
 
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:

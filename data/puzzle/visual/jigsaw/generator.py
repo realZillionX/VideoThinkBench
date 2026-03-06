@@ -10,7 +10,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import requests
 from PIL import Image
 
 from data.puzzle.base import AbstractPuzzleGenerator, PathLike
@@ -187,6 +186,10 @@ class JigsawGenerator(AbstractPuzzleGenerator[JigsawPuzzleRecord]):
             )
 
     def _download_image(self, url: str, *, timeout: int = 20) -> Image.Image:
+        try:
+            import requests
+        except Exception as exc:  # pragma: no cover - dependency missing
+            raise RuntimeError("requests is required to download source images for jigsaw puzzles.") from exc
         try:
             response = requests.get(url, timeout=timeout, proxies={})
             response.raise_for_status()

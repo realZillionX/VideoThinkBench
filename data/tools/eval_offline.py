@@ -8,13 +8,14 @@ from pathlib import Path
 from vtb.data.scan import filter_by_task_group, load_manifest
 from vtb.eval.offline.eyeballing import run_offline_eyeballing
 from vtb.eval.offline.maze import run_offline_maze
+from vtb.eval.offline.visual_puzzle import run_offline_visual_puzzle
 from vtb.eval.pipeline import write_eval_outputs
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="VideoThinkBench offline evaluation")
     parser.add_argument("--manifest", type=str, required=True)
-    parser.add_argument("--task_group", type=str, required=True, choices=["maze", "eyeballing"])
+    parser.add_argument("--task_group", type=str, required=True, choices=["maze", "eyeballing", "visual_puzzle"])
     parser.add_argument("--pred_root", type=str, required=True)
     parser.add_argument("--output_dir", type=str, required=True)
     args = parser.parse_args()
@@ -26,6 +27,8 @@ def main() -> None:
     samples = filter_by_task_group(load_manifest(manifest_path), [args.task_group])
     if args.task_group == "maze":
         records = run_offline_maze(samples, pred_root)
+    elif args.task_group == "visual_puzzle":
+        records = run_offline_visual_puzzle(samples, pred_root)
     else:
         records = run_offline_eyeballing(samples, pred_root)
 

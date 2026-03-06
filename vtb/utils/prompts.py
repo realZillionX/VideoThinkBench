@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from vtb.tasks.specs import VISUAL_PUZZLE_TASKS
+
 
 MAZE_TRAIN_PROMPT = "Draw a red path connecting two red dots without touching the black walls."
 
@@ -39,11 +41,13 @@ def build_vlm_user_prompt(prompt_train: str, mode: str) -> str:
 
 
 def detect_task_group(record: dict, puzzle_name: Optional[str] = None) -> Optional[str]:
+    task_type = str(record.get("task_type") or puzzle_name or "")
+    if task_type in VISUAL_PUZZLE_TASKS:
+        return "visual_puzzle"
     if "correct_option" in record:
         return "eyeballing"
     if "solution_path_cell_ids" in record:
         return "maze"
-    task_type = str(record.get("task_type") or puzzle_name or "")
     if task_type.startswith("maze"):
         return "maze"
     return None

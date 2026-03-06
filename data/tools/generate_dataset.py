@@ -15,7 +15,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="VideoThinkBench unified dataset generator")
     parser.add_argument("--output_dir", type=str, required=True, help="Root output directory")
     parser.add_argument("--tasks", nargs="+", default=["all"], help="Task names or all")
-    parser.add_argument("--task_groups", nargs="+", default=["eyeballing", "maze"], choices=["eyeballing", "maze"])
+    parser.add_argument(
+        "--task_groups",
+        nargs="+",
+        default=["eyeballing", "maze", "visual_puzzle"],
+        choices=["eyeballing", "maze", "visual_puzzle"],
+    )
     parser.add_argument("--exclude_tasks", nargs="+", default=[])
     parser.add_argument("--count", type=int, default=10)
     parser.add_argument("--num_workers", type=int, default=4)

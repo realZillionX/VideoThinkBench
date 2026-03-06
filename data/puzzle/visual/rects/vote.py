@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from puzzle.base import EvaluationPayloadReader, AbstractVoteSummarizer
+from data.puzzle.base import EvaluationPayloadReader, AbstractVoteSummarizer
 
 VOTE_SPOKEN=False
 

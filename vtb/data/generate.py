@@ -5,6 +5,7 @@ import importlib
 import inspect
 import json
 import multiprocessing as mp
+import random
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -87,7 +88,96 @@ def build_default_kwargs(spec: TaskSpec, args: argparse.Namespace, seed: Optiona
             seed=seed,
             video=args.video,
         )
+    elif spec.group == "visual_puzzle":
+        kwargs.update(
+            seed=seed,
+            target_size=(1280, 704),
+            unique=True,
+        )
     return kwargs
+
+
+def _generate_visual_puzzle_worker(
+    spec: TaskSpec,
+    output_dir: Path,
+    count: int,
+    kwargs: Dict[str, Any],
+) -> Dict[str, Any]:
+    module = importlib.import_module(spec.module)
+    pattern_class = load_generator_class(spec)
+
+    pattern_kwargs = dict(kwargs)
+    seed = pattern_kwargs.pop("seed", None)
+    target_size = tuple(pattern_kwargs.pop("target_size", (1280, 704)))
+    unique = bool(pattern_kwargs.pop("unique", True))
+
+    if seed is not None:
+        random.seed(seed)
+        try:
+            module.np.random.seed(seed)
+        except Exception:
+            pass
+
+    pattern = pattern_class(**pattern_kwargs)
+    module_root = Path(module.__file__).resolve().parents[1]
+    for attr_name in dir(pattern):
+        if not attr_name.startswith("path_"):
+            continue
+        raw_path = getattr(pattern, attr_name, None)
+        if not isinstance(raw_path, str) or not raw_path or Path(raw_path).is_absolute():
+            continue
+        setattr(pattern, attr_name, (module_root / raw_path).as_posix())
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    puzzles_dir = output_dir / "puzzles"
+    solutions_dir = output_dir / "solutions"
+    puzzles_dir.mkdir(parents=True, exist_ok=True)
+    solutions_dir.mkdir(parents=True, exist_ok=True)
+
+    samples: List[Dict[str, Any]] = []
+    seen = set()
+    question_idx = 0
+    attempts = 0
+    max_attempts = max(count * 100, 100)
+
+    while len(samples) < count:
+        attempts += 1
+        if attempts > max_attempts:
+            break
+
+        sample, puzzle_image, solution_image = pattern.make_sample()
+        if unique:
+            image_string = module.convert_image_to_text(puzzle_image)
+            if image_string in seen:
+                continue
+            seen.add(image_string)
+
+        sample = dict(sample)
+        sample["id"] = f"{spec.name}-{question_idx:02d}"
+        instruction = module.pattern_instructions[spec.name]
+        sample["prompt"] = f"{sample['question']} {instruction} {module.VIDEOGEN_INSTRUCTION_COMMON}"
+
+        puzzle_image = module.pad_image(puzzle_image, target_size=target_size)
+        solution_image = module.pad_image(solution_image, target_size=target_size)
+
+        image_path = puzzles_dir / f"{question_idx:02d}.png"
+        solution_path = solutions_dir / f"{question_idx:02d}.png"
+        puzzle_image.save(image_path)
+        solution_image.save(solution_path)
+
+        sample["image"] = image_path.relative_to(output_dir).as_posix()
+        sample["solution_image_path"] = solution_path.relative_to(output_dir).as_posix()
+        samples.append(sample)
+        question_idx += 1
+
+    metadata_path = output_dir / "data.json"
+    write_json(metadata_path, samples)
+    return {
+        "task": spec.name,
+        "worker_dir": output_dir.as_posix(),
+        "count": len(samples),
+        "metadata": metadata_path.as_posix(),
+    }
 
 
 def _prefixed_dest_name(worker_name: str, filename: str) -> str:
@@ -159,11 +249,27 @@ def _merge_worker_records(task_dir: Path, worker_dirs: Sequence[Path]) -> List[D
     return merged
 
 
+def _ensure_unique_record_ids(records: Sequence[Dict[str, Any]], task_name: str) -> List[Dict[str, Any]]:
+    unique_records: List[Dict[str, Any]] = []
+    seen_counts: Dict[str, int] = {}
+    for index, record in enumerate(records):
+        normalized = dict(record)
+        base_id = str(normalized.get("id") or f"{task_name}-{index:05d}")
+        duplicate_count = seen_counts.get(base_id, 0)
+        seen_counts[base_id] = duplicate_count + 1
+        normalized["id"] = base_id if duplicate_count == 0 else f"{base_id}__{duplicate_count:02d}"
+        unique_records.append(normalized)
+    return unique_records
+
+
 def _generate_worker(job: Dict[str, Any]) -> Dict[str, Any]:
     spec: TaskSpec = job["spec"]
     output_dir: Path = Path(job["output_dir"])
     count: int = int(job["count"])
     kwargs: Dict[str, Any] = dict(job["kwargs"])
+
+    if spec.group == "visual_puzzle":
+        return _generate_visual_puzzle_worker(spec, output_dir, count, kwargs)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     generator_class = load_generator_class(spec)
@@ -255,7 +361,7 @@ def run_generation(args: argparse.Namespace) -> Dict[str, Any]:
                     results.append(result)
 
         worker_dirs = [Path(item["worker_dir"]) for item in results]
-        merged_records = _merge_worker_records(task_dir, worker_dirs)
+        merged_records = _ensure_unique_record_ids(_merge_worker_records(task_dir, worker_dirs), task)
 
         merged_metadata = task_dir / "data.json"
         write_json(merged_metadata, merged_records)
@@ -303,10 +409,15 @@ def run_generation(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def build_parser(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser("generate", help="Generate maze/eyeballing datasets and canonical manifest")
+    parser = subparsers.add_parser("generate", help="Generate puzzle datasets and canonical manifest")
     parser.add_argument("--output-root", type=str, required=True)
     parser.add_argument("--tasks", nargs="+", default=["all"], help="Task names or all")
-    parser.add_argument("--task-groups", nargs="+", default=["eyeballing", "maze"], choices=["eyeballing", "maze"])
+    parser.add_argument(
+        "--task-groups",
+        nargs="+",
+        default=["eyeballing", "maze", "visual_puzzle"],
+        choices=["eyeballing", "maze", "visual_puzzle"],
+    )
     parser.add_argument("--exclude-tasks", nargs="+", default=[])
     parser.add_argument("--count", type=int, default=10)
     parser.add_argument("--num-workers", type=int, default=4)

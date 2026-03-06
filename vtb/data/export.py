@@ -18,7 +18,12 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
         required=True,
         choices=["ms-swift", "diffsynth-image", "diffsynth-video"],
     )
-    parser.add_argument("--task-groups", nargs="+", default=["eyeballing", "maze"], choices=["eyeballing", "maze"])
+    parser.add_argument(
+        "--task-groups",
+        nargs="+",
+        default=["eyeballing", "maze", "visual_puzzle"],
+        choices=["eyeballing", "maze", "visual_puzzle"],
+    )
 
     parser.add_argument("--output-dir", type=str, default=None, help="Output directory for ms-swift target")
     parser.add_argument("--mode", type=str, default="sft,grpo", help="Modes for ms-swift target")

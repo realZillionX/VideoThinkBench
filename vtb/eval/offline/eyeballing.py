@@ -9,6 +9,24 @@ from vtb.schemas import CanonicalSample, EvalRecord
 from vtb.utils.nato import extract_first_nato_letter
 
 
+def _eyeballing_evaluator_class(task_type: str):
+    if task_type == "arc_connect":
+        from data.puzzle.eyeballing.arc_connect.evaluator import ArcConnectEvaluator as EvaluatorClass
+
+        return EvaluatorClass
+    if task_type == "ray":
+        from data.puzzle.eyeballing.ray.evaluator import RayEvaluator as EvaluatorClass
+
+        return EvaluatorClass
+    if task_type == "ray_intersection":
+        from data.puzzle.eyeballing.ray_intersection.evaluator import RayIntersectionEvaluator as EvaluatorClass
+
+        return EvaluatorClass
+    from data.puzzle.point_target_base import PointTargetPuzzleEvaluator as EvaluatorClass
+
+    return EvaluatorClass
+
+
 def _normalize_option(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
@@ -41,13 +59,8 @@ def _aggregate_option(metrics: Dict[str, Optional[str]]) -> Optional[str]:
 
 
 def run_offline_eyeballing(samples: Sequence[CanonicalSample], pred_root: Path) -> List[EvalRecord]:
-    try:
-        from data.puzzle.point_target_base import PointTargetPuzzleEvaluator
-    except Exception as exc:  # pragma: no cover
-        raise RuntimeError("Point-target evaluator dependencies are missing.") from exc
-
     records: List[EvalRecord] = []
-    evaluator_cache: Dict[str, object] = {}
+    evaluator_cache: Dict[tuple[str, str], object] = {}
 
     for sample in samples:
         record = EvalRecord(
@@ -65,17 +78,21 @@ def run_offline_eyeballing(samples: Sequence[CanonicalSample], pred_root: Path) 
             if not metadata_path.exists():
                 raise FileNotFoundError(f"Metadata not found: {metadata_path}")
 
-            evaluator = evaluator_cache.get(metadata_path.as_posix())
+            cache_key = (sample.task_type, metadata_path.as_posix())
+            evaluator = evaluator_cache.get(cache_key)
             if evaluator is None:
+                evaluator_class = _eyeballing_evaluator_class(sample.task_type)
                 task_dir = sample.source.get("task_dir")
                 base_dir = Path(task_dir).expanduser().resolve() if task_dir else metadata_path.parent
-                evaluator = PointTargetPuzzleEvaluator(metadata_path, base_dir=base_dir)
-                evaluator_cache[metadata_path.as_posix()] = evaluator
+                evaluator = evaluator_class(metadata_path, base_dir=base_dir)
+                evaluator_cache[cache_key] = evaluator
 
             try:
                 result = evaluator.evaluate(sample.id, candidate_image)
                 metrics = result.to_dict() if hasattr(result, "to_dict") else dict(result)
             except FileNotFoundError:
+                if not hasattr(evaluator, "image_option_from_path"):
+                    raise
                 puzzle = evaluator.get_record(sample.id)
                 image_option, red_pixel_count, red_centroid = evaluator.image_option_from_path(candidate_image, puzzle)
                 metrics = {
@@ -89,9 +106,15 @@ def run_offline_eyeballing(samples: Sequence[CanonicalSample], pred_root: Path) 
                     "red_centroid": red_centroid,
                     "attempt_dir": candidate_image.parent.as_posix(),
                 }
-            aggregated = _aggregate_option(metrics)
+            if "predicted_option" in metrics:
+                aggregated = _normalize_option(metrics.get("predicted_option"))
+            else:
+                aggregated = _aggregate_option(metrics)
             correct = _normalize_option(metrics.get("correct_option"))
-            offline_pass = bool(aggregated and correct and aggregated == correct)
+            if isinstance(metrics.get("is_correct"), bool):
+                offline_pass = bool(metrics["is_correct"])
+            else:
+                offline_pass = bool(aggregated and correct and aggregated == correct)
 
             metrics["aggregated_option"] = aggregated
             metrics["normalized_correct_option"] = correct

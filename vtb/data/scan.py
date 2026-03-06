@@ -43,6 +43,11 @@ def build_canonical_sample(
         if not isinstance(path_ids, list):
             return None
         answer = CanonicalAnswer(path_cell_ids=[int(item) for item in path_ids])
+    elif task_group == "visual_puzzle":
+        answer_text = str(record.get("answer") or "").strip()
+        if not answer_text:
+            return None
+        answer = CanonicalAnswer(correct_option=answer_text)
     else:
         correct_option = str(record.get("correct_option") or "").strip().upper()
         if len(correct_option) != 1:

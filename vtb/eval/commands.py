@@ -10,6 +10,7 @@ from vtb.eval.infer.video import run_video_infer
 from vtb.eval.infer.vlm import run_vlm_infer
 from vtb.eval.offline.eyeballing import run_offline_eyeballing
 from vtb.eval.offline.maze import run_offline_maze
+from vtb.eval.offline.visual_puzzle import run_offline_visual_puzzle
 from vtb.eval.pipeline import write_eval_outputs
 from vtb.schemas import EvalRecord
 
@@ -20,7 +21,7 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
 
     offline = eval_subparsers.add_parser("offline", help="Run offline evaluators")
     offline.add_argument("--manifest", type=str, required=True)
-    offline.add_argument("--task-group", type=str, required=True, choices=["maze", "eyeballing"])
+    offline.add_argument("--task-group", type=str, required=True, choices=["maze", "eyeballing", "visual_puzzle"])
     offline.add_argument("--pred-root", type=str, required=True)
     offline.add_argument("--output-dir", type=str, required=True)
     offline.set_defaults(func=_cmd_eval_offline)
@@ -59,6 +60,8 @@ def _run_offline(task_group: str, manifest_path: Path, pred_root: Path) -> List[
     target_samples = filter_by_task_group(samples, [task_group])
     if task_group == "maze":
         return run_offline_maze(target_samples, pred_root)
+    if task_group == "visual_puzzle":
+        return run_offline_visual_puzzle(target_samples, pred_root)
     return run_offline_eyeballing(target_samples, pred_root)
 
 
@@ -161,6 +164,8 @@ def _cmd_eval_run(args: argparse.Namespace) -> None:
                 offline_records.extend(run_offline_maze(filter_by_task_group(samples, [group]), pred_root))
             elif group == "eyeballing":
                 offline_records.extend(run_offline_eyeballing(filter_by_task_group(samples, [group]), pred_root))
+            elif group == "visual_puzzle":
+                offline_records.extend(run_offline_visual_puzzle(filter_by_task_group(samples, [group]), pred_root))
         records = _merge_offline_into_infer(records, offline_records)
 
     summary = write_eval_outputs(output_dir, records)

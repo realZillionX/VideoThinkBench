@@ -1,4 +1,5 @@
-import torch, os, argparse, accelerate, warnings
+import torch, os, argparse, accelerate, warnings, random
+import numpy as np
 from tqdm import tqdm
 from diffsynth.core import UnifiedDataset
 from diffsynth.core.data.operators import LoadVideo, LoadAudio, ImageCropAndResize, ToAbsolutePath
@@ -109,6 +110,96 @@ class WanTrainingModule(DiffusionTrainingModule):
         return loss
 
 
+def _save_training_state(accelerator, optimizer, scheduler, model_logger, output_path, tag):
+    """Save optimizer, scheduler, and step counter alongside LoRA checkpoint.
+
+    Uses accelerator.save_state() when DeepSpeed is active (ZeRO shards the
+    optimizer across ranks, so a plain state_dict() on one rank is incomplete).
+    Falls back to manual torch.save() for single-GPU / DDP runs.
+    """
+    accelerator.wait_for_everyone()
+    state_dir = os.path.join(output_path, f"training_state_{tag}")
+    try:
+        # accelerator.save_state persists model, optimizer, scheduler, RNG,
+        # and GradScaler in a directory, with all ranks participating.
+        accelerator.save_state(output_dir=state_dir)
+    except Exception as e:
+        if accelerator.is_main_process:
+            print(f"[Resume] WARNING: accelerator.save_state failed ({e}), falling back to manual save.")
+        if accelerator.is_main_process:
+            os.makedirs(state_dir, exist_ok=True)
+            torch.save({
+                "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
+            }, os.path.join(state_dir, "manual_state.pt"))
+    # Always save step counter as a simple file (all strategies need this).
+    if accelerator.is_main_process:
+        os.makedirs(state_dir, exist_ok=True)
+        torch.save({"num_steps": model_logger.num_steps}, os.path.join(state_dir, "step_counter.pt"))
+        print(f"[Resume] Saved training state → {state_dir} (step={model_logger.num_steps})")
+
+
+def _load_training_state(accelerator, optimizer, scheduler, model_logger, state_dir):
+    """Restore optimizer, scheduler, and step counter from saved state.
+
+    Returns True only if ALL components were successfully restored.
+    Returns False if any critical component failed — caller should treat
+    this as a fresh-start scenario.
+    """
+    if not os.path.isdir(state_dir):
+        if accelerator.is_main_process:
+            print(f"[Resume] Training state dir not found: {state_dir} — optimizer starts fresh.")
+        return False
+
+    success = True
+
+    # Restore step counter first (always available).
+    step_file = os.path.join(state_dir, "step_counter.pt")
+    if os.path.exists(step_file):
+        step_data = torch.load(step_file, map_location="cpu", weights_only=False)
+        model_logger.num_steps = step_data.get("num_steps", 0)
+        if accelerator.is_main_process:
+            print(f"[Resume] Step counter restored: num_steps={model_logger.num_steps}")
+    else:
+        if accelerator.is_main_process:
+            print(f"[Resume] WARNING: step_counter.pt not found in {state_dir}")
+        success = False
+
+    # Try accelerator.load_state (handles DeepSpeed ZeRO correctly).
+    try:
+        accelerator.load_state(input_dir=state_dir)
+        if accelerator.is_main_process:
+            print(f"[Resume] Optimizer + scheduler restored via accelerator.load_state from {state_dir}")
+    except Exception as e:
+        if accelerator.is_main_process:
+            print(f"[Resume] WARNING: accelerator.load_state failed ({e}), trying manual fallback.")
+        # Fallback to manual restore.
+        manual_path = os.path.join(state_dir, "manual_state.pt")
+        if os.path.exists(manual_path):
+            state = torch.load(manual_path, map_location="cpu", weights_only=False)
+            try:
+                optimizer.load_state_dict(state["optimizer"])
+                scheduler.load_state_dict(state["scheduler"])
+                if accelerator.is_main_process:
+                    print(f"[Resume] Optimizer + scheduler restored via manual fallback.")
+            except Exception as e2:
+                if accelerator.is_main_process:
+                    print(f"[Resume] CRITICAL: Manual optimizer restore also failed: {e2}")
+                success = False
+        else:
+            if accelerator.is_main_process:
+                print(f"[Resume] CRITICAL: No manual fallback found, optimizer starts fresh.")
+            success = False
+
+    return success
+
+
+def _seed_dataloader_worker(_worker_id):
+    worker_seed = torch.initial_seed() % (2 ** 32)
+    random.seed(worker_seed)
+    np.random.seed(worker_seed)
+
+
 def launch_training_task_resume(
     accelerator: accelerate.Accelerator,
     dataset: torch.utils.data.Dataset,
@@ -127,66 +218,104 @@ def launch_training_task_resume(
         num_workers = args.dataset_num_workers
         save_steps = args.save_steps
         num_epochs = args.num_epochs
-    
-    # Custom: Get resume info from args
+
+    # --- Resume info from args ---
     start_epoch = getattr(args, "start_epoch", 0)
     resume_step = getattr(args, "resume_step", None)
-    
+
     optimizer = torch.optim.AdamW(model.trainable_modules(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer)
-    dataloader = torch.utils.data.DataLoader(dataset, shuffle=True, collate_fn=lambda x: x[0], num_workers=num_workers)
-    
+    data_seed = getattr(args, "seed", 42)
+    if data_seed is None:
+        data_seed = 42
+
+    # Fix: Use a seeded generator so shuffle order is reproducible per epoch.
+    # Combined with set_epoch-style seeding in the loop, this makes
+    # data ordering deterministic for the same epoch even after restart.
+    shuffle_generator = torch.Generator()
+    shuffle_generator.manual_seed(data_seed)
+    dataloader = torch.utils.data.DataLoader(
+        dataset, shuffle=True, collate_fn=lambda x: x[0],
+        num_workers=num_workers, generator=shuffle_generator,
+        worker_init_fn=_seed_dataloader_worker,
+    )
+
     model, optimizer, dataloader, scheduler = accelerator.prepare(model, optimizer, dataloader, scheduler)
-    
-    # Calculate step offset for visual continuity
+
     steps_per_epoch = len(dataloader)
-    resume_step_in_epoch = 0
-    if resume_step is not None:
-        # If explicitly resuming from step N, set num_steps to N
+    if steps_per_epoch == 0:
+        raise ValueError("[Resume] DataLoader is empty (0 steps per epoch). Check dataset path and metadata.")
+
+    # --- Restore optimizer/scheduler state if checkpoint exists ---
+    if args is not None and getattr(args, "lora_checkpoint", None) is not None:
+        ckpt_path = args.lora_checkpoint
+        ckpt_dir = os.path.dirname(ckpt_path)
+        ckpt_basename = os.path.basename(ckpt_path)
+        # Derive training state dir from the LoRA checkpoint name
+        # e.g., "step-500.safetensors" → "training_state_step-500/"
+        #        "epoch-2.safetensors"  → "training_state_epoch-2/"
+        tag = ckpt_basename.replace(".safetensors", "")
+        state_dir = os.path.join(ckpt_dir, f"training_state_{tag}")
+        restored = _load_training_state(accelerator, optimizer, scheduler, model_logger, state_dir)
+        if not restored and accelerator.is_main_process:
+            print(f"[Resume] WARNING: Training state restore failed. LoRA weights loaded but optimizer is fresh.")
+            print(f"[Resume]          Training will continue but convergence may be affected.")
+        if not restored:
+            start_epoch = 0
+            resume_step = None
+            model_logger.num_steps = 0
+            if accelerator.is_main_process:
+                print("[Resume] Resetting progress to epoch 0 / step 0 because training state restore was incomplete.")
+
+    # --- Determine start position ---
+    # The dataloader uses a deterministic epoch seed, so we can resume at
+    # batch granularity by consuming the already-finished batches in the
+    # first resumed epoch and continuing with the restored optimizer state.
+    if resume_step is not None and model_logger.num_steps == 0:
+        # Only set if _load_training_state didn't already restore it
         model_logger.num_steps = resume_step
-        if start_epoch == 0:
-            start_epoch = resume_step // steps_per_epoch
-            if accelerator.is_main_process:
-                print(f"Estimated resume epoch based on step {resume_step}: Epoch {start_epoch}")
-        resume_step_in_epoch = resume_step - start_epoch * steps_per_epoch
-        if resume_step_in_epoch < 0:
-            if accelerator.is_main_process:
-                print(f"Warning: resume_step ({resume_step}) is smaller than start_epoch ({start_epoch}). Resetting resume_step_in_epoch to 0.")
-            resume_step_in_epoch = 0
-        if resume_step_in_epoch >= steps_per_epoch:
-            extra_epochs = resume_step_in_epoch // steps_per_epoch
-            start_epoch += extra_epochs
-            resume_step_in_epoch = resume_step_in_epoch % steps_per_epoch
-    elif start_epoch > 0:
-        # If resuming from epoch but no step info, estimate steps
-        estimated_steps = start_epoch * steps_per_epoch
-        model_logger.num_steps = estimated_steps
+    resume_step_in_epoch = 0
+    if start_epoch == 0 and resume_step is not None:
+        start_epoch = resume_step // steps_per_epoch
+        resume_step_in_epoch = resume_step % steps_per_epoch
+        if accelerator.is_main_process:
+            print(f"[Resume] Estimated start_epoch={start_epoch} from resume_step={resume_step}")
+    elif start_epoch == 0 and model_logger.num_steps > 0:
+        # Step counter was restored from training state, derive epoch
+        start_epoch = model_logger.num_steps // steps_per_epoch
+        resume_step_in_epoch = model_logger.num_steps % steps_per_epoch
+        if accelerator.is_main_process:
+            print(f"[Resume] Derived start_epoch={start_epoch} from restored num_steps={model_logger.num_steps}")
+    elif start_epoch > 0 and model_logger.num_steps == 0:
+        model_logger.num_steps = start_epoch * steps_per_epoch
+        if accelerator.is_main_process:
+            print(f"[Resume] start_epoch explicitly set to {start_epoch}; initializing step counter to {model_logger.num_steps}.")
 
-    if accelerator.is_main_process and (start_epoch > 0 or resume_step_in_epoch > 0):
-        print(f"Resuming training loop from Epoch {start_epoch} (Step {model_logger.num_steps})")
+    if accelerator.is_main_process and start_epoch > 0:
+        print(f"[Resume] Starting from Epoch {start_epoch}, step counter = {model_logger.num_steps}")
+    if accelerator.is_main_process and resume_step_in_epoch > 0:
+        print(f"[Resume] Will skip {resume_step_in_epoch} already-finished batches in epoch {start_epoch}.")
 
+    # --- Training loop ---
     for epoch_id in range(start_epoch, num_epochs):
-        if resume_step_in_epoch > 0 and epoch_id == start_epoch:
-            if accelerator.is_main_process:
-                print(f"Skipping {resume_step_in_epoch} steps to align resume position within epoch {epoch_id}.")
-            dataloader_iter = iter(dataloader)
-            skipped = 0
-            while skipped < resume_step_in_epoch:
-                try:
-                    next(dataloader_iter)
-                except StopIteration:
-                    break
-                skipped += 1
-            if skipped != resume_step_in_epoch and accelerator.is_main_process:
-                print(f"Warning: Only skipped {skipped} steps; dataloader exhausted earlier than expected.")
-            data_iter = dataloader_iter
-            progress = tqdm(data_iter, total=steps_per_epoch, initial=skipped)
-        else:
-            progress = tqdm(dataloader, total=steps_per_epoch)
-        for data in progress:
+        # Re-seed the shuffle generator for this epoch so data order
+        # is epoch-dependent but reproducible across restarts.
+        shuffle_generator.manual_seed(data_seed + epoch_id)
+        # If accelerate wrapped the dataloader with a DistributedSampler,
+        # set_epoch ensures proper shard rotation across processes.
+        if hasattr(dataloader, "set_epoch"):
+            dataloader.set_epoch(epoch_id)
+
+        skip_batches = resume_step_in_epoch if epoch_id == start_epoch else 0
+        progress = tqdm(enumerate(dataloader), total=steps_per_epoch,
+                        desc=f"Epoch {epoch_id}/{num_epochs-1}")
+        for batch_id, data in progress:
+            if batch_id < skip_batches:
+                progress.set_postfix(step=model_logger.num_steps, skip=f"{batch_id + 1}/{skip_batches}")
+                continue
             with accelerator.accumulate(model):
                 optimizer.zero_grad()
-                if dataset.load_from_cache:
+                if getattr(dataset, "load_from_cache", False):
                     loss = model({}, inputs=data)
                 else:
                     loss = model(data)
@@ -194,11 +323,34 @@ def launch_training_task_resume(
                 optimizer.step()
                 model_logger.on_step_end(accelerator, model, save_steps, loss=loss)
                 accelerator.log({"train_loss": loss.item()}, step=model_logger.num_steps)
+                progress.set_postfix(loss=f"{loss.item():.4f}", step=model_logger.num_steps)
                 scheduler.step()
+
+                # Save training state alongside every step-based checkpoint.
+                if save_steps is not None and model_logger.num_steps % save_steps == 0:
+                    _save_training_state(
+                        accelerator, optimizer, scheduler, model_logger,
+                        model_logger.output_path, f"step-{model_logger.num_steps}",
+                    )
+        resume_step_in_epoch = 0
+
+        # Save training state at end of each epoch.
         if save_steps is None:
             model_logger.on_epoch_end(accelerator, model, epoch_id)
-        resume_step_in_epoch = 0
+        _save_training_state(
+            accelerator, optimizer, scheduler, model_logger,
+            model_logger.output_path, f"epoch-{epoch_id}",
+        )
+
     model_logger.on_training_end(accelerator, model, save_steps)
+    # If on_training_end saved a final step checkpoint (when num_steps
+    # is not aligned with save_steps), also save the corresponding
+    # training state so it can be used for future resume.
+    if save_steps is not None and model_logger.num_steps % save_steps != 0:
+        _save_training_state(
+            accelerator, optimizer, scheduler, model_logger,
+            model_logger.output_path, f"step-{model_logger.num_steps}",
+        )
 
 
 def wan_parser():
@@ -249,12 +401,30 @@ if __name__ == "__main__":
             except OSError:
                 continue
             kind, idx = parsed
-            candidates.append((mtime, idx, kind, full_path))
+            # Check if a matching training_state directory exists.
+            tag = file.replace(".safetensors", "")
+            state_dir = os.path.join(output_path, f"training_state_{tag}")
+            has_state = os.path.isdir(state_dir)
+            progress = None
+            if has_state:
+                step_file = os.path.join(state_dir, "step_counter.pt")
+                if os.path.exists(step_file):
+                    try:
+                        step_data = torch.load(step_file, map_location="cpu", weights_only=False)
+                        progress = int(step_data.get("num_steps", 0))
+                    except Exception:
+                        progress = None
+            candidates.append((has_state, progress if progress is not None else -1, mtime, idx, kind, full_path))
         if not candidates:
             return None
-        candidates.sort(key=lambda x: (x[0], x[1]))
-        mtime, idx, kind, full_path = candidates[-1]
-        return {"path": full_path, "kind": kind, "index": idx, "mtime": mtime}
+        # Prefer checkpoints WITH matching training state; among those, pick
+        # the highest recorded global step, then fall back to filesystem time.
+        candidates.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
+        has_state, progress, mtime, idx, kind, full_path = candidates[-1]
+        if not has_state:
+            print(f"[Auto Resume] WARNING: No checkpoint has a matching training_state directory. "
+                  f"Optimizer will start fresh.")
+        return {"path": full_path, "kind": kind, "index": idx, "mtime": mtime, "progress": progress}
 
     def _apply_resume_from_ckpt(args, ckpt_info, reason):
         if ckpt_info is None:
