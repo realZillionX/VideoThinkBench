@@ -24,6 +24,7 @@
     {
       "root": ".",
       "extraPaths": [
+        ".",
         "/Users/zillionx/Desktop/video-reason/ms-swift",
         "/Users/zillionx/Desktop/video-reason/DiffSynth-Studio"
       ]
