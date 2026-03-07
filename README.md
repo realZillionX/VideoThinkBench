@@ -310,7 +310,6 @@ VideoThinkBench/
 │   └── scan.py                   # Canonical manifest builder
 ├── training/                     # Video / Image / VLM training scripts
 ├── core/                         # Shared schemas, paths, I/O & prompt utilities
-├── tests/                        # Unit tests
 ├── cli.py                        # Unified CLI entry point
 ├── pyproject.toml
 └── requirements.txt
