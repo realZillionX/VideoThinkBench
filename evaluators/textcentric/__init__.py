@@ -1,1 +1,0 @@
-"""TextCentric evaluators."""

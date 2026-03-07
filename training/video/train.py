@@ -202,7 +202,7 @@ def _seed_dataloader_worker(_worker_id):
 
 def launch_training_task_resume(
     accelerator: accelerate.Accelerator,
-    dataset: torch.utils.data.Dataset,
+    dataset: torch.core.data.Dataset,
     model: DiffusionTrainingModule,
     model_logger: ModelLogger,
     learning_rate: float = 1e-5,
@@ -234,7 +234,7 @@ def launch_training_task_resume(
     # data ordering deterministic for the same epoch even after restart.
     shuffle_generator = torch.Generator()
     shuffle_generator.manual_seed(data_seed)
-    dataloader = torch.utils.data.DataLoader(
+    dataloader = torch.core.data.DataLoader(
         dataset, shuffle=True, collate_fn=lambda x: x[0],
         num_workers=num_workers, generator=shuffle_generator,
         worker_init_fn=_seed_dataloader_worker,

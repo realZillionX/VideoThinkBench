@@ -11,10 +11,10 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from data.scan import filter_by_task_group, load_manifest
-from evaluators.offline.eyeballing import run_offline_eyeballing
-from evaluators.offline.maze import run_offline_maze
-from evaluators.offline.visual_puzzle import run_offline_visual_puzzle
-from evaluators.pipeline import write_eval_outputs
+from evaluation.offline.eyeballing import run_offline_eyeballing
+from evaluation.offline.maze import run_offline_maze
+from evaluation.offline.visual_puzzle import run_offline_visual_puzzle
+from evaluation.pipeline import write_eval_outputs
 
 
 def main() -> None:

@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Iterable, List, Sequence
 
 from data.scan import filter_by_task_group
-from utils.schemas import CanonicalSample
-from utils.io import write_jsonl
-from utils.prompts import build_vlm_user_prompt
+from core.schemas import CanonicalSample
+from core.io import write_jsonl
+from core.prompts import build_vlm_user_prompt
 
 
 def _solution_text(sample: CanonicalSample) -> str:

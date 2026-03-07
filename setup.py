@@ -16,17 +16,16 @@ setup(
     packages=find_packages(
         include=[
             "data*",
-            "evaluators*",
-            "tasks*",
+            "evaluation*",
             "training*",
-            "utils*",
+            "core*",
         ]
     ),
     py_modules=["cli"],
     include_package_data=True,
     package_data={
-        "data.visual_puzzles": ["fonts/*", "example_data/*/*.json", "example_data/*/*.png"],
-        "evaluators.textcentric": ["config/*.yaml"],
+        "data.visioncentric.visual_puzzles": ["fonts/*", "example_data/*/*.json", "example_data/*/*.png"],
+        "evaluation.textcentric": ["config/*.yaml"],
     },
     entry_points={
         "console_scripts": [

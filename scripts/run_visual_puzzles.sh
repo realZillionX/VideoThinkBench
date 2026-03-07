@@ -1,4 +1,4 @@
-DATA_DIR=data/visual_puzzles/example_data
+DATA_DIR=data/visioncentric/visual_puzzles/example_data
 # DATA_DIR=minitest
 
 API_KEY="YOUR_API_KEY_HERE"
@@ -7,7 +7,7 @@ API_KEY="YOUR_API_KEY_HERE"
 MODEL=veo_3_1-landscape
 OUTPUT_DIR=output/veo_3_1-landscape
 
-python3 evaluators/infer/request_videos.py \
+python3 evaluation/infer/request_videos.py \
     --model $MODEL \
     --tasks color_size \
     --data_root $DATA_DIR \
@@ -22,7 +22,7 @@ python3 evaluators/infer/request_videos.py \
     --direct_max_poll_attempts 60 \
     --direct_request_timeout 180
 
-# python3 evaluators/infer/request_videos.py \
+# python3 evaluation/infer/request_videos.py \
 #     --model $MODEL \
 #     --tasks color_size size_grid color_grid color_hexagon color_overlap_squares polygon_sides_color rectangle_height_color shape_reflect shape_size_grid size_cycle \
 #     --data_root $DATA_DIR \

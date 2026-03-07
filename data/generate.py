@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from data.scan import build_canonical_sample, dedup_samples, write_manifest
-from tasks.specs import TASK_SPECS, TaskSpec, resolve_requested_tasks
-from utils.io import read_json, write_json
+from data.registry import TASK_SPECS, TaskSpec, resolve_requested_tasks
+from core.io import read_json, write_json
 
 
 def load_generator_class(spec: TaskSpec):

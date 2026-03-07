@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 from dataclasses import dataclass
 
-from utils.nato import extract_first_nato_letter
+from core.nato import extract_first_nato_letter
 
 PathLike = Union[str, Path]
 RecordT = TypeVar("RecordT")
@@ -90,7 +90,7 @@ class AbstractPuzzleGenerator(ABC, Generic[RecordT]):
 
 
 class AbstractPuzzleEvaluator(ABC):
-    """Base class scaffolding for puzzle evaluators."""
+    """Base class scaffolding for puzzle evaluation."""
     
     @dataclass
     class OptionEvaluationResult:

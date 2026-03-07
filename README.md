@@ -1,92 +1,101 @@
 # VideoThinkBench
 
-VideoThinkBench 是围绕 VideoThinkBench 评测基准的数据工程与训练工程一体化仓库。
+VideoThinkBench 是面向 `Thinking with Video` 后续实验的数据、评测与训练底座仓库。
+
+它不再简单复刻旧仓库 `Thinking-with-Video/` 的目录结构，而是把公开基准任务、训练数据导出、整 Bench 级评测与后续微调流程统一到了同一套工程里。
 
 ## 仓库结构
 
-```
+```text
 VideoThinkBench/
-├── docs/                   # 项目文档（背景、资源、指南）
-├── data/                   # 数据生成器 + 导出器
-│   ├── eyeballing/         # 23 种几何精度任务（画线/画点）
-│   ├── maze/               # 3 种迷宫（方形、六角形、迷宫型）
-│   ├── visual/             # VLMPuzzle 视觉任务（arcagi、sudoku 等）
-│   ├── visual_puzzles/     # 10 种模式匹配（色彩/形状/大小）
-│   ├── textcentric/        # Text-Centric 推理（Sora-2 视频请求）
-│   ├── exporters/          # 导出器（ms-swift / DiffSynth）
-│   ├── generate.py         # 统一数据生成入口
-│   ├── export.py           # 统一数据导出入口
-│   └── scan.py             # Manifest 扫描
-├── evaluators/             # 评测代码
-│   ├── offline/            # 离线规则评测（maze / eyeballing / visual_puzzle）
-│   ├── infer/              # 推理评测（video / image / vlm）
-│   ├── textcentric/        # LLM-as-judge 文本推理评测
-│   ├── frame_matching/     # 视频帧匹配评测
-│   ├── commands.py         # CLI 子命令注册
-│   └── pipeline.py         # 统一评测管线
-├── training/               # 训练脚本
-│   ├── video/              # Wan2.2 视频生成 LoRA 微调
-│   ├── image/              # Qwen-Image 图像编辑微调
-│   └── vlm/                # Qwen3-VL SFT + GRPO
-├── tasks/                  # 任务注册表（36 个任务）
-├── utils/                  # 通用工具
-├── scripts/                # Shell + 兼容入口脚本
-├── cli.py                  # 统一 CLI 入口
+├── docs/                         # 面向公开使用者的说明文档
+├── data/                         # 数据生成、任务注册、导出与 Manifest
+│   ├── visioncentric/
+│   │   ├── eyeballing/           # 23 个几何精度任务
+│   │   ├── maze/                 # 3 个迷宫任务
+│   │   ├── visual_puzzles/       # 10 个模式匹配任务
+│   │   └── legacy/               # 旧仓库遗留任务，暂未接入统一主线
+│   ├── textcentric/              # Text-Centric 独立流程
+│   ├── exporters/                # ms-swift / DiffSynth 导出器
+│   ├── registry.py               # 统一任务注册表
+│   ├── generate.py               # 统一数据生成入口
+│   ├── export.py                 # 统一数据导出入口
+│   └── scan.py                   # Canonical Manifest 构建与扫描
+├── evaluation/                   # 整 Bench 级推理、离线评测与汇总
+│   ├── infer/
+│   ├── offline/
+│   ├── textcentric/
+│   ├── frame_matching/
+│   ├── commands.py
+│   └── pipeline.py
+├── training/                     # Video / Image / VLM 训练脚本
+├── core/                         # 共享 Schema、路径、I/O 与 Prompt 工具
+├── scripts/                      # 兼容旧命令路径的薄包装脚本
+├── cli.py                        # 统一 CLI 入口
 ├── pyproject.toml
 └── requirements.txt
 ```
 
+## 当前支持状态
+
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| Vision-Centric 统一主线 | 稳定 | 已统一到 `Canonical Manifest` 与 `cli.py` |
+| Text-Centric | 独立流程 | 仍保留请求视频与音视频评测链路，尚未并入统一 Manifest 主线 |
+| Legacy 任务 | 保留但不主推 | 来源于旧 `VisionCentric`，用于归档与后续选择性恢复 |
+
 ## 快速开始
 
 ```bash
-# 安装
 python3 -m pip install -e .
-
-# CLI
 python3 cli.py --help
 ```
 
-## 数据生成
+## 常用命令
 
 ```bash
-python3 cli.py data generate --tasks all --count 100 --output-root /path/to/output --num-workers 8
-```
+# 生成统一数据集与 canonical manifest
+python3 cli.py data generate \
+  --tasks all \
+  --count 100 \
+  --output-root /path/to/output \
+  --num-workers 8
 
-## 数据导出
+# 导出为 ms-swift 数据
+python3 cli.py data export \
+  --manifest /path/to/canonical_manifest.jsonl \
+  --target ms-swift \
+  --output-dir /path/to/export/vlm
 
-```bash
-# ms-swift（VLM SFT + GRPO）
-python3 cli.py data export --manifest canonical_manifest.jsonl --target ms-swift --output-dir export/vlm
+# 导出为 DiffSynth video CSV
+python3 cli.py data export \
+  --manifest /path/to/canonical_manifest.jsonl \
+  --target diffsynth-video \
+  --output /path/to/export/video.csv
 
-# DiffSynth video
-python3 cli.py data export --manifest canonical_manifest.jsonl --target diffsynth-video --output export/video.csv
-```
-
-## 评测
-
-```bash
 # 离线规则评测
-python3 cli.py eval offline --manifest canonical_manifest.jsonl --task-group maze --pred-root /path/to/preds --output-dir eval/maze
-
-# 推理评测
-python3 cli.py eval infer --modality video --dataset /path/to/dataset --model-path /path/to/model --output-dir eval/infer
+python3 cli.py eval offline \
+  --manifest /path/to/canonical_manifest.jsonl \
+  --task-group maze \
+  --pred-root /path/to/preds \
+  --output-dir /path/to/eval/maze
 ```
 
-## 任务总览
+## 文档导航
 
-| 组别          | 数量   | 说明                      |
-| ------------- | ------ | ------------------------- |
-| eyeballing    | 23     | 几何精度任务（画线/画点） |
-| maze          | 3      | 方形、六角形、迷宫型      |
-| visual_puzzle | 10     | 色彩/形状/大小模式匹配    |
-| **合计**      | **36** |                           |
+- [基准总览](docs/benchmark_overview.md)。
+- [任务目录总表](docs/task_catalog.md)。
+- [评测结构说明](docs/evaluation.md)。
+- [训练结构说明](docs/training.md)。
+- [从旧仓库迁移说明](docs/migration_from_thinking_with_video.md)。
+- [Eyeballing 任务细节与参数](docs/tasks/eyeballing.md)。
+- [Maze 任务细节与参数](docs/tasks/maze.md)。
+- [Visual Puzzle 任务细节与参数](docs/tasks/visual_puzzle.md)。
+- [Text-Centric 独立流程说明](docs/tasks/textcentric.md)。
+- [Legacy 任务说明](docs/tasks/legacy.md)。
 
-## 训练
+## 训练入口
 
-- [Video（Wan2.2 LoRA 微调）](training/video/README.md)
-- [Image（Qwen-Image 编辑微调）](training/image/README.md)
-- [VLM（Qwen3-VL SFT + GRPO）](training/vlm/README.md)
-
-## 项目背景
-
-详见 [docs/project_background.md](docs/project_background.md)。
+- [Video：Wan2.2 LoRA 微调](training/video/README.md)。
+- [Image：Qwen-Image 编辑微调](training/image/README.md)。
+- [VLM：Qwen3-VL SFT + GRPO](training/vlm/README.md)。

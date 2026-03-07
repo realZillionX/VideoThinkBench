@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from utils.schemas import CanonicalAnswer, CanonicalAssets, CanonicalSample
-from utils.io import read_json, read_jsonl, write_jsonl
-from utils.paths import to_absolute
-from utils.prompts import detect_task_group, normalize_prompt_for_task
+from core.schemas import CanonicalAnswer, CanonicalAssets, CanonicalSample
+from core.io import read_json, read_jsonl, write_jsonl
+from core.paths import to_absolute
+from core.prompts import detect_task_group, normalize_prompt_for_task
 
 
 def build_canonical_sample(

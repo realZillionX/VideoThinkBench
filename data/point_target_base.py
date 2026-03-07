@@ -100,6 +100,8 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         option_labels: Sequence[str] = ("A", "B", "C", "D", "E"),
         margin_ratio: float = 0.06,
         record_video: bool = False,
+        point_radius: Optional[int] = None,
+        line_width: Optional[int] = None,
     ) -> None:
         output_dir = output_dir if output_dir is not None else Path(self.DEFAULT_OUTPUT_DIR)
         prompt = prompt if prompt is not None else self.DEFAULT_PROMPT
@@ -123,7 +125,12 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         self.option_labels = tuple(option_labels)
         self.prompt = prompt
         self._candidate_font: Optional[Any] = None
-        self.point_radius = int(self.POINT_RADIUS)
+        self.point_radius = int(point_radius) if point_radius is not None else int(self.POINT_RADIUS)
+        if self.point_radius <= 0:
+            raise ValueError("point_radius must be positive")
+        self.line_width = int(line_width) if line_width is not None else int(self.LINE_WIDTH)
+        if self.line_width <= 0:
+            raise ValueError("line_width must be positive")
         out_root = Path(self.output_dir)
         self.puzzle_dir = out_root / "puzzles"
         self.solution_dir = out_root / "solutions"
@@ -299,28 +306,29 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             draw.text((tx, ty), candidate.label, fill=self.CANDIDATE_TEXT_COLOR, font=font)
 
     def draw_line(self,draw,points:List[Point],width_factor:float=1)->None:
+        width = max(1, round(self.line_width * width_factor))
         if isinstance(draw, DrawingRecorder):
             pts = [[round(p.x), round(p.y)] for p in points]
             draw.add_high_level_command("draw_line", points=pts, width_factor=width_factor,
-                                        fill=self.CANDIDATE_OUTLINE_COLOR, width=round(self.LINE_WIDTH*width_factor))
+                                        fill=self.CANDIDATE_OUTLINE_COLOR, width=width)
             return
 
         draw.line(
             [[round(p.x), round(p.y)] for p in points],
             fill=self.CANDIDATE_OUTLINE_COLOR,
-            width=round(self.LINE_WIDTH*width_factor),
+            width=width,
         )
         
     def draw_circle(self,draw,center:Point,radius:int)->None:
         if isinstance(draw, DrawingRecorder):
             cx, cy = round(center.x), round(center.y)
             bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
-            draw.add_high_level_command("draw_circle", bbox=bbox, outline=self.CANDIDATE_OUTLINE_COLOR, width=self.LINE_WIDTH)
+            draw.add_high_level_command("draw_circle", bbox=bbox, outline=self.CANDIDATE_OUTLINE_COLOR, width=self.line_width)
             return
 
         cx,cy=round(center.x), round(center.y)
         bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
-        draw.ellipse(bbox, outline=self.CANDIDATE_OUTLINE_COLOR, width=self.LINE_WIDTH)
+        draw.ellipse(bbox, outline=self.CANDIDATE_OUTLINE_COLOR, width=self.line_width)
 
     def _get_candidate_font(self) -> Any:
         if self._candidate_font is None:

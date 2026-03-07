@@ -10,8 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from evaluators.commands import _run_infer
-from evaluators.pipeline import write_eval_outputs
+from evaluation.commands import _run_infer
+from evaluation.pipeline import write_eval_outputs
 
 
 def main() -> None:
