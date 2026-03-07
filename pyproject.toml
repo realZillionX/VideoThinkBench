@@ -32,5 +32,5 @@ include = [
 namespaces = false
 
 [tool.setuptools.package-data]
-data.visioncentric.visual_puzzles = ["fonts/*", "example_data/*/*.json", "example_data/*/*.png"]
-evaluation.textcentric = ["config/*.yaml"]
+"data.visioncentric.visual_puzzles" = ["fonts/*", "example_data/*/*.json", "example_data/*/*.png"]
+"evaluation.textcentric" = ["config/*.yaml"]

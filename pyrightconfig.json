@@ -1,0 +1,32 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.9",
+  "include": [
+    "cli.py",
+    "core",
+    "data",
+    "docs",
+    "evaluation",
+    "scripts",
+    "tests",
+    "training"
+  ],
+  "exclude": [
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "output",
+    "outputs"
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "/Users/zillionx/Desktop/video-reason/ms-swift",
+        "/Users/zillionx/Desktop/video-reason/DiffSynth-Studio"
+      ]
+    }
+  ]
+}

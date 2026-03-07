@@ -1,4 +1,5 @@
 .git
+.venv/
 *.pyc
 __pycache__/
 *.egg-info/
@@ -35,6 +36,7 @@ dataset/
 *.csv
 *.json
 !configs/*.json
+!pyrightconfig.json
 
 # Logs
 *.log
