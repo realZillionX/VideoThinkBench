@@ -189,6 +189,6 @@ python3 cli.py data generate \
 
 ## 当前训练边界
 
-`visual_puzzle` 可以导出到 `ms-swift` 的 `SFT` 数据中。
+`visual_puzzle` 已可导出到 `ms-swift` 的 `SFT` 与 `GRPO` 数据中。
 
-但在 `GRPO` 链路中，当前奖励函数尚未完整兼容颜色单词这类答案格式，因此后续若要训练 `VLM`，需要先修奖励函数。
+当前 `GRPO` 奖励采用归一化后的精确文本匹配，因此更适合这类“单个颜色词、形状词、大小词”的答案形式。

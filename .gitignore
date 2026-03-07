@@ -27,7 +27,6 @@ checkpoints/
 # Data Artifacts
 dataset/
 /data/test_*/
-tests/
 
 # Data Tools (Python Package)
 !data/

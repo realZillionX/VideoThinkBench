@@ -87,6 +87,7 @@ python3 cli.py eval offline \
 - [任务目录总表](docs/task_catalog.md)。
 - [评测结构说明](docs/evaluation.md)。
 - [训练结构说明](docs/training.md)。
+- [脚本入口说明](scripts/README.md)。
 - [从旧仓库迁移说明](docs/migration_from_thinking_with_video.md)。
 - [Eyeballing 任务细节与参数](docs/tasks/eyeballing.md)。
 - [Maze 任务细节与参数](docs/tasks/maze.md)。

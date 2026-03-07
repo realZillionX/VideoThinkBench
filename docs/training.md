@@ -38,11 +38,10 @@
 
 `VLM SFT` 数据导出已经支持 `eyeballing`、`maze`、`visual_puzzle`。
 
-但 `GRPO` 奖励函数当前主要兼容：
+`GRPO` 奖励函数当前兼容：
 
 - `maze` 的路径列表答案。
 - `eyeballing` 的单字母答案。
+- `visual_puzzle` 的文本答案。
 
-如果直接把 `visual_puzzle` 的颜色单词答案送进 `GRPO`，当前奖励函数会出现格式不匹配问题。
-
-因此在修复奖励函数前，不建议直接把 `visual_puzzle` 当作 `GRPO` 训练目标。
+其中 `visual_puzzle` 目前采用的是“归一化后的精确文本匹配”。

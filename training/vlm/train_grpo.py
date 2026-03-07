@@ -17,17 +17,8 @@ os.environ['HF_DATASETS_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['MS_OFFLINE'] = '1'
 
-import torch
-from datasets import load_dataset
-from swift.llm import get_model_tokenizer
-from swift.rlhf_trainers import GRPOTrainer, GRPOConfig
-from swift.utils import get_logger
-from peft import LoraConfig, TaskType
-
 # Import reward functions from data package
-from training.vlm.rewards.vlm_rewards import reward_eyeballing, reward_maze, reward_format
-
-logger = get_logger()
+from training.vlm.rewards.vlm_rewards import reward_eyeballing, reward_maze, reward_visual_puzzle, reward_format
 
 
 def custom_reward_manager(completions, solution, **kwargs):
@@ -37,18 +28,26 @@ def custom_reward_manager(completions, solution, **kwargs):
     Auto-detects task type:
     - If solution looks like a list "[...]", it's Maze.
     - If solution is a single letter "A"-"E", it's Eyeballing.
+    - Otherwise it falls back to exact-text matching for Visual Puzzle style answers.
     """
     rewards = []
+    task_groups = kwargs.get("task_group")
+
+    def _group_at(index):
+        if isinstance(task_groups, (list, tuple)) and index < len(task_groups):
+            return task_groups[index]
+        return None
     
-    for completion, sol in zip(completions, solution):
+    for index, (completion, sol) in enumerate(zip(completions, solution)):
         sol = sol.strip()
+        task_group = _group_at(index)
         
-        if sol.startswith('[') and sol.endswith(']'):
-            # Maze Task
+        if task_group == "maze" or (sol.startswith('[') and sol.endswith(']')):
             r = reward_maze([completion], [sol])[0]
-        else:
-            # Eyeballing Task
+        elif task_group == "eyeballing" or (len(sol) == 1 and sol.isalpha()):
             r = reward_eyeballing([completion], [sol])[0]
+        else:
+            r = reward_visual_puzzle([completion], [sol])[0]
             
         rewards.append(r)
             
@@ -88,6 +87,11 @@ def parse_args():
 
 
 def main():
+    from datasets import load_dataset
+    from peft import LoraConfig, TaskType
+    from swift.llm import get_model_tokenizer
+    from swift.rlhf_trainers import GRPOConfig, GRPOTrainer
+
     args = parse_args()
     
     print("=" * 60)

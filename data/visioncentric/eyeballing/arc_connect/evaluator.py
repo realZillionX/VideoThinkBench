@@ -44,6 +44,7 @@ class ArcConnectEvaluator(AbstractPuzzleEvaluator):
         engine: str = "local",
         model: str = "whisper-1",
         base_url: Optional[str] = None,
+        save_debug_image: bool = False,
     ) -> AbstractPuzzleEvaluator.OptionEvaluationResult:
         record = self.get_record(puzzle_id)
         correct = str(record.get("correct_option", "")).strip().upper() or ""
@@ -67,7 +68,7 @@ class ArcConnectEvaluator(AbstractPuzzleEvaluator):
         image_option, connected_labels, image_debug = self._image_option_from_path(
             candidate_path,
             record,
-            save_debug_image=True,
+            save_debug_image=save_debug_image,
         )
         # Determine video option by sampling frames and voting.
         video_option = None

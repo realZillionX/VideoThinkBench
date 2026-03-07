@@ -58,6 +58,13 @@ GRPO 使用自定义奖励函数（`training/vlm/rewards/vlm_rewards.py`）：
 |---------|---------|
 | Eyeballing | 1.0=正确, 0.0=错误, -1.0=格式错误 |
 | Maze | 0.0~1.0=部分匹配, -1.0=格式错误 |
+| Visual Puzzle | 1.0=文本精确匹配, 0.0=错误, -1.0=空答案 |
+
+当前 `GRPO` 已支持：
+
+- `maze` 的路径列表答案。
+- `eyeballing` 的单字母答案。
+- `visual_puzzle` 的文本答案，例如颜色、形状或大小词。
 
 ## 推理预检与验证
 

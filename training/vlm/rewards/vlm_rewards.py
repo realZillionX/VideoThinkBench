@@ -4,10 +4,33 @@ VLM Reward Functions for GRPO Training
 Supports two task types:
 - Eyeballing: Single letter answer (A-E)
 - Maze: Path as list of cell IDs
+- Visual Puzzle: Exact text answer
 """
 
 import re
 import json
+
+
+def _extract_answer_content(completion: str) -> str:
+    start_tag = "<answer>"
+    end_tag = "</answer>"
+    text = completion or ""
+    if start_tag in text and end_tag in text:
+        try:
+            start_idx = text.rfind(start_tag) + len(start_tag)
+            end_idx = text.find(end_tag, start_idx)
+            if end_idx != -1:
+                text = text[start_idx:end_idx]
+        except Exception:
+            pass
+    return text.strip()
+
+
+def _normalize_free_text(text: str) -> str:
+    normalized = _extract_answer_content(text).strip().lower()
+    normalized = normalized.strip(" \t\r\n\"'`.,;:!?()[]{}")
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized
 
 
 def reward_eyeballing(completions, solution, **kwargs):
@@ -23,19 +46,7 @@ def reward_eyeballing(completions, solution, **kwargs):
     """
     rewards = []
     for completion, sol in zip(completions, solution):
-        # Extract content from <answer>...</answer>
-        start_tag = "<answer>"
-        end_tag = "</answer>"
-        text = completion
-        
-        if start_tag in completion and end_tag in completion:
-            try:
-                start_idx = completion.rfind(start_tag) + len(start_tag)
-                end_idx = completion.find(end_tag, start_idx)
-                if end_idx != -1:
-                    text = completion[start_idx:end_idx]
-            except:
-                pass
+        text = _extract_answer_content(completion)
         
         # Normalize
         text = text.strip()
@@ -76,15 +87,7 @@ def reward_maze(completions, solution, **kwargs):
                 rewards.append(0.0)
                 continue
 
-            # Extract content from <answer>...</answer>
-            extract_content = completion
-            start_tag = "<answer>"
-            end_tag = "</answer>"
-            if start_tag in completion and end_tag in completion:
-                start_idx = completion.rfind(start_tag) + len(start_tag)
-                end_idx = completion.find(end_tag, start_idx)
-                if end_idx != -1:
-                    extract_content = completion[start_idx:end_idx]
+            extract_content = _extract_answer_content(completion)
 
             # Parse completion - look for a list pattern "[...]"
             match = re.search(r'\[(.*?)\]', extract_content, re.DOTALL)
@@ -131,6 +134,32 @@ def reward_maze(completions, solution, **kwargs):
         except Exception:
             rewards.append(-1.0)  # General parse error
             
+    return rewards
+
+
+def reward_visual_puzzle(completions, solution, **kwargs):
+    """
+    Reward function for visual puzzle task.
+
+    Solution is usually a short text label such as a color, shape, or size word.
+
+    Scoring Rules:
+    - 1.0: Exact normalized text match
+    - 0.0: Wrong but non-empty answer
+    - -1.0: Empty / malformed answer
+    """
+    rewards = []
+    for completion, sol in zip(completions, solution):
+        pred = _normalize_free_text(completion)
+        target = _normalize_free_text(sol)
+
+        if not pred:
+            rewards.append(-1.0)
+            continue
+        if pred == target:
+            rewards.append(1.0)
+        else:
+            rewards.append(0.0)
     return rewards
 
 
