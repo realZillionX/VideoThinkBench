@@ -1,7 +1,5 @@
 <div align="center">
 
-# VideoThinkBench
-
 ### Thinking with Video: Video Generation as a Promising Multimodal Reasoning Paradigm
 
 **[CVPR 2026]**
