@@ -331,13 +331,7 @@ If you are migrating from the original [Thinking-with-Video](https://github.com/
 
 ## 📖 Documentation
 
-- [Benchmark Overview](docs/benchmark_overview.md)
-- [Task Catalog](docs/task_catalog.md)
-- [Evaluation Architecture](docs/evaluation.md)
-- [Training Guide](docs/training.md)
-
-### Task Documentation
-
+- [Developer Guide](docs/guide.md) — benchmark overview, data pipeline, evaluation architecture, training
 - [Eyeballing Puzzles](docs/tasks/eyeballing.md) — 23 geometric precision tasks (Point / Line / Shape)
 - [Maze Tasks](docs/tasks/maze.md) — Square, Hexagon, and Labyrinth mazes
 - [Visual Puzzles](docs/tasks/visual_puzzle.md) — 10 pattern matching tasks (Symmetry / Gradient / Compositionality)
