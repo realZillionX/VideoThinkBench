@@ -330,8 +330,8 @@ class AbstractPuzzleEvaluator(ABC):
                 script = candidate
         else:
             candidate_scripts = [
-                Path.cwd() / "scripts" / "transcribe_video.py",
-                Path(__file__).resolve().parents[2] / "scripts" / "transcribe_video.py",
+                Path(__file__).resolve().parent / "scripts" / "transcribe_video.py",
+                Path.cwd() / "data" / "scripts" / "transcribe_video.py",
             ]
             for candidate in candidate_scripts:
                 if candidate.exists() and candidate.is_file():

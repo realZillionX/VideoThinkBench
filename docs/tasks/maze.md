@@ -1,113 +1,117 @@
-# Maze 任务细节与参数
+# Maze Tasks and Parameters
 
-## 任务定位
+## Visual Examples
 
-`Maze` 任务要求模型在给定迷宫中绘制一条从起点到终点的合法路径。
+`Maze` tasks ask the model to draw a valid path from the start point to the end point inside a maze.
 
-当前统一主线包含 `3` 个任务：
+The unified mainline currently includes `3` tasks:
 
-- `maze_square`。
-- `maze_hexagon`。
-- `maze_labyrinth`。
+### All Maze Types
 
-## 数据记录
+|       Type       |                                    Puzzle                                     |                                    Solution                                     |
+| :--------------: | :---------------------------------------------------------------------------: | :-----------------------------------------------------------------------------: |
+|  `maze_square`   |  <img src="../../assets/examples/maze/maze_square_puzzle.png" width="240"/>   |  <img src="../../assets/examples/maze/maze_square_solution.png" width="240"/>   |
+|  `maze_hexagon`  |  <img src="../../assets/examples/maze/maze_hexagon_puzzle.png" width="240"/>  |  <img src="../../assets/examples/maze/maze_hexagon_solution.png" width="240"/>  |
+| `maze_labyrinth` | <img src="../../assets/examples/maze/maze_labyrinth_puzzle.png" width="240"/> | <img src="../../assets/examples/maze/maze_labyrinth_solution.png" width="240"/> |
 
-每条记录通常包含：
+## Data Records
 
-- 题图 `image`。
-- 解图 `solution_image_path`。
-- 可选解题视频。
-- 起点、终点。
-- 路径对应的单元格 `solution_path_cell_ids`。
-- 评测所需的边界框、网格或环带元数据。
+Each record typically contains:
 
-## 评测逻辑
+- the puzzle image `image`.
+- the solution image `solution_image_path`.
+- an optional solution video.
+- the start point and end point.
+- the path cells in `solution_path_cell_ids`.
+- bounding-box, grid, or ring metadata required for evaluation.
 
-单任务评测器在各任务目录下。
+## Evaluation Logic
 
-统一离线评测入口位于 `evaluation/offline/maze.py`。
+Task-local evaluators live inside each task directory.
 
-当前整批离线评测主要判定：
+The unified offline evaluation entry point is `data/evaluation/offline/maze.py`.
 
-- 是否连通。
-- 是否碰到起点。
-- 是否碰到终点。
-- 是否越过墙体。
+The current batch evaluation mainly checks:
 
-## 统一 CLI 暴露参数
+- whether the route is connected.
+- whether the path touches the start point.
+- whether the path touches the end point.
+- whether the path crosses walls.
 
-以下参数可以直接通过 `cli.py data generate` 调整。
+## Parameters Exposed by the Unified CLI
 
-| 参数 | 默认值 | 适用任务 | 说明 |
-| --- | --- | --- | --- |
-| `--canvas-width` | `480` | 全部 | 输出画布宽度 |
-| `--seed` | `42` | 全部 | 随机种子 |
-| `--video` | `False` | 全部 | 是否生成解题视频 |
-| `--maze-rows` | `9` | `maze_square` | 行数 |
-| `--maze-cols` | `9` | `maze_square` | 列数 |
-| `--maze-cell-size` | `32` | `maze_square` | 单元格边长 |
-| `--hex-radius` | `4` | `maze_hexagon` | 六角网格半径 |
-| `--hex-cell-size` | `24` | `maze_hexagon` | 六角单元半径 |
-| `--hex-wall-thickness` | `None` | `maze_hexagon` | 墙体厚度覆盖值 |
-| `--lab-rings` | `6` | `maze_labyrinth` | 环数 |
-| `--lab-segments` | `18` | `maze_labyrinth` | 每环切分段数 |
-| `--lab-cell-size` | `18` | `maze_labyrinth` | 环带宽度 |
-| `--lab-wall-thickness` | `None` | `maze_labyrinth` | 墙体厚度覆盖值 |
+The following parameters can be adjusted directly through `cli.py data generate`.
 
-## 共享构造参数
+| Parameter              | Default | Applicable Tasks | Description                           |
+| ---------------------- | ------- | ---------------- | ------------------------------------- |
+| `--canvas-width`       | `480`   | All              | Output canvas width.                  |
+| `--seed`               | `42`    | All              | Random seed.                          |
+| `--video`              | `False` | All              | Whether to generate a solution video. |
+| `--maze-rows`          | `9`     | `maze_square`    | Number of rows.                       |
+| `--maze-cols`          | `9`     | `maze_square`    | Number of columns.                    |
+| `--maze-cell-size`     | `32`    | `maze_square`    | Side length of one cell.              |
+| `--hex-radius`         | `4`     | `maze_hexagon`   | Radius of the hexagonal grid.         |
+| `--hex-cell-size`      | `24`    | `maze_hexagon`   | Radius of each hexagonal cell.        |
+| `--hex-wall-thickness` | `None`  | `maze_hexagon`   | Override wall thickness.              |
+| `--lab-rings`          | `6`     | `maze_labyrinth` | Number of rings.                      |
+| `--lab-segments`       | `18`    | `maze_labyrinth` | Number of segments per ring.          |
+| `--lab-cell-size`      | `18`    | `maze_labyrinth` | Ring-band width.                      |
+| `--lab-wall-thickness` | `None`  | `maze_labyrinth` | Override wall thickness.              |
 
-三类迷宫都共享以下基础参数，但其中部分目前只通过 `task_config` 或直接调用生成器时可用。
+## Shared Constructor Parameters
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `output_dir` | `DEFAULT_OUTPUT_DIR` | 输出目录 |
-| `canvas_width` | 任务相关 | 输出画布宽度 |
-| `aspect` | `None` | 画布纵横比 |
-| `seed` | `None` | 随机种子 |
-| `prompt` | `None` | 覆盖默认提示词 |
-| `show_cell_id` | `False` | 是否在图上打印单元编号 |
-| `video` | `False` | 是否生成解题视频 |
+All three maze families share the following base parameters, although some of them are currently available only through `task_config` or direct generator calls.
+
+| Parameter      | Default              | Description                             |
+| -------------- | -------------------- | --------------------------------------- |
+| `output_dir`   | `DEFAULT_OUTPUT_DIR` | Output directory.                       |
+| `canvas_width` | Task-dependent       | Output canvas width.                    |
+| `aspect`       | `None`               | Canvas aspect ratio.                    |
+| `seed`         | `None`               | Random seed.                            |
+| `prompt`       | `None`               | Override the default prompt.            |
+| `show_cell_id` | `False`              | Whether to print cell IDs on the image. |
+| `video`        | `False`              | Whether to generate a solution video.   |
 
 ## `maze_square`
 
-### 主要参数
+### Main Parameters
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `rows` | `15` | 行数，若传偶数会自动补到奇数 |
-| `cols` | `15` | 列数，若传偶数会自动补到奇数 |
-| `cell_size` | `32` | 单元格边长 |
-| `size` | `None` | `cell_size` 的兼容别名 |
-| `aspect_ratio` | `None` | 题图最终纵横比 |
+| Parameter      | Default | Description                                                                      |
+| -------------- | ------- | -------------------------------------------------------------------------------- |
+| `rows`         | `15`    | Number of rows. Even values are automatically promoted to the next odd value.    |
+| `cols`         | `15`    | Number of columns. Even values are automatically promoted to the next odd value. |
+| `cell_size`    | `32`    | Side length of one cell.                                                         |
+| `size`         | `None`  | Compatibility alias for `cell_size`.                                             |
+| `aspect_ratio` | `None`  | Final aspect ratio of the rendered puzzle image.                                 |
 
-### 说明
+### Notes
 
-当前默认使用 DFS 开迷宫，再用 BFS 找到从 `(1, 1)` 到右下角的标准路径。
+The current default pipeline carves the maze with DFS and then finds the canonical path from `(1, 1)` to the lower-right corner with BFS.
 
 ## `maze_hexagon`
 
-### 主要参数
+### Main Parameters
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `radius` | `4` | 六角网格层数 |
-| `cell_radius` | `None` | 六角单元半径 |
-| `wall_thickness` | `None` | 墙体厚度 |
-| `size` | `None` | `cell_radius` 的兼容别名 |
+| Parameter        | Default | Description                            |
+| ---------------- | ------- | -------------------------------------- |
+| `radius`         | `4`     | Number of hexagonal layers.            |
+| `cell_radius`    | `None`  | Radius of one hexagonal cell.          |
+| `wall_thickness` | `None`  | Wall thickness.                        |
+| `size`           | `None`  | Compatibility alias for `cell_radius`. |
 
 ## `maze_labyrinth`
 
-### 主要参数
+### Main Parameters
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `rings` | `6` | 环数 |
-| `segments` | `18` | 每环切分段数 |
-| `ring_width` | `None` | 每环宽度 |
-| `wall_thickness` | `None` | 墙体厚度 |
-| `size` | `None` | `ring_width` 的兼容别名 |
+| Parameter        | Default | Description                           |
+| ---------------- | ------- | ------------------------------------- |
+| `rings`          | `6`     | Number of rings.                      |
+| `segments`       | `18`    | Number of segments per ring.          |
+| `ring_width`     | `None`  | Width of each ring.                   |
+| `wall_thickness` | `None`  | Wall thickness.                       |
+| `size`           | `None`  | Compatibility alias for `ring_width`. |
 
-## 参数注入示例
+## Parameter Injection Example
 
 ```bash
 python3 cli.py data generate \

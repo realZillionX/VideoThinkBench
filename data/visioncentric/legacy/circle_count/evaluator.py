@@ -132,7 +132,7 @@ class CircleCountEvaluator(AbstractPuzzleEvaluator):
         base_url: Optional[str],
         whisper_model: str,
     ) -> Tuple[Optional[Path], Optional[str]]:
-        script_path = Path.cwd() / "scripts" / "transcribe_video.py"
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "transcribe_video.py"
         json_out = attempt_dir / "transcription.json"
         cmd: List[str] = [
             sys.executable,

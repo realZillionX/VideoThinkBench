@@ -169,7 +169,7 @@ class ArcConnectEvaluator(AbstractPuzzleEvaluator):
             return None, None, None
         json_out = attempt_dir / "transcription.json"
         cmd: List[str] = [
-            str(Path.cwd() / "scripts" / "transcribe_video.py"),
+            str(Path(__file__).resolve().parents[3] / "scripts" / "transcribe_video.py"),
             video_path.as_posix(),
             "--output-json",
             json_out.as_posix(),

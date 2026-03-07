@@ -489,7 +489,7 @@ class RectsEvaluator(AbstractPuzzleEvaluator):
         whisper_model: str,
         language: Optional[str],
     ) -> Optional[Tuple[str, List[str], List[Color], Path]]:
-        script_path = Path.cwd() / "scripts" / "transcribe_video.py"
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "transcribe_video.py"
         if not script_path.exists():
             return None
         json_out = attempt_dir / SPEECH_TRANSCRIPT_FILENAME

@@ -1,77 +1,77 @@
-# 评测结构说明
+# Evaluation Architecture
 
-## 为什么保留 `evaluation/`
+## Why `data/evaluation/` Exists
 
-单任务目录中的 `generator.py` 和 `evaluator.py` 负责“某一个任务自己如何出题、如何判题”。
+Task-local `generator.py` and `evaluator.py` files define how one task produces data and how one candidate answer is judged.
 
-`evaluation/` 负责的是“整 Bench 级别如何把很多任务串起来跑完，并输出统一结果”。
+`data/evaluation/` handles the benchmark-level workflow:running inference, matching frames, evaluating batches offline, and writing unified summaries.
 
-这两层职责不同，因此不建议把它们合并成一个目录。
+These two layers serve different purposes, so they should remain separate.
 
-为了减少歧义，仓库已经将原来的 `evaluators/` 改名为 `evaluation/`。
+The directory has been moved under `data/evaluation/` so that generation, scanning, export, and benchmark evaluation all live in the same top-level data workflow.
 
-## 目录职责
+## Directory Responsibilities
 
-| 目录 | 职责 |
+| Directory | Responsibility |
 | --- | --- |
-| `data/visioncentric/.../evaluator.py` | 单任务规则评测逻辑 |
-| `evaluation/offline/` | 针对整批 `CanonicalSample` 的离线批量评测 |
-| `evaluation/infer/` | 调用外部模型进行批量推理 |
-| `evaluation/textcentric/` | Text-Centric 独立视频评测 |
-| `evaluation/frame_matching/` | 视频抽帧与最优帧匹配 |
-| `evaluation/pipeline.py` | 统一结果落盘与 summary 汇总 |
+| `data/visioncentric/.../evaluator.py` | Task-local rule-based evaluation logic. |
+| `data/evaluation/offline/` | Offline batch evaluation over `CanonicalSample` records. |
+| `data/evaluation/infer/` | Batch inference through external models. |
+| `data/evaluation/textcentric/` | Independent `Text-Centric` video evaluation. |
+| `data/evaluation/frame_matching/` | Video frame extraction and best-frame matching. |
+| `data/evaluation/pipeline.py` | Unified result writing and summary aggregation. |
 
-## 当前离线评测口径
+## Current Offline Evaluation Conventions
 
 ### `maze`
 
-入口位于 `evaluation/offline/maze.py`。
+The entry point is `data/evaluation/offline/maze.py`.
 
-核心判定依赖各迷宫任务自己的 evaluator，当前主要检查：
+The batch evaluator delegates core geometric checks to the local evaluators of each maze task and currently focuses on:
 
-- 是否检测到红色路径。
-- 是否碰到起点。
-- 是否碰到终点。
-- 是否穿墙。
-- 路径是否连通。
+- whether a red path is detected.
+- whether the path touches the start point.
+- whether the path touches the end point.
+- whether the path crosses walls.
+- whether the predicted route is connected.
 
 ### `eyeballing`
 
-入口位于 `evaluation/offline/eyeballing.py`。
+The entry point is `data/evaluation/offline/eyeballing.py`.
 
-当前会综合以下信息源：
+The current pipeline aggregates several evidence sources:
 
-- 最终预测图像中的红色高亮位置。
-- 文本回答。
-- 视频帧判读。
-- 转写文本。
+- red-highlight locations in the final predicted image.
+- textual answers.
+- interpreted video frames.
+- transcribed text.
 
-最后通过聚合选项与正确选项对比得到通过与否。
+It then compares the aggregated predicted option against `correct_option` to produce the final pass or fail decision.
 
 ### `visual_puzzle`
 
-入口位于 `evaluation/offline/visual_puzzle.py`。
+The entry point is `data/evaluation/offline/visual_puzzle.py`.
 
-当前流程是：
+The current workflow is:
 
-1. 如果有预测视频，先抽取与标准解最接近的帧。
-2. 将最佳帧或预测图像与标准解图比较差异。
-3. 输出差异值等指标。
+1. If a predicted video is available, extract the frame that best matches the reference solution.
+2. Compare the best frame or predicted image against the solution image.
+3. Report image-difference metrics and related outputs.
 
-当前该组仍以差异值为主，尚未统一到强制 `pass / fail` 阈值，这是后续应继续完善的方向。
+This group is still primarily difference-metric based and has not yet been fully standardized into one mandatory `pass / fail` threshold.
 
-## 推理评测
+## Inference
 
-`evaluation/infer/` 只负责“给模型喂数据并保存预测结果”，不负责单任务规则判断。
+`data/evaluation/infer/` is responsible only for sending inputs to models and saving predictions. It does not implement task-specific judging.
 
-| 模态 | 入口 | 外部依赖 |
+| Modality | Entry Point | External Dependency |
 | --- | --- | --- |
-| `video` | `evaluation/infer/video.py` | `DiffSynth-Studio` |
-| `image` | `evaluation/infer/image.py` | `DiffSynth-Studio` |
-| `vlm` | `evaluation/infer/vlm.py` | `ms-swift` |
+| `video` | `data/evaluation/infer/video.py` | `DiffSynth-Studio` |
+| `image` | `data/evaluation/infer/image.py` | `DiffSynth-Studio` |
+| `vlm` | `data/evaluation/infer/vlm.py` | `ms-swift` |
 
 ## Text-Centric
 
-`Text-Centric` 当前仍然沿用独立脚本式流程，不走统一 `cli.py eval` 主线。
+`Text-Centric` keeps its own video-oriented evaluation flow under `data/evaluation/textcentric/` and does not currently use the same mainline as the `Vision-Centric` `cli.py eval` workflow.
 
-详细见 [tasks/textcentric.md](tasks/textcentric.md)。
+See [tasks/textcentric.md](tasks/textcentric.md) for details.

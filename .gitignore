@@ -48,6 +48,9 @@ runs/
 .DS_Store
 Thumbs.db
 
+# Videos (raw mp4 not tracked)
+*.mp4
+
 # Inspire CLI
 .inspire/
 .env

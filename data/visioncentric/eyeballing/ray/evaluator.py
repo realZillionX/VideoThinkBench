@@ -80,8 +80,8 @@ class RayEvaluator(AbstractPuzzleEvaluator):
             # Run transcriber
             json_out = attempt_dir / "transcription.json"
             candidate_scripts = [
-                Path.cwd() / "scripts" / "transcribe_video.py",
-                Path(__file__).resolve().parents[4] / "scripts" / "transcribe_video.py",
+                Path(__file__).resolve().parents[3] / "scripts" / "transcribe_video.py",
+                Path.cwd() / "data" / "scripts" / "transcribe_video.py",
             ]
             script_path: Optional[Path] = None
             for script_candidate in candidate_scripts:

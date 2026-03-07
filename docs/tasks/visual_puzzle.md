@@ -1,173 +1,177 @@
-# Visual Puzzle 任务细节与参数
+# Visual Puzzle Tasks and Parameters
 
-## 任务定位
+## Visual Examples
 
-`Visual Puzzle` 任务主要考察颜色、形状、大小和组合规律的模式匹配能力。
+`Visual Puzzle` tasks evaluate pattern matching over color, shape, size, and compositional rules.
 
-当前统一主线包含 `10` 个任务，代码集中在 `data/visioncentric/visual_puzzles/data_generation.py`。
-
-## 任务列表
+The unified mainline currently includes `10` tasks, all implemented in `data/visioncentric/visual_puzzles/data_generation.py`.
 
 ### Symmetry
 
-- `color_hexagon`。
-- `color_grid`。
-- `size_grid`。
-- `shape_reflect`。
+|      Task       |                                        Puzzle                                         |                                        Solution                                         |
+| :-------------: | :-----------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: |
+| `color_hexagon` | <img src="../../assets/examples/visual_puzzle/color_hexagon_puzzle.png" width="220"/> | <img src="../../assets/examples/visual_puzzle/color_hexagon_solution.png" width="220"/> |
+|  `color_grid`   |  <img src="../../assets/examples/visual_puzzle/color_grid_puzzle.png" width="220"/>   |  <img src="../../assets/examples/visual_puzzle/color_grid_solution.png" width="220"/>   |
+|   `size_grid`   |   <img src="../../assets/examples/visual_puzzle/size_grid_puzzle.png" width="220"/>   |   <img src="../../assets/examples/visual_puzzle/size_grid_solution.png" width="220"/>   |
+| `shape_reflect` | <img src="../../assets/examples/visual_puzzle/shape_reflect_puzzle.png" width="220"/> | <img src="../../assets/examples/visual_puzzle/shape_reflect_solution.png" width="220"/> |
 
 ### Gradient
 
-- `color_size`。
-- `size_cycle`。
+|     Task     |                                       Puzzle                                       |                                       Solution                                       |
+| :----------: | :--------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------: |
+| `color_size` | <img src="../../assets/examples/visual_puzzle/color_size_puzzle.png" width="220"/> | <img src="../../assets/examples/visual_puzzle/color_size_solution.png" width="220"/> |
+| `size_cycle` | <img src="../../assets/examples/visual_puzzle/size_cycle_puzzle.png" width="220"/> | <img src="../../assets/examples/visual_puzzle/size_cycle_solution.png" width="220"/> |
 
 ### Compositionality
 
-- `polygon_sides_color`。
-- `rectangle_height_color`。
-- `color_overlap_squares`。
-- `shape_size_grid`。
+|           Task           |                                             Puzzle                                             |                                             Solution                                             |
+| :----------------------: | :--------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
+|  `polygon_sides_color`   |  <img src="../../assets/examples/visual_puzzle/polygon_sides_color_puzzle.png" width="220"/>   |  <img src="../../assets/examples/visual_puzzle/polygon_sides_color_solution.png" width="220"/>   |
+| `rectangle_height_color` | <img src="../../assets/examples/visual_puzzle/rectangle_height_color_puzzle.png" width="220"/> | <img src="../../assets/examples/visual_puzzle/rectangle_height_color_solution.png" width="220"/> |
+| `color_overlap_squares`  | <img src="../../assets/examples/visual_puzzle/color_overlap_squares_puzzle.png" width="220"/>  | <img src="../../assets/examples/visual_puzzle/color_overlap_squares_solution.png" width="220"/>  |
+|    `shape_size_grid`     |    <img src="../../assets/examples/visual_puzzle/shape_size_grid_puzzle.png" width="220"/>     |    <img src="../../assets/examples/visual_puzzle/shape_size_grid_solution.png" width="220"/>     |
 
-## 数据记录
+## Data Records
 
-每个样本通常包含：
+Each sample usually contains:
 
-- `question`。
-- `answer`。
-- `options`。
-- `caption`。
-- `explanation`。
-- `deduction`。
-- 题图。
-- 解图。
+- `question`.
+- `answer`.
+- `options`.
+- `caption`.
+- `explanation`.
+- `deduction`.
+- the puzzle image.
+- the solution image.
 
-在统一主线中，这些字段会被转成 `CanonicalSample`，其中答案会落到 `correct_option` 字段。
+In the unified pipeline, these fields are converted into `CanonicalSample`, with the answer normalized into `correct_option`.
 
-## 评测逻辑
+## Evaluation Logic
 
-单任务不再各自实现独立 evaluator。
+These tasks no longer ship separate task-local evaluators.
 
-整批离线评测统一在 `evaluation/offline/visual_puzzle.py` 中完成，核心是：
+Batch offline evaluation is unified in `data/evaluation/offline/visual_puzzle.py`, where the core logic is:
 
-- 若输入为视频，先找出与标准解最相近的帧。
-- 再将最佳帧或预测图像与标准解图做差异比较。
+- if the input is a video, first identify the frame that best matches the reference solution.
+- then compare the best frame or predicted image against the solution image.
 
-## 统一 CLI 暴露参数
+## Parameters Exposed by the Unified CLI
 
-统一 CLI 当前只直接暴露少量参数：
+The unified CLI currently exposes only a small set of direct parameters:
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `--seed` | `42` | 随机种子 |
-| `--task-config` / `--task-config-path` | `None` | 传入任务专属字段 |
+| Parameter                              | Default | Description                  |
+| -------------------------------------- | ------- | ---------------------------- |
+| `--seed`                               | `42`    | Random seed.                 |
+| `--task-config` / `--task-config-path` | `None`  | Inject task-specific fields. |
 
-除此之外，`data.generate` 内部还固定传入：
+In addition, `data.generate` currently passes the following internal fields automatically:
 
-| 内部字段 | 固定值 | 说明 |
-| --- | --- | --- |
-| `target_size` | `(1280, 704)` | 最终输出分辨率 |
-| `unique` | `True` | 按题图内容去重 |
+| Internal Field | Fixed Value   | Description                          |
+| -------------- | ------------- | ------------------------------------ |
+| `target_size`  | `(1280, 704)` | Final output resolution.             |
+| `unique`       | `True`        | Deduplicate by puzzle image content. |
 
-## 各任务字段
+## Task Fields
 
-这些任务类采用 `BaseModel` 风格构造，字段可以通过 `task_config` 直接覆盖。
+These task classes use a `BaseModel`-style constructor, and their fields can be overridden directly through `task_config`.
 
 ### `color_grid`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `colors` | `blue / green / yellow / red / purple / orange` |
+| Field          | Default                                         |
+| -------------- | ----------------------------------------------- |
+| `image_size`   | `512`                                           |
+| `scale_factor` | `4`                                             |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`                     |
+| `colors`       | `blue / green / yellow / red / purple / orange` |
 
 ### `color_hexagon`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `colors` | `blue / green / yellow / red / purple / orange` |
+| Field          | Default                                         |
+| -------------- | ----------------------------------------------- |
+| `image_size`   | `512`                                           |
+| `scale_factor` | `4`                                             |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`                     |
+| `colors`       | `blue / green / yellow / red / purple / orange` |
 
 ### `color_overlap_squares`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `colors` | `blue / green / yellow / red / purple / orange` |
-| `numbers` | `[1..9]` |
-| `num_sides` | `4` |
-| `rotate_range` | `(-45, 0)` |
+| Field          | Default                                         |
+| -------------- | ----------------------------------------------- |
+| `image_size`   | `512`                                           |
+| `scale_factor` | `4`                                             |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`                     |
+| `colors`       | `blue / green / yellow / red / purple / orange` |
+| `numbers`      | `[1..9]`                                        |
+| `num_sides`    | `4`                                             |
+| `rotate_range` | `(-45, 0)`                                      |
 
 ### `color_size`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `colors` | 每种颜色对应 `4` 个深浅级别 |
-| `shape_sides` | `circle / square / pentagon / hexagon` |
+| Field          | Default                                |
+| -------------- | -------------------------------------- |
+| `image_size`   | `512`                                  |
+| `scale_factor` | `4`                                    |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`            |
+| `colors`       | `4` shade levels for each color        |
+| `shape_sides`  | `circle / square / pentagon / hexagon` |
 
 ### `polygon_sides_color`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Light.ttf` |
-| `colors` | `blue / green / yellow / red / purple / orange` |
+| Field          | Default                                         |
+| -------------- | ----------------------------------------------- |
+| `image_size`   | `512`                                           |
+| `scale_factor` | `4`                                             |
+| `path_font`    | `fonts/OpenSans-Light.ttf`                      |
+| `colors`       | `blue / green / yellow / red / purple / orange` |
 
 ### `rectangle_height_color`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Light.ttf` |
-| `colors` | `blue / green / yellow / red / purple / orange` |
+| Field          | Default                                         |
+| -------------- | ----------------------------------------------- |
+| `image_size`   | `512`                                           |
+| `scale_factor` | `4`                                             |
+| `path_font`    | `fonts/OpenSans-Light.ttf`                      |
+| `colors`       | `blue / green / yellow / red / purple / orange` |
 
 ### `shape_reflect`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `color` | `#d9ead3` |
-| `shapes` | `triangle / square / pentagon / hexagon` |
+| Field          | Default                                  |
+| -------------- | ---------------------------------------- |
+| `image_size`   | `512`                                    |
+| `scale_factor` | `4`                                      |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`              |
+| `color`        | `#d9ead3`                                |
+| `shapes`       | `triangle / square / pentagon / hexagon` |
 
 ### `shape_size_grid`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `color` | `#d9ead3` |
-| `shapes` | `triangle / square / pentagon / hexagon` |
+| Field          | Default                                  |
+| -------------- | ---------------------------------------- |
+| `image_size`   | `512`                                    |
+| `scale_factor` | `4`                                      |
+| `path_font`    | `fonts/OpenSans-Medium.ttf`              |
+| `color`        | `#d9ead3`                                |
+| `shapes`       | `triangle / square / pentagon / hexagon` |
 
 ### `size_cycle`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `color` | `#fff2cc` |
+| Field          | Default                     |
+| -------------- | --------------------------- |
+| `image_size`   | `512`                       |
+| `scale_factor` | `4`                         |
+| `path_font`    | `fonts/OpenSans-Medium.ttf` |
+| `color`        | `#fff2cc`                   |
 
 ### `size_grid`
 
-| 字段 | 默认值 |
-| --- | --- |
-| `image_size` | `512` |
-| `scale_factor` | `4` |
-| `path_font` | `fonts/OpenSans-Medium.ttf` |
-| `color` | `#fff2cc` |
+| Field          | Default                     |
+| -------------- | --------------------------- |
+| `image_size`   | `512`                       |
+| `scale_factor` | `4`                         |
+| `path_font`    | `fonts/OpenSans-Medium.ttf` |
+| `color`        | `#fff2cc`                   |
 
-## 参数注入示例
+## Parameter Injection Example
 
 ```bash
 python3 cli.py data generate \
@@ -187,8 +191,8 @@ python3 cli.py data generate \
   }'
 ```
 
-## 当前训练边界
+## Current Training Boundary
 
-`visual_puzzle` 已可导出到 `ms-swift` 的 `SFT` 与 `GRPO` 数据中。
+`visual_puzzle` can already be exported into `ms-swift` `SFT` and `GRPO` data.
 
-当前 `GRPO` 奖励采用归一化后的精确文本匹配，因此更适合这类“单个颜色词、形状词、大小词”的答案形式。
+The current `GRPO` reward uses normalized exact text matching, which is a good fit for answers that are usually single color words, shape words, or size words.

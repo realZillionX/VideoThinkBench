@@ -1,165 +1,169 @@
-# Eyeballing 任务细节与参数
+# Eyeballing Tasks and Parameters
 
-## 任务定位
+## Visual Examples
 
-`Eyeballing` 任务要求模型在图像中完成几何判断，并通过“画点、画线、画形”或“高亮候选项”的方式给出答案。
+`Eyeballing` tasks ask the model to solve geometry problems directly in the image and answer by placing points, drawing lines, drawing shapes, or highlighting one of the candidate options.
 
-当前统一主线共包含 `23` 个任务。
+The unified mainline currently includes `23` tasks, organized into three subcategories.
 
-## 子类划分
+### Point Tasks
 
-### Point 类
+|        Task        |                                        Puzzle                                         |                                        Solution                                         |
+| :----------------: | :-----------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: |
+|  `circle_center`   |  <img src="../../assets/examples/eyeballing/circle_center_puzzle.png" width="220"/>   |  <img src="../../assets/examples/eyeballing/circle_center_solution.png" width="220"/>   |
+|   `circumcenter`   |   <img src="../../assets/examples/eyeballing/circumcenter_puzzle.png" width="220"/>   |   <img src="../../assets/examples/eyeballing/circumcenter_solution.png" width="220"/>   |
+|   `fermat_point`   |   <img src="../../assets/examples/eyeballing/fermat_point_puzzle.png" width="220"/>   |   <img src="../../assets/examples/eyeballing/fermat_point_solution.png" width="220"/>   |
+|     `incenter`     |     <img src="../../assets/examples/eyeballing/incenter_puzzle.png" width="220"/>     |     <img src="../../assets/examples/eyeballing/incenter_solution.png" width="220"/>     |
+|     `midpoint`     |     <img src="../../assets/examples/eyeballing/midpoint_puzzle.png" width="220"/>     |     <img src="../../assets/examples/eyeballing/midpoint_solution.png" width="220"/>     |
+|   `orthocenter`    |   <img src="../../assets/examples/eyeballing/orthocenter_puzzle.png" width="220"/>    |   <img src="../../assets/examples/eyeballing/orthocenter_solution.png" width="220"/>    |
+| `ray_intersection` | <img src="../../assets/examples/eyeballing/ray_intersection_puzzle.png" width="220"/> | <img src="../../assets/examples/eyeballing/ray_intersection_solution.png" width="220"/> |
+| `triangle_center`  | <img src="../../assets/examples/eyeballing/triangle_center_puzzle.png" width="220"/>  | <img src="../../assets/examples/eyeballing/triangle_center_solution.png" width="220"/>  |
 
-- `circle_center`。
-- `circumcenter`。
-- `fermat_point`。
-- `incenter`。
-- `midpoint`。
-- `orthocenter`。
-- `ray_intersection`。
-- `triangle_center`。
-- `arc_connect_point_ver`。
+### Line Tasks
 
-### Line 类
+|           Task           |                                           Puzzle                                            |                                           Solution                                            |
+| :----------------------: | :-----------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: |
+|     `angle_bisector`     |     <img src="../../assets/examples/eyeballing/angle_bisector_puzzle.png" width="220"/>     |     <img src="../../assets/examples/eyeballing/angle_bisector_solution.png" width="220"/>     |
+|      `arc_connect`       |      <img src="../../assets/examples/eyeballing/arc_connect_puzzle.png" width="220"/>       |      <img src="../../assets/examples/eyeballing/arc_connect_solution.png" width="220"/>       |
+|  `circle_tangent_line`   |  <img src="../../assets/examples/eyeballing/circle_tangent_line_puzzle.png" width="220"/>   |  <img src="../../assets/examples/eyeballing/circle_tangent_line_solution.png" width="220"/>   |
+|  `circle_tangent_point`  |  <img src="../../assets/examples/eyeballing/circle_tangent_point_puzzle.png" width="220"/>  |  <img src="../../assets/examples/eyeballing/circle_tangent_point_solution.png" width="220"/>  |
+|        `parallel`        |        <img src="../../assets/examples/eyeballing/parallel_puzzle.png" width="220"/>        |        <img src="../../assets/examples/eyeballing/parallel_solution.png" width="220"/>        |
+|     `perpendicular`      |     <img src="../../assets/examples/eyeballing/perpendicular_puzzle.png" width="220"/>      |     <img src="../../assets/examples/eyeballing/perpendicular_solution.png" width="220"/>      |
+| `perpendicular_bisector` | <img src="../../assets/examples/eyeballing/perpendicular_bisector_puzzle.png" width="220"/> | <img src="../../assets/examples/eyeballing/perpendicular_bisector_solution.png" width="220"/> |
+|      `ray_reflect`       |      <img src="../../assets/examples/eyeballing/ray_reflect_puzzle.png" width="220"/>       |      <img src="../../assets/examples/eyeballing/ray_reflect_solution.png" width="220"/>       |
+|       `reflection`       |       <img src="../../assets/examples/eyeballing/reflection_puzzle.png" width="220"/>       |       <img src="../../assets/examples/eyeballing/reflection_solution.png" width="220"/>       |
 
-- `angle_bisector`。
-- `arc_connect`。
-- `circle_tangent_line`。
-- `circle_tangent_point`。
-- `parallel`。
-- `perpendicular`。
-- `perpendicular_bisector`。
-- `ray`。
-- `ray_reflect`。
-- `reflection`。
+### Shape Tasks
 
-### Shape 类
+|         Task          |                                          Puzzle                                          |                                          Solution                                          |
+| :-------------------: | :--------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------: |
+| `isosceles_trapezoid` | <img src="../../assets/examples/eyeballing/isosceles_trapezoid_puzzle.png" width="220"/> | <img src="../../assets/examples/eyeballing/isosceles_trapezoid_solution.png" width="220"/> |
+|    `parallelogram`    |    <img src="../../assets/examples/eyeballing/parallelogram_puzzle.png" width="220"/>    |    <img src="../../assets/examples/eyeballing/parallelogram_solution.png" width="220"/>    |
+|   `right_triangle`    |   <img src="../../assets/examples/eyeballing/right_triangle_puzzle.png" width="220"/>    |   <img src="../../assets/examples/eyeballing/right_triangle_solution.png" width="220"/>    |
+|   `square_outlier`    |   <img src="../../assets/examples/eyeballing/square_outlier_puzzle.png" width="220"/>    |   <img src="../../assets/examples/eyeballing/square_outlier_solution.png" width="220"/>    |
 
-- `isosceles_trapezoid`。
-- `parallelogram`。
-- `right_triangle`。
-- `square_outlier`。
+> **Note**: `arc_connect_point_ver` and `ray` share the same visual style as `arc_connect` and `ray_reflect` respectively.
 
-## 数据记录
+## Data Records
 
-绝大多数 `eyeballing` 任务会输出：
+Most `eyeballing` tasks output:
 
-- 题图 `image`。
-- 解图 `solution_image_path`。
-- 候选点或候选项元数据。
-- 正确选项 `correct_option`。
+- the puzzle image `image`.
+- the solution image `solution_image_path`.
+- candidate-point or candidate-option metadata.
+- the ground-truth answer `correct_option`.
 
-部分任务还会输出可选解题视频。
+Some tasks also output an optional solution video.
 
-## 单任务评测
+## Task-Local Evaluation
 
-单任务评测器与任务代码放在一起。
+Task-local evaluators live alongside each task implementation.
 
-其中大多数任务复用 `data/point_target_base.py` 中的通用候选点逻辑。
+Most of them reuse the shared candidate-point logic from `data/point_target_base.py`.
 
-整批离线评测入口位于 `evaluation/offline/eyeballing.py`。
+The batch offline evaluation entry point is `data/evaluation/offline/eyeballing.py`.
 
-## 统一 CLI 暴露参数
+## Parameters Exposed by the Unified CLI
 
-下面这些参数可以直接通过 `python3 cli.py data generate ...` 调整。
+The following parameters can be adjusted directly through `python3 cli.py data generate ...`.
 
-| 参数 | 来源 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `--canvas-width` | 统一 CLI | `480` | 画布宽度 |
-| `--seed` | 统一 CLI | `42` | 随机种子 |
-| `--video` | 统一 CLI | `False` | 是否生成解题视频 |
-| `--point-radius` | 统一 CLI | `None` | 覆盖候选点半径，当前已接入多数基于 `PointTargetPuzzleGenerator` 的任务 |
-| `--line-width` | 统一 CLI | `None` | 覆盖几何线条宽度，当前已接入多数基于 `PointTargetPuzzleGenerator` 的任务 |
+| Parameter        | Source      | Default | Description                                                                                                       |
+| ---------------- | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `--canvas-width` | Unified CLI | `480`   | Canvas width.                                                                                                     |
+| `--seed`         | Unified CLI | `42`    | Random seed.                                                                                                      |
+| `--video`        | Unified CLI | `False` | Whether to generate a solution video.                                                                             |
+| `--point-radius` | Unified CLI | `None`  | Override the candidate-point radius. This is already wired into most tasks based on `PointTargetPuzzleGenerator`. |
+| `--line-width`   | Unified CLI | `None`  | Override geometric line width. This is already wired into most tasks based on `PointTargetPuzzleGenerator`.       |
 
-## 共享构造参数
+## Shared Constructor Parameters
 
-多数 `eyeballing` 任务继承 `PointTargetPuzzleGenerator`，共享以下参数。
+Most `eyeballing` tasks inherit from `PointTargetPuzzleGenerator` and therefore share the following parameters.
 
-这些参数当前不一定全部暴露在统一 CLI 上，但可以通过 `--task-config` 或 `--task-config-path` 注入。
+Not all of them are exposed by the unified CLI yet, but they can be injected through `--task-config` or `--task-config-path`.
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `output_dir` | `DEFAULT_OUTPUT_DIR` | 输出目录 |
-| `canvas_width` | `480` | 画布宽度 |
-| `aspect` | `None` | 宽高比 |
-| `seed` | `None` | 随机种子 |
-| `prompt` | `None` | 覆盖默认提示词 |
-| `option_labels` | `('A','B','C','D','E')` | 候选标签集合 |
-| `margin_ratio` | `0.06` | 边距比例 |
-| `record_video` | `False` | 是否生成解题视频 |
-| `point_radius` | `None` | 候选点半径覆盖值 |
-| `line_width` | `None` | 几何线条宽度覆盖值 |
+| Parameter       | Default                 | Description                           |
+| --------------- | ----------------------- | ------------------------------------- |
+| `output_dir`    | `DEFAULT_OUTPUT_DIR`    | Output directory.                     |
+| `canvas_width`  | `480`                   | Canvas width.                         |
+| `aspect`        | `None`                  | Aspect ratio.                         |
+| `seed`          | `None`                  | Random seed.                          |
+| `prompt`        | `None`                  | Override the default prompt.          |
+| `option_labels` | `('A','B','C','D','E')` | Candidate option labels.              |
+| `margin_ratio`  | `0.06`                  | Margin ratio.                         |
+| `record_video`  | `False`                 | Whether to generate a solution video. |
+| `point_radius`  | `None`                  | Candidate-point radius override.      |
+| `line_width`    | `None`                  | Geometric line width override.        |
 
-## 特殊任务参数
+## Task-Specific Parameters
 
 ### `arc_connect`
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `mask_fraction` | `0.18` | 遮挡带宽度占画布宽度的比例 |
-| `arc_span_deg` | `20.0` | 两侧弧段的可见角度 |
+| Parameter       | Default | Description                                             |
+| --------------- | ------- | ------------------------------------------------------- |
+| `mask_fraction` | `0.18`  | Occlusion band width as a fraction of the canvas width. |
+| `arc_span_deg`  | `20.0`  | Visible angle of the arc segments on both sides.        |
 
 ### `arc_connect_point_ver`
 
-当前构造参数为：
+The current constructor parameters are:
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `canvas_width` | `480` | 画布宽度 |
-| `aspect` | `None` | 宽高比 |
-| `seed` | `None` | 随机种子 |
-| `prompt` | `None` | 覆盖默认提示词 |
-| `record_video` | `False` | 是否输出解题视频 |
-| `point_radius` | `None` | 候选点半径覆盖值 |
-| `line_width` | `None` | 线宽覆盖值 |
+| Parameter      | Default | Description                         |
+| -------------- | ------- | ----------------------------------- |
+| `canvas_width` | `480`   | Canvas width.                       |
+| `aspect`       | `None`  | Aspect ratio.                       |
+| `seed`         | `None`  | Random seed.                        |
+| `prompt`       | `None`  | Override the default prompt.        |
+| `record_video` | `False` | Whether to output a solution video. |
+| `point_radius` | `None`  | Candidate-point radius override.    |
+| `line_width`   | `None`  | Line width override.                |
 
-其内部还固定使用：
+It also uses the following fixed internal settings:
 
-| 内部参数 | 固定值 | 说明 |
-| --- | --- | --- |
-| `mask_fraction` | `0.35` | 垂直遮挡带宽度比例 |
-| `arc_span_deg` | `20.0` | 弧段可见角度 |
+| Internal Parameter | Fixed Value | Description                                 |
+| ------------------ | ----------- | ------------------------------------------- |
+| `mask_fraction`    | `0.35`      | Width ratio of the vertical occlusion band. |
+| `arc_span_deg`     | `20.0`      | Visible angle of the arc segments.          |
 
 ### `ray`
 
-| 参数 | 默认值 | 说明 |
-| --- | --- | --- |
-| `canvas_size` | `480` | 画布基准尺寸 |
-| `aspect` | `None` | 宽高比 |
-| `mirror_count` | `12` | 镜面数量 |
-| `min_reflections` | `2` | 最少反射次数 |
-| `prompt` | `None` | 覆盖默认提示词 |
-| `seed` | `None` | 随机种子 |
+| Parameter         | Default | Description                    |
+| ----------------- | ------- | ------------------------------ |
+| `canvas_size`     | `480`   | Base canvas size.              |
+| `aspect`          | `None`  | Aspect ratio.                  |
+| `mirror_count`    | `12`    | Number of mirrors.             |
+| `min_reflections` | `2`     | Minimum number of reflections. |
+| `prompt`          | `None`  | Override the default prompt.   |
+| `seed`            | `None`  | Random seed.                   |
 
-## 任务与代码位置
+## Task Locations
 
-| 任务 | 代码路径 |
-| --- | --- |
-| `angle_bisector` | `data/visioncentric/eyeballing/angle_bisector/` |
-| `arc_connect` | `data/visioncentric/eyeballing/arc_connect/` |
-| `arc_connect_point_ver` | `data/visioncentric/eyeballing/arc_connect_point_ver/` |
-| `circle_center` | `data/visioncentric/eyeballing/circle_center/` |
-| `circle_tangent_line` | `data/visioncentric/eyeballing/circle_tangent_line/` |
-| `circle_tangent_point` | `data/visioncentric/eyeballing/circle_tangent_point/` |
-| `circumcenter` | `data/visioncentric/eyeballing/circumcenter/` |
-| `fermat_point` | `data/visioncentric/eyeballing/fermat_point/` |
-| `incenter` | `data/visioncentric/eyeballing/incenter/` |
-| `isosceles_trapezoid` | `data/visioncentric/eyeballing/isosceles_trapezoid/` |
-| `midpoint` | `data/visioncentric/eyeballing/midpoint/` |
-| `orthocenter` | `data/visioncentric/eyeballing/orthocenter/` |
-| `parallel` | `data/visioncentric/eyeballing/parallel/` |
-| `parallelogram` | `data/visioncentric/eyeballing/parallelogram/` |
-| `perpendicular` | `data/visioncentric/eyeballing/perpendicular/` |
+| Task                     | Code Path                                               |
+| ------------------------ | ------------------------------------------------------- |
+| `angle_bisector`         | `data/visioncentric/eyeballing/angle_bisector/`         |
+| `arc_connect`            | `data/visioncentric/eyeballing/arc_connect/`            |
+| `arc_connect_point_ver`  | `data/visioncentric/eyeballing/arc_connect_point_ver/`  |
+| `circle_center`          | `data/visioncentric/eyeballing/circle_center/`          |
+| `circle_tangent_line`    | `data/visioncentric/eyeballing/circle_tangent_line/`    |
+| `circle_tangent_point`   | `data/visioncentric/eyeballing/circle_tangent_point/`   |
+| `circumcenter`           | `data/visioncentric/eyeballing/circumcenter/`           |
+| `fermat_point`           | `data/visioncentric/eyeballing/fermat_point/`           |
+| `incenter`               | `data/visioncentric/eyeballing/incenter/`               |
+| `isosceles_trapezoid`    | `data/visioncentric/eyeballing/isosceles_trapezoid/`    |
+| `midpoint`               | `data/visioncentric/eyeballing/midpoint/`               |
+| `orthocenter`            | `data/visioncentric/eyeballing/orthocenter/`            |
+| `parallel`               | `data/visioncentric/eyeballing/parallel/`               |
+| `parallelogram`          | `data/visioncentric/eyeballing/parallelogram/`          |
+| `perpendicular`          | `data/visioncentric/eyeballing/perpendicular/`          |
 | `perpendicular_bisector` | `data/visioncentric/eyeballing/perpendicular_bisector/` |
-| `ray` | `data/visioncentric/eyeballing/ray/` |
-| `ray_intersection` | `data/visioncentric/eyeballing/ray_intersection/` |
-| `ray_reflect` | `data/visioncentric/eyeballing/ray_reflect/` |
-| `reflection` | `data/visioncentric/eyeballing/reflection/` |
-| `right_triangle` | `data/visioncentric/eyeballing/right_triangle/` |
-| `square_outlier` | `data/visioncentric/eyeballing/square_outlier/` |
-| `triangle_center` | `data/visioncentric/eyeballing/triangle_center/` |
+| `ray`                    | `data/visioncentric/eyeballing/ray/`                    |
+| `ray_intersection`       | `data/visioncentric/eyeballing/ray_intersection/`       |
+| `ray_reflect`            | `data/visioncentric/eyeballing/ray_reflect/`            |
+| `reflection`             | `data/visioncentric/eyeballing/reflection/`             |
+| `right_triangle`         | `data/visioncentric/eyeballing/right_triangle/`         |
+| `square_outlier`         | `data/visioncentric/eyeballing/square_outlier/`         |
+| `triangle_center`        | `data/visioncentric/eyeballing/triangle_center/`        |
 
-## 参数注入示例
+## Parameter Injection Example
 
 ```bash
 python3 cli.py data generate \

@@ -1,46 +1,92 @@
-# Text-Centric 独立流程说明
+# Text-Centric Independent Pipeline
 
-## 当前状态
+## Example Outputs
 
-`Text-Centric` 目前仍是独立流程，没有接入统一 `Canonical Manifest` 主线。
+Text-centric tasks evaluate whether video generation models can perform reasoning by embedding text and solutions within generated video frames. Below are example first frames (prompts) and last frames (solutions) from generated videos:
 
-相关代码位于：
+### Math Reasoning
 
-- `data/textcentric/request_videos.py`。
-- `evaluation/textcentric/`。
+| Benchmark |                            Prompt (First Frame)                            |                           Solution (Last Frame)                           |
+| :-------: | :------------------------------------------------------------------------: | :-----------------------------------------------------------------------: |
+| **GSM8K** | <img src="../../assets/examples/textcentric/gsm8k_first.png" width="280"/> | <img src="../../assets/examples/textcentric/gsm8k_last.png" width="280"/> |
 
-## 当前流程
+### Multimodal Math
 
-### 生成视频
+|   Benchmark   |                              Prompt (First Frame)                              |                             Solution (Last Frame)                             |
+| :-----------: | :----------------------------------------------------------------------------: | :---------------------------------------------------------------------------: |
+| **MathVista** | <img src="../../assets/examples/textcentric/mathvista_first.png" width="280"/> | <img src="../../assets/examples/textcentric/mathvista_last.png" width="280"/> |
 
-入口脚本：
+### Multimodal Understanding
 
-- `data/textcentric/request_videos.py`。
-- 兼容脚本 `scripts/run_textcentric.sh`。
+|  Benchmark  |                             Prompt (First Frame)                             |                            Solution (Last Frame)                            |
+| :---------: | :--------------------------------------------------------------------------: | :-------------------------------------------------------------------------: |
+| **MMBench** | <img src="../../assets/examples/textcentric/mmbench_first.png" width="280"/> | <img src="../../assets/examples/textcentric/mmbench_last.png" width="280"/> |
+|  **MMMU**   |  <img src="../../assets/examples/textcentric/mmmu_first.png" width="280"/>   |  <img src="../../assets/examples/textcentric/mmmu_last.png" width="280"/>   |
 
-当前输入通常是题目 JSON，输出是：
+## Current Status
 
-- 模型原始响应。
-- 视频下载地址。
-- 下载后的视频文件。
-- `responses.json` 与 `questions.json`。
+`Text-Centric` is still an independent pipeline and has not yet been integrated into the unified `Canonical Manifest` mainline.
 
-### 评测视频
+The relevant code currently lives in:
 
-入口脚本：
+- `data/textcentric/request_videos.py`.
+- `data/evaluation/textcentric/`.
 
-- `evaluation/textcentric/evaluate_videos.py`。
-- 兼容脚本 `scripts/eval_textcentric.sh`。
+## Sub-benchmarks
 
-当前评测主要看：
+VideoThinkBench adapts the following text-centric sub-benchmarks into video generation evaluation.
 
-- 最后一帧是否包含正确答案。
-- 音频转写后是否包含正确答案。
-- 两者同时正确。
-- 任一正确。
+### Math Reasoning
 
-## 为什么暂时不并入统一主线
+- `GSM8K`.
+- `MATH-500`.
+- `AIME24`.
+- `AIME25`.
 
-因为这条链路的核心对象是“题目文本 + 生成视频 + 音频转写 + LLM 评判”，与当前 `Vision-Centric` 的静态题图 / 解图 / 解题视频中间层差异较大。
+### General Knowledge
 
-如果后续要并入统一主线，建议先设计一套独立于 `Vision-Centric` 的 `Text-Centric Canonical Schema`。
+- `BBH`.
+- `MMLU`.
+- `MMLU-Pro`.
+- `GPQA-diamond`.
+- `SuperGPQA-easy`.
+
+### Multimodal Math
+
+- `MathVista`.
+- `MathVision`.
+
+### Multimodal Understanding
+
+- `MMBench`.
+- `MMMU`.
+
+## Current Workflow
+
+### Request Videos
+
+The current entry script is `data/textcentric/request_videos.py`.
+
+Inputs are typically question JSON files, and the outputs usually include:
+
+- raw model responses.
+- video download URLs.
+- downloaded video files.
+- `responses.json` and `questions.json`.
+
+### Evaluate Videos
+
+The current evaluation entry point is `data/evaluation/textcentric/evaluate_videos.py`.
+
+The evaluation pipeline mainly checks:
+
+- whether the last frame contains the correct answer.
+- whether the audio transcript contains the correct answer.
+- whether both modalities are correct.
+- whether either modality is correct.
+
+## Why It Is Not Yet in the Unified Mainline
+
+This pipeline is centered on question text, generated videos, audio transcription, and LLM judging, which is materially different from the current `Vision-Centric` intermediate representation based on puzzle images, solution images, and optional solution videos.
+
+If this track is integrated into the unified mainline in the future, the recommended first step is to design a dedicated `Text-Centric Canonical Schema` rather than forcing it into the existing `Vision-Centric` abstraction.

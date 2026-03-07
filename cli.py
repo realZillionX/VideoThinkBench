@@ -4,7 +4,7 @@ import argparse
 
 from data import export as data_export
 from data import generate as data_generate
-from evaluation import commands as eval_commands
+from data.evaluation import commands as eval_commands
 
 
 def build_parser() -> argparse.ArgumentParser:

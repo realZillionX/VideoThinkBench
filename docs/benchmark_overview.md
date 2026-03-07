@@ -1,61 +1,74 @@
-# 基准总览
+# Benchmark Overview
 
-## 仓库定位
+## Repository Purpose
 
-`VideoThinkBench` 当前是一个面向后续实验的统一工程仓库，而不是旧 `Thinking-with-Video` 仓库的直接镜像。
+`VideoThinkBench` is the unified engineering repository for reasoning evaluation with video generation models.
 
-公开可见的任务说明、数据格式、评测逻辑和训练入口都应该以本仓库文档为准。
+It is the maintained successor to the original `Thinking-with-Video` codebase, and the public documentation in this repository should be treated as the authoritative source for current task definitions, data schemas, evaluation entry points, and training interfaces.
 
-旧仓库仍然是重要来源，尤其提供了论文原始目录结构、任务命名和部分测试样例，但不再是当前工程组织方式的唯一依据。
+The original repository remains a useful historical reference for paper-era naming, early directory layouts, and archived examples, but it is no longer the primary engineering surface.
 
-## 当前任务版图
+## Task Landscape Overview
 
-### Vision-Centric 统一主线
+![VideoThinkBench task landscape](../assets/main_picture.png)
 
-当前统一注册表位于 [data/registry.py](../data/registry.py)，共收录 `36` 个任务。
+`VideoThinkBench` combines two complementary evaluation tracks.
 
-| 组别 | 数量 | 当前代码位置 | 说明 |
+- `Vision-Centric` tasks focus on dynamic visual reasoning, such as geometric construction, path planning, and pattern completion.
+- `Text-Centric` tasks adapt established reasoning benchmarks into video generation settings and judge the generated video content.
+
+## Vision-Centric Unified Pipeline
+
+The unified registry lives in [data/registry.py](../data/registry.py) and currently includes `36` mainline tasks.
+
+| Group | Count | Current Code Location | Description |
 | --- | --- | --- | --- |
-| `eyeballing` | `23` | `data/visioncentric/eyeballing/` | 几何画点、画线、画形任务 |
-| `maze` | `3` | `data/visioncentric/maze/` | 方形、六角形、迷宫环形 |
-| `visual_puzzle` | `10` | `data/visioncentric/visual_puzzles/` | 颜色、形状、大小模式匹配 |
+| `eyeballing` | `23` | `data/visioncentric/eyeballing/` | Geometric point, line, and shape construction tasks. |
+| `maze` | `3` | `data/visioncentric/maze/` | Square, hexagon, and labyrinth path-finding tasks. |
+| `visual_puzzle` | `10` | `data/visioncentric/visual_puzzles/` | Color, shape, size, and compositional pattern matching tasks. |
 
-### Text-Centric 独立流程
+These registered tasks share one engineering mainline for generation, scanning, export, and bench-level evaluation.
 
-`Text-Centric` 仍保留独立的视频请求与音视频评测链路，代码位于 `data/textcentric/` 和 `evaluation/textcentric/`。
+## Text-Centric Independent Pipeline
 
-它目前没有接入统一 `Canonical Manifest` 主线，因此在工程语义上应视为“并行流程”，而不是 `Vision-Centric` 那样的统一数据管线成员。
+`Text-Centric` currently remains an independent pipeline, with code under `data/textcentric/` and `data/evaluation/textcentric/`.
 
-### Legacy 归档任务
+Unlike the `Vision-Centric` tasks, this track does not yet flow through the shared `CanonicalSample` manifest. Its core objects are question text, generated videos, audio transcripts, and judge outputs, so it should be understood as a parallel evaluation path rather than a member of the unified `Vision-Centric` pipeline.
 
-来自旧 `VisionCentric/puzzle/`，但当前未进入统一主线的任务，被统一放到 `data/visioncentric/legacy/`。
+## Legacy Archive
 
-这些任务包括：
+Tasks inherited from the original `VisionCentric/puzzle/` tree but not currently included in the unified registry are archived under `data/visioncentric/legacy/`.
 
-- `arcagi`。
-- `circle_count`。
-- `jigsaw`。
-- `mirror`。
-- `rects`。
-- `sudoku`。
+The current archive includes:
 
-## 数据主线
+- `arcagi`.
+- `circle_count`.
+- `jigsaw`.
+- `mirror`.
+- `rects`.
+- `sudoku`.
 
-统一数据主线分成 `4` 层：
+These tasks are preserved for historical comparison, evaluator reuse, and possible future restoration. They are not part of `cli.py data generate --tasks all`, and they are not included in the default `CanonicalSample` mainline.
 
-1. 单任务生成器输出原始 `data.json`、题图、解图与可选解题视频。
-2. `data/scan.py` 将原始记录归一化为 `CanonicalSample`。
-3. `data/export.py` 和 `data/exporters/` 将 `CanonicalSample` 导出到训练框架格式。
-4. `evaluation/` 负责整 Bench 级推理、离线评测与汇总。
+`ARC-AGI-2` is documented separately in [tasks/arcagi2.md](tasks/arcagi2.md) because it remains useful for targeted abstract reasoning experiments even though it is archived.
 
-`CanonicalSample` 是本仓库最重要的工程中间层，定义见 [core/schemas.py](../core/schemas.py)。
+## Data Pipeline Overview
 
-## 参数调整原则
+The maintained data workflow has `4` layers:
 
-后续若要做数据生成参数调优，应优先区分 `3` 种参数来源：
+1. Task generators produce raw `data.json`, puzzle images, solution images, and optional solution videos.
+2. [data/scan.py](../data/scan.py) normalizes task records into `CanonicalSample`.
+3. [data/export.py](../data/export.py) and `data/exporters/` convert `CanonicalSample` into training or evaluation formats for downstream frameworks.
+4. `data/evaluation/` handles bench-level inference, offline evaluation, frame matching, and result aggregation.
 
-1. `cli.py data generate` 直接暴露的统一参数。
-2. 仅能通过 `--task-config` 或 `--task-config-path` 注入的任务专属参数。
-3. 当前代码中尚未暴露、需要新增到生成器或统一 CLI 的参数。
+`CanonicalSample`, defined in [core/schemas.py](../core/schemas.py), is the key engineering interface that connects generation, export, evaluation, and training.
 
-本文档与各任务文档会明确标注这三类参数。
+## Parameter Tuning Strategy
+
+When adjusting generation parameters, it is useful to separate them into `3` sources:
+
+1. Global options exposed directly by `python3 cli.py data generate`.
+2. Task-specific options injected through `--task-config` or `--task-config-path`.
+3. Parameters that are not yet exposed and therefore require generator or CLI changes.
+
+This overview and the task-specific pages call out those categories explicitly.
