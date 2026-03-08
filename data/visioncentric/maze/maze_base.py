@@ -176,11 +176,18 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         video_path = self.solution_dir / f"{record_id}_solution.mp4"
         width, height = puzzle_image.size
         
-        fourcc = cv2.VideoWriter_fourcc(*'vp09')
-        out = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
+        # Codec fallback chain: avc1 (H.264) → vp09 (VP9) → mp4v (MPEG-4)
+        out = None
+        for codec in ('avc1', 'vp09', 'mp4v'):
+            fourcc = cv2.VideoWriter_fourcc(*codec)
+            out = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
+            if out.isOpened():
+                break
+            out.release()
+            out = None
         
-        if not out.isOpened():
-            print(f"Warning: Could not open video writer for {video_path}")
+        if out is None or not out.isOpened():
+            print(f"Warning: Could not open video writer for {video_path} (tried avc1/vp09/mp4v)")
             return None
 
         n_points = len(points)
