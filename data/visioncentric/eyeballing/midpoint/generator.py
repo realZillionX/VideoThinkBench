@@ -45,9 +45,10 @@ class MidpointPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
+    solution_video_path: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "id": self.id,
             "prompt": self.prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
@@ -61,6 +62,9 @@ class MidpointPuzzleRecord:
             "solution_image_path": self.solution_image_path,
             "type": "midpoint",
         }
+        if self.solution_video_path is not None:
+            payload["solution_video_path"] = self.solution_video_path
+        return payload
 
 
 CandidatePoint = PointCandidate
@@ -95,9 +99,13 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
         puzzle_img.save(puzzle_path)
         solution_img.save(solution_path)
 
+        video_rel_path: Optional[str] = None
         if self.record_video:
             try:
                 self.save_video_solution(pid)
+                video_abs = self.solution_dir / f"{pid}_solution.mp4"
+                if video_abs.exists():
+                    video_rel_path = self.relativize_path(video_abs)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -116,6 +124,7 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
             correct_option=self.correct_label,
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
+            solution_video_path=video_rel_path,
         )
 
     def create_random_puzzle(self) -> MidpointPuzzleRecord:
