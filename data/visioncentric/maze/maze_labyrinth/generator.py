@@ -192,10 +192,11 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         solution_image = self._render_maze(passages, start_cell, goal_cell, path=path_cells)
         puzzle_path, solution_path = self.save_images(puzzle_uuid, puzzle_image, solution_image)
 
+        video_path = None
         if self.video:
             path_points = [self._cell_center_from_cell(cell) for cell in path_cells]
             thickness = max(3, self.ring_width // 4)
-            self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=thickness)
+            video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=thickness)
 
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)
@@ -218,6 +219,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
                 "goal_cell": list(goal_cell),
                 "solution_path_cell_ids": [self._get_cell_id(cell) for cell in path_cells],
             },
+            video_path=video_path,
         )
         return record
 

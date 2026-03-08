@@ -119,9 +119,10 @@ class MazeGenerator(MazePuzzleGenerator):
 
         puzzle_path, solution_path = self.save_images(puzzle_uuid, puzzle_image, solution_image)
 
+        video_path = None
         if self.video:
             path_points = [self._cell_center(self._get_cell_id(*cell)) for cell in path]
-            self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=max(3, self.cell_size // 3))
+            video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=max(3, self.cell_size // 3))
 
         start_point = self._cell_center(self._get_cell_id(*start))
         goal_point = self._cell_center(self._get_cell_id(*goal))
@@ -143,6 +144,7 @@ class MazeGenerator(MazePuzzleGenerator):
             solution_path=solution_path,
             prompt=self.prompt,
             extra=extra_payload,
+            video_path=video_path,
         )
 
     # ------------------------------------------------------------------

@@ -54,6 +54,7 @@ class MazePuzzleRecord:
     image: str
     solution_image_path: str
     extra: Dict[str, Any] = field(default_factory=dict)
+    solution_video_path: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
@@ -66,6 +67,8 @@ class MazePuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
         }
+        if self.solution_video_path is not None:
+            payload["solution_video_path"] = self.solution_video_path
         for key, value in self.extra.items():
             if key not in payload:
                 payload[key] = value
@@ -273,9 +276,13 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         solution_path: Path,
         prompt: Optional[str] = None,
         extra: Optional[Dict[str, Any]] = None,
+        video_path: Optional[Path] = None,
     ) -> MazePuzzleRecord:
         record_prompt = prompt if prompt is not None else self.prompt
         extra_payload = extra if extra is not None else {}
+        video_rel: Optional[str] = None
+        if video_path is not None:
+            video_rel = self.relativize_path(video_path)
         return MazePuzzleRecord(
             id=record_id,
             prompt=record_prompt,
@@ -286,6 +293,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
             extra=extra_payload,
+            solution_video_path=video_rel,
         )
 
     @classmethod

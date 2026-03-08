@@ -57,9 +57,10 @@ class PointTargetPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
+    solution_video_path: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
-        return {
+        payload = {
             "id": self.id,
             "prompt": self.prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
@@ -70,6 +71,9 @@ class PointTargetPuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
         }
+        if self.solution_video_path is not None:
+            payload["solution_video_path"] = self.solution_video_path
+        return payload
 
 class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
     """Base generator providing canvas configuration and candidate placement."""
@@ -364,14 +368,17 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         puzzle_img.save(self.puzzle_path)
         solution_img.save(self.solution_path)
 
+        video_rel_path: Optional[str] = None
         if self.record_video:
             try:
                 self.save_video_solution(pid)
+                video_abs = self.solution_dir / f"{pid}_solution.mp4"
+                if video_abs.exists():
+                    video_rel_path = self.relativize_path(video_abs)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
                 print(f"Video generation failed for {pid}: {e}")
-                pass
 
         return PointTargetPuzzleRecord(
             id=self.pid,
@@ -382,6 +389,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             correct_option=self.correct_label,
             image=self.relativize_path(self.puzzle_path),
             solution_image_path=self.relativize_path(self.solution_path),
+            solution_video_path=video_rel_path,
         )
 
     def save_video_solution(self, pid: str) -> None:

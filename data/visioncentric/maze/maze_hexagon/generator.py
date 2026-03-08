@@ -226,10 +226,11 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         record_id = puzzle_id or self.next_id()
         puzzle_path, solution_path = self.save_images(record_id, puzzle_image, solution_image)
 
+        video_path = None
         if self.video:
             path_points = [self._cell_center_from_cell(cell) for cell in solution]
             thickness = max(4, int(self.cell_radius * 0.35))
-            self.save_video(record_id, puzzle_image, path_points, thickness=thickness)
+            video_path = self.save_video(record_id, puzzle_image, path_points, thickness=thickness)
 
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)
@@ -249,6 +250,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
                 "goal_cell": list(goal_cell),
                 "solution_path_cell_ids": [self.cell_to_id[cell] for cell in solution],
             },
+            video_path=video_path,
         )
 
     # ------------------------------------------------------------------
