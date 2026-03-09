@@ -130,6 +130,23 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
     def create_random_puzzle(self) -> MidpointPuzzleRecord:
         return self.create_puzzle()
 
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        """Redraw anchor circles on top of animated lines."""
+        segment_val = getattr(self, "_segment", None)
+        if segment_val is None:
+            return
+        width, height = self.canvas_dimensions
+        anchor_color = (30, 30, 30)
+        anchor_radius = max(self.point_radius + 6, int(round(min(width, height) * 0.028)))
+        for pt in (segment_val.start, segment_val.end):
+            x, y = int(round(pt[0])), int(round(pt[1]))
+            draw.ellipse(
+                [x - anchor_radius, y - anchor_radius, x + anchor_radius, y + anchor_radius],
+                fill=(250, 250, 250),
+                outline=anchor_color,
+                width=max(3, anchor_radius // 3),
+            )
+
     def _build_segment(
         self,
         midpoint: Tuple[float, float],
@@ -191,6 +208,19 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
         anchor_color = (30, 30, 30)
         point_radius = self.point_radius
         anchor_radius = max(point_radius + 6, int(round(min(width, height) * 0.028)))
+
+        # Draw segment line FIRST (behind anchors) — only in solution
+        if highlight_label is not None:
+            draw.line(
+                [
+                    (int(round(segment_val.start[0])), int(round(segment_val.start[1]))),
+                    (int(round(segment_val.end[0])), int(round(segment_val.end[1]))),
+                ],
+                fill=self.CANDIDATE_OUTLINE_COLOR,
+                width=max(2, int(round(min(width, height) * 0.01))),
+            )
+
+        # Draw anchor circles ON TOP of the line
         draw.ellipse(
             [
                 int(round(segment_val.start[0] - anchor_radius)),
@@ -213,16 +243,6 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
             outline=anchor_color,
             width=max(3, anchor_radius // 3),
         )
-        
-        if highlight_label is not None: # Draw segment only on solution image
-            draw.line(
-                [
-                    (int(round(segment_val.start[0])), int(round(segment_val.start[1]))),
-                    (int(round(segment_val.end[0])), int(round(segment_val.end[1]))),
-                ],
-                fill=(180, 180, 180),
-                width=max(2, int(round(min(width, height) * 0.01))),
-            )
 
         self.draw_candidates(
             draw,

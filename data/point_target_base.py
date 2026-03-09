@@ -339,6 +339,14 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             self._candidate_font = ImageFont.load_default(15)
         return self._candidate_font
     
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        """Hook: draw extra elements on top of animated lines but below candidates.
+
+        Subclasses override this to re-draw static geometry (e.g. anchor circles)
+        that must stay visible above animated solution lines in video frames.
+        """
+        pass
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         raise NotImplementedError("Subclasses must implement _render method")
     
@@ -467,6 +475,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         ) -> Image.Image:
             out = frame.copy()
             draw = ImageDraw.Draw(out)
+            self._video_overlay_extras(draw)
             self.draw_candidates(draw, highlight_label=highlight)
             return out
 
