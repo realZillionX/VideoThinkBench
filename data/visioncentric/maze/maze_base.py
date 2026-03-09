@@ -48,9 +48,10 @@ def _draw_path_cap(
     color: Any,
     thickness: int,
 ) -> None:
+    """Draw a square cap at a path endpoint or waypoint."""
     r = thickness / 2
     x, y = point
-    draw.ellipse((x - r, y - r, x + r, y + r), fill=color)
+    draw.rectangle((x - r, y - r, x + r, y + r), fill=color)
 
 @dataclass
 class MazePuzzleRecord:
@@ -230,8 +231,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         full_frame = puzzle_image.copy()
         full_draw = ImageDraw.Draw(full_frame)
         full_draw.line(points, fill=color, width=thickness, joint="curve")
-        _draw_path_cap(full_draw, points[0], color, thickness)
-        _draw_path_cap(full_draw, points[-1], color, thickness)
+        # Fill every waypoint with a square to eliminate corner gaps
+        for pt in points:
+            _draw_path_cap(full_draw, pt, color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
         _draw_path_cap(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
@@ -272,10 +274,14 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 prev_end = segments[prev_segment][2]
                 if prev_tip != prev_end:
                     revealed_draw.line([prev_tip, prev_end], fill=255, width=thickness, joint="curve")
+                _draw_path_cap(revealed_draw, prev_end, 255, thickness)
                 for seg_idx in range(prev_segment + 1, current_segment):
                     _, seg_p1, seg_p2 = segments[seg_idx]
+                    _draw_path_cap(revealed_draw, seg_p1, 255, thickness)
                     revealed_draw.line([seg_p1, seg_p2], fill=255, width=thickness, joint="curve")
+                    _draw_path_cap(revealed_draw, seg_p2, 255, thickness)
                 current_start = segments[current_segment][1]
+                _draw_path_cap(revealed_draw, current_start, 255, thickness)
                 if visible_tip != current_start:
                     revealed_draw.line([current_start, visible_tip], fill=255, width=thickness, joint="curve")
 
