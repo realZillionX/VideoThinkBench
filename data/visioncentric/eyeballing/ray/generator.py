@@ -68,6 +68,7 @@ class RayPuzzleRecord:
     vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
     vlm_answer: Optional[str] = None
+    seed: Optional[int] = None
     solution_video_path: Optional[str] = None
 
     def to_dict(self) -> dict:
@@ -87,6 +88,7 @@ class RayPuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "seed": self.seed,
             "type": "ray",
         }
 
@@ -202,6 +204,7 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
                 vlm_prompt=self.vlm_prompt,
                 ti2i_prompt=self.ti2i_prompt,
                 vlm_answer=correct_label,
+                seed=self.seed,
             )
 
         raise RuntimeError("Failed to generate a valid ray puzzle after many attempts")

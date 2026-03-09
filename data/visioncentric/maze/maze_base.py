@@ -118,6 +118,7 @@ class MazePuzzleRecord:
     image: str
     solution_image_path: str
     vlm_answer: Optional[str] = None
+    seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
 
@@ -134,6 +135,7 @@ class MazePuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "seed": self.seed,
         }
         for key, value in self.extra.items():
             if key not in payload:
@@ -413,6 +415,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
             vlm_answer=vlm_answer,
+            seed=self.seed,
             extra=extra_payload,
             solution_video_path=video_rel,
         )
