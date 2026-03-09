@@ -26,6 +26,54 @@ from PIL import Image, ImageDraw
 from data.base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 
 
+def _draw_path_segment_rect(
+    draw: ImageDraw.ImageDraw,
+    p1: Tuple[float, float],
+    p2: Tuple[float, float],
+    color: Any,
+    thickness: int,
+) -> None:
+    """Draw a path segment as a filled rectangle."""
+    x1, y1 = p1
+    x2, y2 = p2
+    half = thickness / 2
+
+    if math.isclose(x1, x2, abs_tol=1e-6) or math.isclose(y1, y2, abs_tol=1e-6):
+        left = min(x1, x2) - half
+        top = min(y1, y2) - half
+        right = max(x1, x2) + half
+        bottom = max(y1, y2) + half
+        draw.rectangle((left, top, right, bottom), fill=color)
+        return
+
+    dx = x2 - x1
+    dy = y2 - y1
+    seg_len = math.hypot(dx, dy)
+    if seg_len <= 1e-6:
+        draw.rectangle((x1 - half, y1 - half, x1 + half, y1 + half), fill=color)
+        return
+
+    # Other maze variants in this shared base use angled paths, so keep them
+    # artifact-free with an oriented rectangle instead of a stroked line.
+    ux = dx / seg_len
+    uy = dy / seg_len
+    px = -uy * half
+    py = ux * half
+    start_x = x1 - ux * half
+    start_y = y1 - uy * half
+    end_x = x2 + ux * half
+    end_y = y2 + uy * half
+    draw.polygon(
+        (
+            (start_x + px, start_y + py),
+            (start_x - px, start_y - py),
+            (end_x - px, end_y - py),
+            (end_x + px, end_y + py),
+        ),
+        fill=color,
+    )
+
+
 def draw_path_line(
     image: Image.Image,
     points: List[Tuple[float, float]],
@@ -35,23 +83,10 @@ def draw_path_line(
     """Draws a path (solution line) on the given image."""
     draw = ImageDraw.Draw(image)
     if len(points) >= 2:
-        draw.line(points, fill=color, width=thickness, joint="curve")
+        for i in range(len(points) - 1):
+            _draw_path_segment_rect(draw, points[i], points[i + 1], color, thickness)
     elif len(points) == 1:
-        x, y = points[0]
-        r = thickness / 2
-        draw.ellipse((x - r, y - r, x + r, y + r), fill=color)
-
-
-def _draw_path_cap(
-    draw: ImageDraw.ImageDraw,
-    point: Tuple[float, float],
-    color: Any,
-    thickness: int,
-) -> None:
-    """Draw a square cap at a path endpoint or waypoint."""
-    r = thickness / 2
-    x, y = point
-    draw.rectangle((x - r, y - r, x + r, y + r), fill=color)
+        _draw_path_segment_rect(draw, points[0], points[0], color, thickness)
 
 @dataclass
 class MazePuzzleRecord:
@@ -230,13 +265,11 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
 
         full_frame = puzzle_image.copy()
         full_draw = ImageDraw.Draw(full_frame)
-        full_draw.line(points, fill=color, width=thickness, joint="curve")
-        # Square caps only at the very start and end of the path
-        _draw_path_cap(full_draw, points[0], color, thickness)
-        _draw_path_cap(full_draw, points[-1], color, thickness)
+        for i in range(len(points) - 1):
+            _draw_path_segment_rect(full_draw, points[i], points[i + 1], color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
-        _draw_path_cap(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
+        _draw_path_segment_rect(ImageDraw.Draw(revealed_mask), points[0], points[0], 255, thickness)
         prev_segment = 0
         prev_tip: Tuple[float, float] = points[0]
 
@@ -266,35 +299,24 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 else:
                     visible_tip = p1
 
-            # Build a polyline of all newly revealed points and draw in
-            # one call so PIL handles joints natively (no corner gaps).
             revealed_draw = ImageDraw.Draw(revealed_mask)
-            new_pts: list = []
             if current_segment == prev_segment:
                 if visible_tip != prev_tip:
-                    new_pts = [prev_tip, visible_tip]
+                    _draw_path_segment_rect(revealed_draw, prev_tip, visible_tip, 255, thickness)
             else:
-                new_pts.append(prev_tip)
                 prev_end = segments[prev_segment][2]
                 if prev_end != prev_tip:
-                    new_pts.append(prev_end)
+                    _draw_path_segment_rect(revealed_draw, prev_tip, prev_end, 255, thickness)
                 for seg_idx in range(prev_segment + 1, current_segment):
                     _, seg_p1, seg_p2 = segments[seg_idx]
-                    if not new_pts or seg_p1 != new_pts[-1]:
-                        new_pts.append(seg_p1)
-                    new_pts.append(seg_p2)
+                    _draw_path_segment_rect(revealed_draw, seg_p1, seg_p2, 255, thickness)
                 current_start = segments[current_segment][1]
-                if not new_pts or current_start != new_pts[-1]:
-                    new_pts.append(current_start)
                 if visible_tip != current_start:
-                    new_pts.append(visible_tip)
-
-            if len(new_pts) >= 2:
-                revealed_draw.line(new_pts, fill=255, width=thickness, joint="curve")
+                    _draw_path_segment_rect(revealed_draw, current_start, visible_tip, 255, thickness)
 
             frame_mask = revealed_mask.copy()
             mask_draw = ImageDraw.Draw(frame_mask)
-            _draw_path_cap(mask_draw, visible_tip, 255, thickness)
+            _draw_path_segment_rect(mask_draw, visible_tip, visible_tip, 255, thickness)
 
             frame_img = Image.composite(full_frame, puzzle_image, frame_mask)
 
