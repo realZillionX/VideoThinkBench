@@ -24,8 +24,19 @@ def distanceToLine(point: Point, line_point1: Point, line_point2: Point) -> floa
 class ParallelGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallel"
-    DEFAULT_TI2V_PROMPT="Draw a black line through the small circle and parallel to the existing line, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Draw a line through the small circle and parallel to the existing line, which option is on it? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one existing black reference line and one separate small black outlined circle that "
+        "marks the point a new line must pass through. Place five labeled candidate circles A-E near the hidden parallel "
+        "line, each with white fill, dark gray outline, and a black letter. Animate the solution by first holding the "
+        "reference line and the through-point circle, then drawing a solid black line through the small circle that stays "
+        "parallel to the reference line, and finally changing the candidate lying on that new parallel line to pale red "
+        "with a dark red outline while the remaining candidates stay white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows one black reference line, one separate small black circle indicating a required through-point, "
+        "and five labeled candidate circles A-E. Determine which candidate lies on the line through the small circle that is "
+        "parallel to the reference line. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

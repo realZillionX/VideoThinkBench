@@ -29,8 +29,19 @@ class MazeGenerator(MazePuzzleGenerator):
     DEFAULT_ROWS = 15
     DEFAULT_COLS = 15
     DEFAULT_CELL_SIZE = 32
-    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
-    DEFAULT_VLM_PROMPT = "Find a path connecting two red dots without touching the black walls in the maze. Movement is between adjacent grid cells that share a side only: up, down, left, or right. No diagonal moves. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [1, 4, 7, 10]. Must answer now without asking for clarifications."
+    DEFAULT_TI2V_PROMPT = (
+        "On a dark square canvas, draw a maze as a regular grid of square cells where open corridors are white, blocked "
+        "walls are black, and the start cell and goal cell are both filled solid red. Animate the solution by first showing "
+        "the full maze layout, then drawing one thick red path through the centers of adjacent open cells from the start to "
+        "the goal without crossing any black wall cells, and finally holding on the completed path with the red start and "
+        "goal cells still clearly visible above the line. In portrait. Static camera."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A square grid maze is shown with black wall cells, white traversable cells, two red endpoint cells, and blue cell "
+        "ID numbers centered in the cells. Find a valid path from the start red cell to the goal red cell by moving only "
+        "between side-adjacent cells: up, down, left, or right, with no diagonal moves and no crossing black wall cells. "
+        "Return the answer as a Python-style list of cell IDs, for example [1, 4, 7, 10]."
+    )
     DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(

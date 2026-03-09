@@ -16,8 +16,19 @@ def mid_angle(angle1: float, angle2: float) -> float:
 class AngleBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/angle_bisector"
-    DEFAULT_TI2V_PROMPT="Draw a black line bisecting the angle, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is on the bisector of the angle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a clean white square canvas, draw two solid black rays that meet at one shared vertex and form an open angle. "
+        "Place five small labeled candidate circles A-E near the hidden bisector, each with white fill, a dark gray outline, "
+        "and a black letter centered inside. Animate the solution by first holding the given angle, then drawing one solid "
+        "black bisector line from the vertex through the interior of the angle, and finally changing the correct candidate "
+        "circle to a pale red fill with a dark red outline while the other four candidates stay white. In portrait, static "
+        "camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows two black rays meeting at one vertex and five labeled candidate circles A-E near the interior "
+        "of the angle. Identify which candidate lies on the exact angle bisector, meaning the line from the vertex that "
+        "splits the angle into two equal angles. Answer with a single option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
 

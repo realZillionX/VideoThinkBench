@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ParallelogramGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the parallelogram of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallelogram"
-    DEFAULT_TI2V_PROMPT="Draw a black parallelogram with two sides given, then mark the fourth vertex red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the fourth vertex of the parallelogram with two sides given? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw three known vertices of a parallelogram as a black broken line with two adjacent "
+        "sides already visible. Place five small labeled candidate circles A-E near the missing corner, each with white "
+        "fill, dark gray outline, and a black letter. Animate the solution by first holding the two given sides, then "
+        "drawing the two missing black edges that close the parallelogram, and finally changing the correct missing vertex "
+        "marker to pale red with a dark red outline while the other candidates stay white. In portrait, static camera, no "
+        "zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows three black vertices connected as two adjacent sides of a parallelogram, plus five labeled "
+        "candidate circles A-E near the missing corner. Determine which candidate is the fourth vertex that closes the "
+        "parallelogram. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

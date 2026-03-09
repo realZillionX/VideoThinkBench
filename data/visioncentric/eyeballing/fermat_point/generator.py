@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class FermatPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the Fermat point of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/fermat_point"
-    DEFAULT_TI2V_PROMPT="Find the Fermat point of the triangle and mark it red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the Fermat point of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw a black triangle outline and place five labeled candidate circles A-E near the "
+        "interior of the triangle. Each candidate is a small white circle with a dark gray outline and a black letter. "
+        "Animate the solution by first holding the triangle, then drawing three solid black segments from the triangle's "
+        "vertices to the true Fermat point so the segments meet at one interior point, and finally changing the correct "
+        "candidate circle to pale red with a dark red outline while the remaining candidates stay white. In portrait, "
+        "static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near the interior. "
+        "Identify the Fermat point, the interior point where the three connecting segments from the vertices meet and form "
+        "approximately 120 degree angles when all triangle angles are below 120 degrees. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _dist_sq(self, p1: Point, p2: Point) -> float:

@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class PerpendicularGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular"
-    DEFAULT_TI2V_PROMPT="Draw a black line perpendicular to the existing line and passing the small circle, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option lies on the line that passes through the small circle and is perpendicular to the existing line? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one black reference line and mark a separate through-point with a small black "
+        "outlined circle. Place five labeled candidate circles A-E near the hidden perpendicular line, each drawn with "
+        "white fill, a dark gray outline, and a black letter. Animate the solution by first holding the reference line and "
+        "the through-point circle, then drawing a solid black line through that small circle at a right angle to the "
+        "reference line, and finally changing the candidate that lies on the perpendicular line to pale red with a dark red "
+        "outline while the others remain white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows one black reference line, one small black circle marking a through-point, and five labeled "
+        "candidate circles A-E. Determine which candidate lies on the line through the small circle that is perpendicular to "
+        "the reference line. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

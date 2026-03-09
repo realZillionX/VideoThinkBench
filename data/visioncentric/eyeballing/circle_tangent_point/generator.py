@@ -7,8 +7,20 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the point on a circle where the tangent line from an external point touches."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_point"
-    DEFAULT_TI2V_PROMPT="Draw the tangent line from the external point to the circle in black, then paint the point of tangency red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the tangent point on the circle from the external point? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one large black circle and one smaller black point outside the circle as the external "
+        "point. Place five labeled candidate circles A-E directly on the circumference, each drawn as a white marker with a "
+        "dark gray outline and black letter. Animate the solution by first holding the circle and external point, then "
+        "drawing a solid black tangent segment from the external point to the correct point on the circle together with the "
+        "black radius from the center to that same contact point, and finally changing that correct candidate to pale red "
+        "with a dark red outline while the other circumference candidates remain white. In portrait, static camera, no zoom, "
+        "no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A large black circle and one black external point are shown on a white canvas, with five labeled candidate circles "
+        "A-E placed on the circumference. Identify the point of tangency where the line from the external point just touches "
+        "the circle and the radius to that point is perpendicular to the tangent. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def calculate_tangent_point(self, center: Point, R: float, external: Point) -> Point:

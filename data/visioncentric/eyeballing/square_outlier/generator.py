@@ -10,8 +10,18 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class SquareOutlierGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where four of five points form a square."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/square_outlier"
-    DEFAULT_TI2V_PROMPT="Four of the five options form a square. Mark the outlier point red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Four of the five options form a square. Which option is the fifth point? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, show five labeled candidate circles A-E with white fill, dark gray outlines, and black "
+        "letters, without any connecting lines in the initial puzzle view. Four of the five points should be vertices of one "
+        "square and the remaining point should be the outlier. Animate the solution by first holding the five markers, then "
+        "drawing a black square outline through the four matching vertices, and finally changing the single outlier "
+        "candidate to pale red with a dark red outline while the square's four vertices remain white. In portrait, static "
+        "camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows five labeled candidate circles A-E. Four of them can be connected to form a square. Determine "
+        "which labeled point is the outlier that does not belong to that square. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

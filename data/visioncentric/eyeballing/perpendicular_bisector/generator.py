@@ -14,8 +14,19 @@ def distance(p1: Point, p2: Point) -> float:
 class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find a point on the perpendicular bisector of a line segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular_bisector"
-    DEFAULT_TI2V_PROMPT="Draw a black line that is the perpendicular bisector of the segment between the two small circles, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is on the perpendicular bisector of the segment connecting the two small circles? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw two small black outlined endpoint circles connected by one black segment. Place five "
+        "labeled candidate circles A-E near the hidden perpendicular bisector, each with white fill, dark gray outline, and "
+        "a black letter. Animate the solution by first holding the segment and its two endpoints, then drawing a solid black "
+        "line through the segment's midpoint at a 90 degree angle to the segment so it spans across the canvas, and finally "
+        "changing the candidate on that bisector to pale red with a dark red outline while the other candidates remain "
+        "white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows two small endpoint circles connected by a black segment and five labeled candidate circles "
+        "A-E. Determine which candidate lies on the perpendicular bisector of the segment, meaning it is on the line "
+        "through the midpoint that is perpendicular to the segment. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

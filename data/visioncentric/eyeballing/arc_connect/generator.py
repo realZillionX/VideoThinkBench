@@ -93,9 +93,28 @@ class ArcConnectPuzzleRecord:
 
 class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
     DEFAULT_OUTPUT_DIR = "data/arc_connect"
-    DEFAULT_TI2V_PROMPT = "Remove the masked band so the left arc continues smoothly into the matching right arc, then highlight the correct labeled option in red. In portrait. Static camera. No zoom."
-    DEFAULT_VLM_PROMPT = "One arc on the left continues across the masked band to one of the labeled arcs on the right. Which labeled arc matches? Answer with A-E."
-    DEFAULT_TI2I_PROMPT = "Remove the masked band so the left arc continues smoothly into the matching right arc, then highlight the correct labeled option in red."
+    DEFAULT_TI2V_PROMPT = (
+        "On a white portrait canvas, place a wide vertical light gray mask band in the center with slightly darker gray "
+        "vertical edge lines. To the left of the band, show one short near-black circular arc fragment. To the right of the "
+        "band, show five short dark gray arc fragments stacked from top to bottom, each representing a different possible "
+        "continuation of the hidden circle. Put blue letters A-E near the visible end of each right-side arc. Animate the "
+        "solution by first holding this masked layout, then keeping all arc fragments fixed while a bright green ring grows "
+        "around the one label whose right-side arc matches the left arc in curvature, branch, radius, and hidden circle "
+        "center, and finally hold on the highlighted answer. In portrait. Static camera. No zoom."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A white canvas shows one short arc on the left of a central light gray mask band and five labeled arc fragments "
+        "A-E on the right. Determine which right-side arc would continue the left arc smoothly across the hidden band, so "
+        "that both visible pieces belong to the same circle with the same center, radius, and upper-or-lower branch. Answer "
+        "with one option from A-E."
+    )
+    DEFAULT_TI2I_PROMPT = (
+        "On a white portrait canvas, place a wide vertical light gray mask band in the center with slightly darker gray "
+        "vertical edge lines. To the left of the band, show one short near-black circular arc fragment. To the right of the "
+        "band, show five short dark gray arc fragments stacked from top to bottom, with blue letters A-E near the visible "
+        "end of each arc. Show the final solution image by adding a bright green ring around the single label whose right "
+        "arc continues the left arc smoothly across the hidden band."
+    )
 
     def __init__(
         self,
@@ -245,6 +264,7 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
             solution_image_path=self.relativize_path(solution_path),
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            vlm_answer=correct_label,
         )
 
     def create_random_puzzle(self) -> ArcConnectPuzzleRecord:

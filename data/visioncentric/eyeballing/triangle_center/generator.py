@@ -10,8 +10,18 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class TriangleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/triangle_center"
-    DEFAULT_TI2V_PROMPT="Mark the center of the triangle red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the center of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw a black triangle outline and place five small labeled candidate circles A-E near the "
+        "triangle's centroid, each with white fill, dark gray outline, and a black letter. Animate the solution by first "
+        "holding the triangle, then drawing the three black medians from each vertex to the midpoint of the opposite side, "
+        "and finally changing the candidate at the common intersection of the medians to pale red with a dark red outline "
+        "while the other candidates remain white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near its interior. "
+        "Determine which candidate is the triangle's center of mass, namely the centroid where the three medians intersect. "
+        "Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that require identifying a line tangent to a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_line"
-    DEFAULT_TI2V_PROMPT="Draw a black line tangent to the circle at the highlighted point, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option lies on the line that is tangent to the circle at the highlighted point? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one large black circle and mark one specific contact point on its circumference with "
+        "a smaller black outlined circle. Place five small labeled candidate circles A-E with white fill, dark gray outlines, "
+        "and black letters along the nearby region where the tangent line would pass. Animate the solution by first holding "
+        "the circle and the marked contact point, then drawing a solid black tangent line through that contact point, and "
+        "finally changing the candidate that lies on the tangent line into a pale red circle with a dark red outline while "
+        "the others stay white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A large black circle is shown on a white canvas with one marked point on the circumference and five labeled "
+        "candidate circles A-E nearby. Determine which candidate lies on the line tangent to the circle at the marked "
+        "contact point, where the tangent is perpendicular to the radius at that point. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

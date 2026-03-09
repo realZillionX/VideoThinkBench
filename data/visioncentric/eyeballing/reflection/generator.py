@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ReflectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the reflection of a point across a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/reflection"
-    DEFAULT_TI2V_PROMPT="Reflect the small circle across the line and mark the reflection red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the reflection of the small circle across the line? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one black reflection line and one separate small black outlined source point on one "
+        "side of the line. Place five labeled candidate circles A-E near the hidden reflected location, each with white "
+        "fill, dark gray outline, and a black letter. Animate the solution by first holding the reflection line and source "
+        "point, then drawing a black connector segment from the source point to its reflected counterpart across the line, "
+        "and finally changing the correct reflected candidate to pale red with a dark red outline while the other "
+        "candidates remain white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows one black line, one small black source point, and five labeled candidate circles A-E on the "
+        "other side or nearby. Determine which candidate is the mirror reflection of the source point across the black line. "
+        "Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

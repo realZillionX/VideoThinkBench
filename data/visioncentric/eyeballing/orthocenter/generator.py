@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class OrthocenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the orthocenter of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/orthocenter"
-    DEFAULT_TI2V_PROMPT="Find the orthocenter (intersection of altitudes) of the triangle and mark it red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the orthocenter of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw a black triangle outline and place five small labeled candidate circles A-E near the "
+        "hidden orthocenter. Each candidate is a white circle with a dark gray outline and a black letter. Animate the "
+        "solution by first holding the triangle, then drawing the three black altitudes from the vertices toward the "
+        "opposite sides so they meet at one point, extending beyond the triangle when necessary, and finally changing the "
+        "candidate at that shared orthocenter to pale red with a dark red outline while the other candidates remain white. "
+        "In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near its interior or "
+        "nearby exterior. Identify the orthocenter, the point where the three altitudes of the triangle intersect. Answer "
+        "with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _calculate_orthocenter(self, p1: Point, p2: Point, p3: Point) -> Optional[Point]:

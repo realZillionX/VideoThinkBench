@@ -10,8 +10,20 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class RayReflectGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where a ray reflects off a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_reflect"
-    DEFAULT_TI2V_PROMPT="Draw the ray of light starting from the small circle and reflecting off the line in black, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="A ray of light starts from the small circle and reflects off the line. Which option will the reflected ray pass through? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one black mirror line segment and one small black source point away from the mirror. "
+        "Show only a short black incoming ray stub from the source toward the mirror in the puzzle state, and place five "
+        "small labeled candidate circles A-E with white fill, dark gray outlines, and black letters near the outgoing "
+        "direction. Animate the solution by first holding the mirror and source point, then extending the incoming black ray "
+        "to the reflection point and continuing it as a black reflected segment away from the mirror, and finally changing "
+        "the candidate that lies on the reflected ray to pale red with a dark red outline while the other candidates stay "
+        "white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows a black mirror line, a small black source point, a short incoming ray segment, and five "
+        "labeled candidate circles A-E. Mentally reflect the light ray off the mirror and determine which candidate lies on "
+        "the outgoing reflected ray. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _reflect_point(self, point_to_reflect: Point, line_p1: Point, line_p2: Point) -> Point:

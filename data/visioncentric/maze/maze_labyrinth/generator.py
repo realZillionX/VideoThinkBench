@@ -28,8 +28,19 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     """Generate mazes arranged on concentric rings with angular segments."""
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_labyrinth"
-    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
-    DEFAULT_VLM_PROMPT = "Find a path connecting the outer red start dot to the center red goal dot without touching the black walls in the circular labyrinth. Move only between adjacent labyrinth cells through open passages. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [12, 25, 26, 9, 0]. Must answer now without asking for clarifications."
+    DEFAULT_TI2V_PROMPT = (
+        "On a dark canvas, draw a circular labyrinth made of concentric light gray ring corridors separated by thick black "
+        "circular walls and black radial walls. Place one solid red start dot on the outer ring and one solid red goal dot "
+        "at the center. Animate the solution by first showing the full labyrinth, then drawing one thick red path that winds "
+        "through the open passages from the outer start dot toward the center goal dot without crossing any black wall, and "
+        "finally holding on the completed route. In portrait. Static camera."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A circular labyrinth is shown on a dark background with light gray ring-shaped cells, black radial and circular "
+        "walls, a red start dot on the outer ring, a red goal dot in the center, and blue cell ID numbers. Find a valid "
+        "path from the outer start cell to the center goal cell by moving only between adjacent labyrinth cells through open "
+        "passages. Return the answer as a Python-style list of cell IDs, for example [12, 25, 26, 9, 0]."
+    )
     DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     DEFAULT_RINGS = 6  # Number of rings excluding the central cell.

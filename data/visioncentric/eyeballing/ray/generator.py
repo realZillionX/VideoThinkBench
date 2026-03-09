@@ -95,9 +95,27 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
     """Generate continuous ray puzzles with line-segment mirrors and NATO prompt."""
 
     DEFAULT_OUTPUT_DIR = "data/ray"
-    DEFAULT_TI2V_PROMPT = "Trace the laser ray from the green arrow as it reflects off the mirrors until it exits, then highlight the correct labeled point in red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT = "A laser ray starts from the green arrow and reflects perfectly off the mirrors until it exits. Which labeled point lies on the ray's path? Answer an option in A-E."
-    DEFAULT_TI2I_PROMPT = "Trace the laser ray from the green arrow as it reflects off the mirrors until it exits, then highlight the correct labeled point in red."
+    DEFAULT_TI2V_PROMPT = (
+        "On a white square canvas, scatter multiple short mirror segments drawn as dark gray straight lines. From the left "
+        "edge, draw one green arrow pointing into the scene as the laser source. Add five labeled target markers A-E as "
+        "small pale blue circles with blue outlines and dark blue letters. Animate the solution by first holding the static "
+        "mirror layout and green arrow, then drawing a thin red laser path segment by segment from the arrow tip as it "
+        "reflects off the mirrors and eventually exits the play area, and finally placing a bright green ring around the "
+        "single labeled marker that lies exactly on the red ray path. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A white canvas shows a green launch arrow on the left, several dark gray mirror segments, and five pale blue "
+        "labeled markers A-E. Trace the laser ray mentally as it reflects perfectly off the mirrors and identify which "
+        "labeled marker lies exactly on that reflected path before the ray exits the canvas. Answer with one option from "
+        "A-E."
+    )
+    DEFAULT_TI2I_PROMPT = (
+        "On a white square canvas, scatter multiple short mirror segments drawn as dark gray straight lines. From the left "
+        "edge, draw one green arrow pointing into the scene as the laser source. Add five labeled target markers A-E as "
+        "small pale blue circles with blue outlines and dark blue letters. Show the complete solution image with a thin red "
+        "laser path traced from the arrow tip through all reflections until it exits the canvas, and place a bright green "
+        "ring around the single labeled marker that lies exactly on the red path."
+    )
 
     def __init__(
         self,
@@ -183,6 +201,7 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
                 solution_image_path=self.relativize_path(solution_path),
                 vlm_prompt=self.vlm_prompt,
                 ti2i_prompt=self.ti2i_prompt,
+                vlm_answer=correct_label,
             )
 
         raise RuntimeError("Failed to generate a valid ray puzzle after many attempts")

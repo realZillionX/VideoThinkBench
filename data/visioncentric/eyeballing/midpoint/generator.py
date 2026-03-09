@@ -77,8 +77,19 @@ CandidatePoint = PointCandidate
 class MidpointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the midpoint of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/midpoint"
-    DEFAULT_TI2V_PROMPT="Draw a black line connecting the two large circles, then mark the midpoint red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the midpoint of the two circles? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, place two larger anchor circles with very light fill and dark outlines at the two ends of "
+        "an invisible segment. Near the hidden midpoint, show five small labeled candidate circles A-E with white fill, dark "
+        "gray outlines, and black letters. Animate the solution by first holding the two large endpoint circles and the "
+        "candidate markers, then drawing one solid black segment between the two anchors behind them, and finally changing "
+        "the candidate exactly halfway between the anchor centers to pale red with a dark red outline while the other four "
+        "candidates stay white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows two large outlined endpoint circles and five labeled candidate circles A-E near the middle. "
+        "Identify which candidate is the exact midpoint of the segment whose endpoints are the centers of the two large "
+        "circles. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> MidpointPuzzleRecord:
@@ -131,6 +142,7 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
             solution_image_path=self.relativize_path(solution_path),
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            vlm_answer=self.correct_label,
             solution_video_path=video_rel_path,
         )
 

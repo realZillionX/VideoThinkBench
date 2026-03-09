@@ -10,8 +10,19 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class IsoscelesTrapezoidGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the fourth vertex of an isosceles trapezoid."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/isosceles_trapezoid"
-    DEFAULT_TI2V_PROMPT="Find the fourth vertex that completes the isosceles trapezoid and mark it red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the fourth vertex of the isosceles trapezoid? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw three given vertices of a trapezoid as a black polyline so one non-parallel side, "
+        "the long base, and part of the top structure are already visible. Place five small labeled candidate circles A-E "
+        "near the missing fourth vertex, each with white fill, dark gray outline, and a black letter. Animate the solution "
+        "by first holding the three given sides, then drawing the two missing black edges that complete an isosceles "
+        "trapezoid with parallel bases and equal legs, and finally changing the correct missing vertex marker to pale red "
+        "with a dark red outline while the other candidates stay white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows three connected black vertices that almost form an isosceles trapezoid, plus five labeled "
+        "candidate circles A-E near the missing corner. Determine which candidate completes the figure so the two bases are "
+        "parallel and the two non-parallel sides are equal in length. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

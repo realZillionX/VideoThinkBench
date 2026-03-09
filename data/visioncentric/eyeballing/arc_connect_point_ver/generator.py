@@ -32,8 +32,22 @@ class CircleSpec:
 
 class ArcConnectGenerator(PointTargetPuzzleGenerator):
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/arc_connect_point_ver"
-    DEFAULT_TI2V_PROMPT = "Remove the masked band so the left arc continues into the matching right arc, then paint the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Answer with A-E."
+    DEFAULT_TI2V_PROMPT = (
+        "On a white square or portrait canvas, place a wide vertical light gray mask band in the middle with darker gray "
+        "edge lines. Show five dark gray arc fragments emerging on the right side, each ending near a labeled candidate "
+        "circle A-E drawn as a white marker with a dark gray outline and black letter. Also show the matching left-side arc "
+        "fragment for exactly one of those circles, but keep the center of the geometry hidden behind the mask. Animate the "
+        "solution in three stages: hold the masked puzzle first, then shrink the central mask smoothly until it disappears "
+        "and reveals the full continuous arc geometry through the middle, and finally change the correct candidate circle to "
+        "pale red with a dark red outline while the other four candidates stay white. In portrait, static camera, no zoom, "
+        "no pan."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A white canvas shows a central light gray vertical mask band, one visible left arc fragment, five right arc "
+        "fragments, and five labeled candidate circles A-E placed near the right arc endpoints. Determine which candidate's "
+        "arc continues the left arc smoothly across the hidden band, meaning both visible arc pieces belong to the same "
+        "circle with matching curvature and position. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(

@@ -49,8 +49,19 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
     """Generate mazes laid out on a finite hexagonal grid."""
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_hexagon"
-    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
-    DEFAULT_VLM_PROMPT = "Find a path connecting two red dots without touching the black walls in the maze. Movement is between adjacent hex cells through shared edges only. No diagonal corner moves. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
+    DEFAULT_TI2V_PROMPT = (
+        "On a dark charcoal canvas, draw a finite honeycomb maze made of light gray hexagonal walkable cells bounded by thick "
+        "black wall segments. Mark the start cell and goal cell with solid red circular dots at their centers. Animate the "
+        "solution by first showing the full hexagonal maze layout, then drawing one thick red path through the centers of "
+        "edge-adjacent hex cells from the outer start dot to the goal dot without crossing any black wall, and finally "
+        "holding on the finished red route. In portrait. Static camera."
+    )
+    DEFAULT_VLM_PROMPT = (
+        "A hexagonal maze is shown on a dark background with light gray hex cells, black wall edges, two red endpoint dots, "
+        "and blue cell ID numbers centered in the cells. Find a valid path from the start red dot to the goal red dot by "
+        "moving only between hex cells that share an open edge, never by touching only a corner. Return the answer as a "
+        "Python-style list of cell IDs, for example [1, 4, 3, 2]."
+    )
     DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     DEFAULT_RADIUS = 4

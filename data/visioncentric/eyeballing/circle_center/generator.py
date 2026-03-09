@@ -9,8 +9,17 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_center"
-    DEFAULT_TI2V_PROMPT="Mark the center of the circle red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the center of the circle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw one large black circle with no fill. Around its hidden center, place five small "
+        "labeled candidate circles A-E with white fill, dark gray outlines, and black letters inside. Animate the solution "
+        "by keeping the large circle fixed and then turning the candidate exactly at the center of the black circle into a "
+        "pale red marker with a dark red outline while the other candidates remain white. In portrait, static camera, no "
+        "zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A single large black circle is drawn on a white canvas, and five labeled candidate circles A-E are placed near its "
+        "middle. Determine which candidate marks the exact center of the circle. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

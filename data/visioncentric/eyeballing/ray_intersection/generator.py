@@ -82,8 +82,19 @@ CandidatePoint = PointCandidate
 class RayIntersectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles with partially hidden ray intersections."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_intersection"
-    DEFAULT_TI2V_PROMPT="Extend the three black lines and mark the intersection point red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_VLM_PROMPT="Which option is the intersection point of the three lines? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT=(
+        "On a white square canvas, draw three thick dark gray line fragments near the outer area of the image so that each "
+        "fragment points inward toward one hidden common intersection. Around that hidden center, place five small labeled "
+        "candidate circles A-E with white fill, dark gray outlines, and black letters. Animate the solution by first "
+        "holding the three partial line fragments, then extending each fragment inward with matching dark gray strokes until "
+        "all three lines meet at one point, and finally changing the correct candidate at the shared intersection to pale "
+        "red with a dark red outline while the other candidates remain white. In portrait, static camera, no zoom, no pan."
+    )
+    DEFAULT_VLM_PROMPT=(
+        "A white canvas shows three dark gray line fragments that should be mentally extended inward and five labeled "
+        "candidate circles A-E near the hidden center. Determine which candidate is the single point where the three full "
+        "lines intersect. Answer with one option from A-E."
+    )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> RayIntersectionPuzzleRecord:
@@ -136,6 +147,7 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
             solution_image_path=self.relativize_path(solution_path),
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            vlm_answer=self.correct_label,
             solution_video_path=video_rel_path,
         )
 
