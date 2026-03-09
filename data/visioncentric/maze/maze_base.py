@@ -206,7 +206,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         puzzle_image: Image.Image,
         points: List[Tuple[float, float]],
         thickness: int = 5,
-        color: Tuple[int, int, int] = (220, 0, 0),
+        color: Tuple[int, int, int] = (220, 30, 30),
         fps: int = 30,
         duration: float = 6.4,
     ) -> Optional[Path]:
@@ -582,7 +582,7 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
             elif "ring_width" in record:
                 thickness = max(3, int(record["ring_width"]) // 4)
             
-            draw_path_line(canvas, points, (255, 0, 0), thickness)
+            draw_path_line(canvas, points, (220, 30, 30), thickness)
             # Save the reconstructed image
             try:
                 canvas.save(candidate_path)
