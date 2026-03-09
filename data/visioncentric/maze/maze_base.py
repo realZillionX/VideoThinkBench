@@ -222,6 +222,16 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
 
         video_path = self.solution_dir / f"{record_id}_solution.mp4"
         width, height = puzzle_image.size
+        # Video codecs require even dimensions; pad the image if odd
+        padded = False
+        vid_w = width + (width % 2)
+        vid_h = height + (height % 2)
+        if vid_w != width or vid_h != height:
+            padded_img = Image.new("RGB", (vid_w, vid_h), (0, 0, 0))
+            padded_img.paste(puzzle_image, (0, 0))
+            puzzle_image = padded_img
+            width, height = vid_w, vid_h
+            padded = True
         
         # Codec fallback chain: avc1 (H.264) → vp09 (VP9) → mp4v (MPEG-4)
         out = None
