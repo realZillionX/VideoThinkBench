@@ -68,11 +68,16 @@ class ArcConnectPuzzleRecord:
     solution_image_path: str
     vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
+    vlm_answer: Optional[str] = None
+    solution_video_path: Optional[str] = None
 
     def to_dict(self) -> dict:
-        payload = {
+        return {
             "id": self.id,
             "ti2v_prompt": self.ti2v_prompt,
+            "vlm_prompt": self.vlm_prompt,
+            "ti2i_prompt": self.ti2i_prompt,
+            "vlm_answer": self.vlm_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "mask_rect": list(self.mask_rect),
@@ -81,13 +86,9 @@ class ArcConnectPuzzleRecord:
             "correct_option": self.correct_option,
             "image": self.image,
             "solution_image_path": self.solution_image_path,
+            "solution_video_path": self.solution_video_path,
             "type": "arc_connect",
         }
-        if self.vlm_prompt is not None:
-            payload["vlm_prompt"] = self.vlm_prompt
-        if self.ti2i_prompt is not None:
-            payload["ti2i_prompt"] = self.ti2i_prompt
-        return payload
 
 
 class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):

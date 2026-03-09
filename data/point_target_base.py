@@ -78,6 +78,7 @@ class PointTargetPuzzleRecord:
     line_width: int
     vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
+    vlm_answer: Optional[str] = None
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
@@ -86,6 +87,9 @@ class PointTargetPuzzleRecord:
         payload = {
             "id": self.id,
             "ti2v_prompt": self.ti2v_prompt,
+            "vlm_prompt": self.vlm_prompt,
+            "ti2i_prompt": self.ti2i_prompt,
+            "vlm_answer": self.vlm_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             # Handle list of dataclass objects
@@ -93,17 +97,11 @@ class PointTargetPuzzleRecord:
             "correct_option": self.correct_option,
             "image": self.image,
             "solution_image_path": self.solution_image_path,
+            "solution_video_path": self.solution_video_path,
             "point_radius": self.point_radius,
             "line_width": self.line_width,
+            "seed": self.seed,
         }
-        if self.vlm_prompt is not None:
-            payload["vlm_prompt"] = self.vlm_prompt
-        if self.ti2i_prompt is not None:
-            payload["ti2i_prompt"] = self.ti2i_prompt
-        if self.seed is not None:
-            payload["seed"] = self.seed
-        if self.solution_video_path is not None:
-            payload["solution_video_path"] = self.solution_video_path
         for key, value in self.extra.items():
             if key not in payload:
                 payload[key] = value
@@ -451,6 +449,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             line_width=self.line_width,
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            vlm_answer=self.correct_label,
             seed=self.seed,
             extra=self.build_record_extra(),
             solution_video_path=video_rel_path,

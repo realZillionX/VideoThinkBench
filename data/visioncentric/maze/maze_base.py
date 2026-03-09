@@ -117,6 +117,7 @@ class MazePuzzleRecord:
     goal_point: Tuple[float, float]
     image: str
     solution_image_path: str
+    vlm_answer: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
 
@@ -126,14 +127,14 @@ class MazePuzzleRecord:
             "ti2v_prompt": self.ti2v_prompt,
             "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
+            "vlm_answer": self.vlm_answer,
             "canvas_dimensions": [int(self.canvas_dimensions[0]), int(self.canvas_dimensions[1])],
             "start_point": [float(self.start_point[0]), float(self.start_point[1])],
             "goal_point": [float(self.goal_point[0]), float(self.goal_point[1])],
             "image": self.image,
             "solution_image_path": self.solution_image_path,
+            "solution_video_path": self.solution_video_path,
         }
-        if self.solution_video_path is not None:
-            payload["solution_video_path"] = self.solution_video_path
         for key, value in self.extra.items():
             if key not in payload:
                 payload[key] = value
@@ -396,6 +397,11 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         video_rel: Optional[str] = None
         if video_path is not None:
             video_rel = self.relativize_path(video_path)
+        # Derive vlm_answer from solution path cell IDs
+        vlm_answer: Optional[str] = None
+        path_ids = extra_payload.get("solution_path_cell_ids")
+        if isinstance(path_ids, list):
+            vlm_answer = str(path_ids)
         return MazePuzzleRecord(
             id=record_id,
             ti2v_prompt=record_ti2v_prompt,
@@ -406,6 +412,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             goal_point=goal_point,
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
+            vlm_answer=vlm_answer,
             extra=extra_payload,
             solution_video_path=video_rel,
         )
