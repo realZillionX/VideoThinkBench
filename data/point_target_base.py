@@ -13,7 +13,7 @@ import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Generic, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Sequence, Tuple
 import argparse
 import json
 import uuid
@@ -410,12 +410,20 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             return
 
         # Diff commands
-        # Use simple queue based diffing. 'trace_base' defines the base commands.
-        # Any command in 'trace_solution' that matches the head of 'trace_base' queue is skipped (part of base).
-        # Any command that doesn't match is considered new solution geometry.
+        # Use simple queue based diffing against the non-candidate base geometry.
+        # Any command in 'trace_solution' that matches the head of 'geometry_cmds' is skipped (part of base).
+        # Any command that doesn't match is considered new solution geometry or the final highlighted candidates.
         
-        base_cmds = trace_base
-        base_queue = list(trace_base)
+        geometry_cmds = [cmd for cmd in trace_base if cmd["type"] != "draw_candidates"]
+        base_candidates_cmd = next(
+            (
+                cmd
+                for cmd in trace_base
+                if cmd["type"] == "draw_candidates" and cmd.get("highlight_label") is None
+            ),
+            None,
+        )
+        base_queue = list(geometry_cmds)
         solution_diff = []
         
         for cmd in trace_solution:
@@ -452,25 +460,41 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
 
         # We need a renderer that can paint these commands onto a cv2 frame
         video_renderer = VideoRenderer(width, height, self)
+
+        def candidates_overlay(
+            frame: Image.Image,
+            highlight: Optional[str] = None,
+        ) -> Image.Image:
+            out = frame.copy()
+            draw = ImageDraw.Draw(out)
+            self.draw_candidates(draw, highlight_label=highlight)
+            return out
+
+        def overlay_no_highlight(frame: Image.Image) -> Image.Image:
+            return candidates_overlay(frame, highlight=None)
         
         # 1. Base Frame (Static)
-        video_renderer.execute_commands(base_cmds)
+        video_renderer.execute_commands(geometry_cmds)
         # Hold base frame for 1 second
         for _ in range(base_hold):
-            video_renderer.write_frame()
+            if base_candidates_cmd is not None:
+                video_renderer.add_pil_frame(candidates_overlay(video_renderer.canvas))
+            else:
+                video_renderer.write_frame()
             
         # 2. Animate Solution Steps
         for cmd in solution_steps:
-             video_renderer.animate_command(cmd, duration_frames=step_frames)
+            video_renderer.animate_command(
+                cmd,
+                duration_frames=step_frames,
+                overlay_callback=overlay_no_highlight if base_candidates_cmd is not None else None,
+            )
              
         # 3. Animate Answer (Candidates)
         if final_candidates_cmd:
-             # We can just switch to the final state or fade it. For now, just execute it.
-             # Better: Render the candidates command
-             video_renderer.execute_commands([final_candidates_cmd])
-             # Hold for result
-             for _ in range(end_hold):
-                 video_renderer.write_frame()
+            highlight = final_candidates_cmd.get("highlight_label")
+            for _ in range(end_hold):
+                video_renderer.add_pil_frame(candidates_overlay(video_renderer.canvas, highlight=highlight))
 
         video_renderer.save(video_path)
 
@@ -571,17 +595,25 @@ class VideoRenderer:
             self.draw.ellipse(cmd['xy'], fill=cmd.get('fill'), outline=cmd.get('outline'), width=cmd.get('width', 1))
         # ... other PIL types support if needed for complex animations
     
-    def animate_command(self, cmd, duration_frames=30):
+    def animate_command(
+        self,
+        cmd,
+        duration_frames=30,
+        overlay_callback: Optional[Callable[[Image.Image], Image.Image]] = None,
+    ):
         t = cmd['type']
         # Currently only animating lines and circles for smooth effect
         if t == 'draw_line' or t == 'line':
-            self.animate_line(cmd, duration_frames)
+            self.animate_line(cmd, duration_frames, overlay_callback=overlay_callback)
         elif t == 'draw_circle' or t == 'ellipse':
-             self.animate_circle(cmd, duration_frames)
+             self.animate_circle(cmd, duration_frames, overlay_callback=overlay_callback)
         else:
             self.execute_command_instant(cmd)
             for _ in range(duration_frames):
-                self.write_frame()
+                if overlay_callback is None:
+                    self.write_frame()
+                else:
+                    self.add_pil_frame(overlay_callback(self.canvas))
 
     @staticmethod
     def _count_completed_segments(cumulative_lengths, current_len):
@@ -590,7 +622,12 @@ class VideoRenderer:
             completed += 1
         return completed
 
-    def animate_line(self, cmd, frames):
+    def animate_line(
+        self,
+        cmd,
+        frames,
+        overlay_callback: Optional[Callable[[Image.Image], Image.Image]] = None,
+    ):
         if frames <= 0:
             self.execute_command_instant(cmd)
             return
@@ -636,6 +673,7 @@ class VideoRenderer:
         revealed_mask = Image.new("L", (self.width, self.height), 0)
         prev_segment = 0
         prev_tip = points[0]
+        last_composite = final_frame
 
         for f in range(frames):
             progress = (f + 1) / frames
@@ -675,14 +713,21 @@ class VideoRenderer:
                     mask_draw.line([current_start, current_tip], fill=255, width=width)
 
             temp_canvas = Image.composite(final_frame, base_frame, revealed_mask)
-            self.add_pil_frame(temp_canvas)
+            last_composite = temp_canvas
+            frame_to_write = temp_canvas if overlay_callback is None else overlay_callback(temp_canvas)
+            self.add_pil_frame(frame_to_write)
             prev_segment = current_segment
             prev_tip = current_tip
         
-        # Finally execute permanently on main canvas
-        self.execute_command_instant(cmd)
+        self.canvas = last_composite.copy()
+        self.draw = ImageDraw.Draw(self.canvas)
         
-    def animate_circle(self, cmd, frames):
+    def animate_circle(
+        self,
+        cmd,
+        frames,
+        overlay_callback: Optional[Callable[[Image.Image], Image.Image]] = None,
+    ):
         if frames <= 0:
             self.execute_command_instant(cmd)
             return
@@ -707,6 +752,7 @@ class VideoRenderer:
         x0, y0, x1, y1 = bbox
         mask_bbox = (x0 - width_px, y0 - width_px, x1 + width_px, y1 + width_px)
         prev_end_angle = 0.0
+        last_composite = final_frame
 
         for f in range(frames):
             end_angle = 360 * (f + 1) / frames
@@ -718,11 +764,14 @@ class VideoRenderer:
                 fill=255,
             )
             temp_canvas = Image.composite(final_frame, base_frame, frame_mask)
-            self.add_pil_frame(temp_canvas)
+            last_composite = temp_canvas
+            frame_to_write = temp_canvas if overlay_callback is None else overlay_callback(temp_canvas)
+            self.add_pil_frame(frame_to_write)
             completed_mask = frame_mask
             prev_end_angle = end_angle
 
-        self.execute_command_instant(cmd)
+        self.canvas = last_composite.copy()
+        self.draw = ImageDraw.Draw(self.canvas)
 
     def write_frame(self):
         self.add_pil_frame(self.canvas)

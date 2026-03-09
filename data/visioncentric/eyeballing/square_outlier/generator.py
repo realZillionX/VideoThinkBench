@@ -10,7 +10,7 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class SquareOutlierGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where four of five points form a square."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/square_outlier"
-    DEFAULT_PROMPT="Four of the five options form a square. Mark the fifth point red. Speak out which option is the fifth point using phonetics alphabet. In portrait, no zoom, no pan."
+    DEFAULT_PROMPT="Four of the five options form a square. Mark the outlier point red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT="Four of the five options form a square. Which option is the fifth point? Answer an option in A-E."
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

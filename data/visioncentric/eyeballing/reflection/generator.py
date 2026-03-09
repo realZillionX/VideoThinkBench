@@ -10,7 +10,7 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ReflectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the reflection of a point across a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/reflection"
-    DEFAULT_PROMPT="Reflect the small circle across the line. Mark the reflection red and speak out which option is the reflected point using phonetic alphabet. In portrait, no zoom, no pan."
+    DEFAULT_PROMPT="Reflect the small circle across the line and mark the reflection red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT="Which option is the reflection of the small circle across the line? Answer an option in A-E."
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

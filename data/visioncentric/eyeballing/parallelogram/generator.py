@@ -10,7 +10,7 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ParallelogramGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the parallelogram of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallelogram"
-    DEFAULT_PROMPT="Draw a black parallelogram with two sides given. Mark the fourth vertex red. Speak out which option is the fourth vertex using phonetics alphabet. In portrait, no zoom, no pan."
+    DEFAULT_PROMPT="Draw a black parallelogram with two sides given, then mark the fourth vertex red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT="Which option is the fourth vertex of the parallelogram with two sides given? Answer an option in A-E."
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

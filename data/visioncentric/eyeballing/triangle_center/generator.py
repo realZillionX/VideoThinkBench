@@ -10,7 +10,7 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class TriangleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/triangle_center"
-    DEFAULT_PROMPT="Mark the center of the triangle red. Speak out which option is the center using phonetic alphabet. In portrait, no zoom, no pan."
+    DEFAULT_PROMPT="Mark the center of the triangle red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT="Which option is the center of the triangle? Answer an option in A-E."
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:

@@ -32,7 +32,7 @@ class CircleSpec:
 
 class ArcConnectGenerator(PointTargetPuzzleGenerator):
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/arc_connect_point_ver"
-    DEFAULT_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Remove the masked band quickly while keeping the arcs still, then paint the correct option label (not arc) red. Speak out the answer in phonetic alphabet. In portrait. Static Camera. No zoom."
+    DEFAULT_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Remove the masked band, then paint the correct option red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Answer with A-E."
 
     def __init__(

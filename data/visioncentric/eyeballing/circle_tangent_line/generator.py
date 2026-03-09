@@ -10,7 +10,7 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that require identifying a line tangent to a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_line"
-    DEFAULT_PROMPT="Draw a black line tangent to the circle at the highlighted point. Speak out which option lies on this tangent line in phonetic alphabet and mark that red. In portrait, no zoom, no pan."
+    DEFAULT_PROMPT="Draw a black line tangent to the circle at the highlighted point, then mark the correct option red. In portrait, static camera, no zoom, no pan."
     DEFAULT_GPT5_PROMPT="Which option lies on the line that is tangent to the circle at the highlighted point? Answer an option in A-E."
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
