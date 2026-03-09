@@ -41,6 +41,17 @@ def draw_path_line(
         r = thickness / 2
         draw.ellipse((x - r, y - r, x + r, y + r), fill=color)
 
+
+def _draw_path_cap(
+    draw: ImageDraw.ImageDraw,
+    point: Tuple[float, float],
+    color: Any,
+    thickness: int,
+) -> None:
+    r = thickness / 2
+    x, y = point
+    draw.ellipse((x - r, y - r, x + r, y + r), fill=color)
+
 @dataclass
 class MazePuzzleRecord:
     """Serializable metadata for a maze puzzle asset pair."""
@@ -207,60 +218,78 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         # Calculate segments and total length
         segments = []
         total_len = 0.0
+        cumulative_lengths = []
         for i in range(n_points - 1):
             p1 = points[i]
             p2 = points[i+1]
             dist = math.hypot(p2[0] - p1[0], p2[1] - p1[1])
             segments.append((dist, p1, p2))
             total_len += dist
+            cumulative_lengths.append(total_len)
+
+        full_frame = puzzle_image.copy()
+        full_draw = ImageDraw.Draw(full_frame)
+        full_draw.line(points, fill=color, width=thickness, joint="curve")
+        _draw_path_cap(full_draw, points[0], color, thickness)
+        _draw_path_cap(full_draw, points[-1], color, thickness)
+
+        revealed_mask = Image.new("L", (width, height), 0)
+        _draw_path_cap(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
+        prev_segment = 0
+        prev_tip: Tuple[float, float] = points[0]
 
         # Generate frames
         for f in range(total_frames + 1):
             progress = f / total_frames if total_frames > 0 else 1.0
             cur_dist = total_len * progress
-            
-            # Find which segment and how far
-            temp_len = 0.0
-            path_subset = []
-            
-            for dist, p1, p2 in segments:
-                if temp_len + dist >= cur_dist:
-                    # Cut here
-                    remain = cur_dist - temp_len
-                    ratio = remain / dist if dist > 0 else 0
-                    tip_x = p1[0] + (p2[0] - p1[0]) * ratio
-                    tip_y = p1[1] + (p2[1] - p1[1]) * ratio
-                    current_tip = (tip_x, tip_y)
-                    path_subset.append(p1)
-                    path_subset.append(current_tip)
-                    break
-                else:
-                    path_subset.append(p1)
-                    temp_len += dist
+
+            full_segments = 0
+            while full_segments < len(cumulative_lengths) and cumulative_lengths[full_segments] <= cur_dist + 1e-6:
+                full_segments += 1
+
+            if full_segments >= len(segments):
+                current_segment = len(segments) - 1
+                visible_tip = points[-1]
             else:
-                # Reached end (or rounding error), use full points
-                path_subset = list(points)
-            
-            # Draw frame
-            frame_img = puzzle_image.copy()
-            draw = ImageDraw.Draw(frame_img)
-            
-            if len(path_subset) > 1:
-                draw.line(path_subset, fill=color, width=thickness, joint="curve")
-                # Draw rounded caps
-                sx, sy = path_subset[0]
-                rr = thickness / 2
-                draw.ellipse((sx - rr, sy - rr, sx + rr, sy + rr), fill=color)
-                ex, ey = path_subset[-1]
-                draw.ellipse((ex - rr, ey - rr, ex + rr, ey + rr), fill=color)
-            elif len(path_subset) == 1:
-                sx, sy = path_subset[0]
-                rr = thickness / 2
-                draw.ellipse((sx - rr, sy - rr, sx + rr, sy + rr), fill=color)
+                current_segment = full_segments
+                prev_len = cumulative_lengths[current_segment - 1] if current_segment > 0 else 0.0
+                seg_dist, p1, p2 = segments[current_segment]
+                remain = max(0.0, cur_dist - prev_len)
+                if seg_dist > 0 and remain > 0:
+                    ratio = min(1.0, remain / seg_dist)
+                    visible_tip = (
+                        round(p1[0] + (p2[0] - p1[0]) * ratio),
+                        round(p1[1] + (p2[1] - p1[1]) * ratio),
+                    )
+                else:
+                    visible_tip = p1
+
+            revealed_draw = ImageDraw.Draw(revealed_mask)
+            if current_segment == prev_segment:
+                if visible_tip != prev_tip:
+                    revealed_draw.line([prev_tip, visible_tip], fill=255, width=thickness, joint="curve")
+            else:
+                prev_end = segments[prev_segment][2]
+                if prev_tip != prev_end:
+                    revealed_draw.line([prev_tip, prev_end], fill=255, width=thickness, joint="curve")
+                for seg_idx in range(prev_segment + 1, current_segment):
+                    _, seg_p1, seg_p2 = segments[seg_idx]
+                    revealed_draw.line([seg_p1, seg_p2], fill=255, width=thickness, joint="curve")
+                current_start = segments[current_segment][1]
+                if visible_tip != current_start:
+                    revealed_draw.line([current_start, visible_tip], fill=255, width=thickness, joint="curve")
+
+            frame_mask = revealed_mask.copy()
+            mask_draw = ImageDraw.Draw(frame_mask)
+            _draw_path_cap(mask_draw, visible_tip, 255, thickness)
+
+            frame_img = Image.composite(full_frame, puzzle_image, frame_mask)
 
             frame_np = np.array(frame_img)
             frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
             out.write(frame_bgr)
+            prev_segment = current_segment
+            prev_tip = visible_tip
             
         # Hold end
         for _ in range(int(fps * 1.0)):

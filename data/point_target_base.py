@@ -318,7 +318,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             return
 
         draw.line(
-            [[round(p.x), round(p.y)] for p in points],
+            [(round(p.x), round(p.y)) for p in points],
             fill=self.CANDIDATE_OUTLINE_COLOR,
             width=width,
         )
@@ -583,71 +583,110 @@ class VideoRenderer:
             for _ in range(duration_frames):
                 self.write_frame()
 
+    @staticmethod
+    def _count_completed_segments(cumulative_lengths, current_len):
+        completed = 0
+        while completed < len(cumulative_lengths) and cumulative_lengths[completed] <= current_len + 1e-6:
+            completed += 1
+        return completed
+
     def animate_line(self, cmd, frames):
+        if frames <= 0:
+            self.execute_command_instant(cmd)
+            return
+
         # Extract points
         if cmd['type'] == 'draw_line':
-            points = cmd['points'] # [[x,y], [x,y], ...]
+            points = [tuple(p) for p in cmd['points']] # [(x,y), (x,y), ...]
             width = cmd['width']
             fill = cmd['fill']
         else:
             xy = cmd['xy']
             # xy can be [x,y, x,y...] or [(x,y), (x,y)...]
             if isinstance(xy[0], (int, float)):
-                points = [[xy[i], xy[i+1]] for i in range(0, len(xy), 2)]
+                points = [(xy[i], xy[i + 1]) for i in range(0, len(xy), 2)]
             else:
-                points = [[p[0], p[1]] for p in xy]
+                points = [(p[0], p[1]) for p in xy]
             width = cmd.get('width', 1)
             fill = cmd.get('fill')
 
-        if len(points) < 2: return
+        if len(points) < 2:
+            self.execute_command_instant(cmd)
+            return
 
         # Calculate total length
         total_len = 0
         segments = []
+        cumulative_lengths = []
         for i in range(len(points)-1):
             p1 = points[i]
             p2 = points[i+1]
             dist = math.hypot(p2[0]-p1[0], p2[1]-p1[1])
             segments.append((dist, p1, p2))
             total_len += dist
+            cumulative_lengths.append(total_len)
         
-        if total_len == 0: return
+        if total_len == 0:
+            self.execute_command_instant(cmd)
+            return
 
-        # Draw progressively
-        # We need to save the state BEFORE this line, because we redraw the canvas for each frame?
-        # No, simpler: We draw onto self.canvas on each frame, but that accumulates?
-        # Yes, PIL Draw modifies in place.
-        # To animate, we need to restore the "before command" state each frame, draw partial, then finally draw full.
         base_frame = self.canvas.copy()
-        
+        final_frame = base_frame.copy()
+        ImageDraw.Draw(final_frame).line(points, fill=fill, width=width)
+        revealed_mask = Image.new("L", (self.width, self.height), 0)
+        prev_segment = 0
+        prev_tip = points[0]
+
         for f in range(frames):
-            temp_canvas = base_frame.copy()
-            temp_draw = ImageDraw.Draw(temp_canvas)
             progress = (f + 1) / frames
             current_len = total_len * progress
-            
-            drawn_len = 0
-            for seg_dist, p1, p2 in segments:
-                if drawn_len + seg_dist <= current_len:
-                    # Full segment
-                    temp_draw.line([tuple(p1), tuple(p2)], fill=fill, width=width)
-                    drawn_len += seg_dist
+            full_segments = self._count_completed_segments(cumulative_lengths, current_len)
+
+            if full_segments >= len(segments):
+                current_segment = len(segments) - 1
+                current_tip = points[-1]
+            else:
+                current_segment = full_segments
+                prev_len = cumulative_lengths[current_segment - 1] if current_segment > 0 else 0.0
+                seg_dist, p1, p2 = segments[current_segment]
+                remain = max(0.0, current_len - prev_len)
+                if seg_dist > 0 and remain > 0:
+                    ratio = min(1.0, remain / seg_dist)
+                    current_tip = (
+                        round(p1[0] + (p2[0] - p1[0]) * ratio),
+                        round(p1[1] + (p2[1] - p1[1]) * ratio),
+                    )
                 else:
-                    # Partial segment
-                    # Fraction of this segment needed
-                    remain = current_len - drawn_len
-                    ratio = remain / seg_dist
-                    nx = p1[0] + (p2[0] - p1[0]) * ratio
-                    ny = p1[1] + (p2[1] - p1[1]) * ratio
-                    temp_draw.line([tuple(p1), (nx, ny)], fill=fill, width=width)
-                    break
-            
+                    current_tip = p1
+
+            mask_draw = ImageDraw.Draw(revealed_mask)
+            if current_segment == prev_segment:
+                if current_tip != prev_tip:
+                    mask_draw.line([prev_tip, current_tip], fill=255, width=width)
+            else:
+                prev_end = segments[prev_segment][2]
+                if prev_tip != prev_end:
+                    mask_draw.line([prev_tip, prev_end], fill=255, width=width)
+                for seg_idx in range(prev_segment + 1, current_segment):
+                    _, seg_p1, seg_p2 = segments[seg_idx]
+                    mask_draw.line([seg_p1, seg_p2], fill=255, width=width)
+                current_start = segments[current_segment][1]
+                if current_tip != current_start:
+                    mask_draw.line([current_start, current_tip], fill=255, width=width)
+
+            temp_canvas = Image.composite(final_frame, base_frame, revealed_mask)
             self.add_pil_frame(temp_canvas)
+            prev_segment = current_segment
+            prev_tip = current_tip
         
         # Finally execute permanently on main canvas
         self.execute_command_instant(cmd)
         
     def animate_circle(self, cmd, frames):
+        if frames <= 0:
+            self.execute_command_instant(cmd)
+            return
+
         if cmd['type'] == 'draw_circle':
              bbox = cmd['bbox']
              width_px = cmd['width']
@@ -656,26 +695,33 @@ class VideoRenderer:
              bbox = cmd['xy'] # [x0, y0, x1, y1]
              width_px = cmd.get('width', 1)
              outline = cmd.get('outline')
-        
-        # ellipse bbox to center radius
-        x0, y0, x1, y1 = bbox
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-        rx = (x1 - x0) / 2
-        ry = (y1 - y0) / 2
-        
+
+        if outline is None:
+            self.execute_command_instant(cmd)
+            return
+
         base_frame = self.canvas.copy()
+        final_frame = base_frame.copy()
+        ImageDraw.Draw(final_frame).ellipse(bbox, outline=outline, width=width_px)
+        completed_mask = Image.new("L", (self.width, self.height), 0)
+        x0, y0, x1, y1 = bbox
+        mask_bbox = (x0 - width_px, y0 - width_px, x1 + width_px, y1 + width_px)
+        prev_end_angle = 0.0
 
         for f in range(frames):
-            temp_canvas = base_frame.copy()
-            temp_draw = ImageDraw.Draw(temp_canvas)
-            
-            # Draw arc
             end_angle = 360 * (f + 1) / frames
-            start_angle = 0
-            
-            temp_draw.arc(bbox, start=start_angle, end=end_angle, fill=outline, width=width_px)
+            frame_mask = completed_mask.copy()
+            ImageDraw.Draw(frame_mask).pieslice(
+                mask_bbox,
+                start=prev_end_angle,
+                end=end_angle,
+                fill=255,
+            )
+            temp_canvas = Image.composite(final_frame, base_frame, frame_mask)
             self.add_pil_frame(temp_canvas)
-            
+            completed_mask = frame_mask
+            prev_end_angle = end_angle
+
         self.execute_command_instant(cmd)
 
     def write_frame(self):
