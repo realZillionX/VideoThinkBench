@@ -11,7 +11,7 @@
 #
 # Optional Arguments:
 #   --dataset: Dataset CSV path
-#   --dataset_root: Dataset root for relative paths
+#   --dataset_root: Dataset root used by the compatibility export wrapper
 #   --output_dir: Output directory
 #   --num_nodes: Number of nodes (default: 1)
 #   --gpus_per_node: GPUs per node (default: 8)
@@ -90,7 +90,7 @@ if [ -z "${DIFFSYNTH_PATH}" ]; then
 fi
 if [ ! -f "${DATASET_PATH}" ]; then
     if [ -n "${DATASET_BASE_PATH}" ] && [ -d "${DATASET_BASE_PATH}" ]; then
-        echo "Dataset CSV not found. Generating with VideoThinkBench data pipeline..."
+        echo "Dataset CSV not found. Generating with VideoThinkBench unified export compatibility wrapper..."
         python3 "${REPO_ROOT}/scripts/prepare_video_data.py" \
             --dataset_root "${DATASET_BASE_PATH}" \
             --output_path "${DATASET_PATH}"

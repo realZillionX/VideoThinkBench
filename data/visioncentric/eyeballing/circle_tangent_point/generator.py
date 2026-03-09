@@ -7,8 +7,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the point on a circle where the tangent line from an external point touches."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_point"
-    DEFAULT_PROMPT="Draw the tangent line from the external point to the circle in black, then paint the point of tangency red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the tangent point on the circle from the external point? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw the tangent line from the external point to the circle in black, then paint the point of tangency red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the tangent point on the circle from the external point? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def calculate_tangent_point(self, center: Point, R: float, external: Point) -> Point:
         """Calculates one of the two tangent points using geometric projection."""

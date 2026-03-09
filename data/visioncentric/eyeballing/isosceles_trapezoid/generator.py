@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class IsoscelesTrapezoidGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the fourth vertex of an isosceles trapezoid."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/isosceles_trapezoid"
-    DEFAULT_PROMPT="Find the fourth vertex that completes the isosceles trapezoid and mark it red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the fourth vertex of the isosceles trapezoid? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Find the fourth vertex that completes the isosceles trapezoid and mark it red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the fourth vertex of the isosceles trapezoid? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         """

@@ -24,9 +24,31 @@ pip install accelerate deepspeed pandas
 
 ## 数据准备
 
-训练脚本需要 CSV 文件，包含两列：
+主线导出入口已经统一为 `cli.py data export`。
+
+如果你已经有 `canonical_manifest.jsonl`，推荐直接导出：
+
+```bash
+python3 cli.py data export \
+    --manifest /path/to/canonical_manifest.jsonl \
+    --target diffsynth-video \
+    --task-groups eyeballing maze \
+    --output ./dataset/train_video.csv
+```
+
+如果你手头只有 `cli.py data generate --output-root ...` 生成出来的数据目录，也可以继续使用兼容包装脚本：
+
+```bash
+python3 scripts/prepare_video_data.py \
+    --dataset_root /path/to/VideoThinkBench/output_root \
+    --output_path ./dataset/train_video.csv
+```
+
+训练脚本需要 CSV 文件，最少包含两列：
 - `video`: 视频文件绝对路径
 - `prompt`: 文本描述
+
+统一导出器还会额外写入 `task_type`、`task_group`、`id` 列，训练脚本会忽略这些附加字段。
 
 ```csv
 video,prompt
@@ -34,7 +56,7 @@ video,prompt
 \"/path/to/video2.mp4\",\"Connect the dots...\"
 ```
 
-**重要**: 使用 `QUOTE_ALL` 格式化 CSV 以避免解析错误。
+`VideoThinkBench` 的 CSV 写出器默认使用 `QUOTE_ALL`，兼容 `DiffSynth-Studio` 的解析要求。
 
 ## 训练
 
@@ -44,13 +66,15 @@ video,prompt
 export MODEL_BASE_PATH=/path/to/Wan2.2-TI2V-5B
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
-# 先转换 VideoThinkBench 数据为 CSV
-python3 scripts/prepare_video_data.py \
-    --dataset_root /path/to/VideoThinkBench/dataset \
-    --output_path ./dataset/train_video.csv
+# 先导出 VideoThinkBench 数据为 CSV
+python3 cli.py data export \
+    --manifest /path/to/canonical_manifest.jsonl \
+    --target diffsynth-video \
+    --task-groups eyeballing maze \
+    --output ./dataset/train_video.csv
 
 # 单机
-bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 1
+bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --num_nodes 1
 
 # 可选参数:
 #   --output_dir ./output/wan_lora
@@ -63,7 +87,7 @@ bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_r
 
 ```bash
 # 多机（示例：15 节点 × 8 GPU）
-bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_root /path/to/VideoThinkBench/dataset --num_nodes 15 --gpus_per_node 8 --machine_rank 0
+bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --num_nodes 15 --gpus_per_node 8 --machine_rank 0
 ```
 
 **可用参数**:
@@ -74,7 +98,7 @@ bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_r
 | `--gpus_per_node` | 8 | 每节点 GPU 数 |
 | `--machine_rank` | 0 | 机器 rank（多机必填） |
 | `--dataset` | `./dataset.csv` | 数据集 CSV 路径 |
-| `--dataset_root` | - | 数据集根目录（相对路径时需要） |
+| `--dataset_root` | - | 仅在让脚本自动调用兼容包装脚本生成 CSV 时需要 |
 | `--output_dir` | `./output/wan_lora` | 输出目录 |
 | `--lora_rank` | 32 | LoRA Rank |
 | `--num_epochs` | 3 | 训练轮数 |
@@ -101,7 +125,7 @@ bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_r
 脚本支持自动从中断处恢复，包括**完整的训练状态保存**：
 
 ### 保存内容
-每个 checkpoint 保存时，除 LoRA 权重外，还会自动保存一个 `training_state_*.pt` 文件，包含：
+每个 checkpoint 保存时，除 LoRA 权重外，还会自动保存一个同名的 `training_state_*` 目录，包含：
 - **Optimizer 状态**（AdamW 的一阶/二阶动量估计）
 - **Scheduler 状态**
 - **Step counter**
@@ -117,9 +141,13 @@ bash training/video/train_sft.sh --dataset ./dataset/train_video.csv --dataset_r
 ```
 output/wan_lora/
 ├── epoch-0.safetensors          # LoRA 权重
-├── training_state_epoch-0.pt    # 训练状态
+├── training_state_epoch-0/      # 训练状态目录
+│   ├── step_counter.pt
+│   └── manual_state.pt 或 accelerate state files
 ├── step-250.safetensors         # 步间 checkpoint
-├── training_state_step-250.pt   # 对应训练状态
+├── training_state_step-250/     # 对应训练状态目录
+│   ├── step_counter.pt
+│   └── manual_state.pt 或 accelerate state files
 └── wan_train_logs/              # TensorBoard 日志
 ```
 
@@ -130,7 +158,6 @@ output/wan_lora/
 python3 cli.py eval infer \
     --modality video \
     --dataset ./dataset/train_video.csv \
-    --dataset-root /path/to/VideoThinkBench/dataset \
     --model-path /path/to/Wan2.2-TI2V-5B \
     --lora ./output/wan_lora/epoch-2.safetensors \
     --mode precheck \
@@ -142,7 +169,6 @@ python3 cli.py eval infer \
 python3 cli.py eval infer \
     --modality video \
     --dataset ./dataset/train_video.csv \
-    --dataset-root /path/to/VideoThinkBench/dataset \
     --model-path /path/to/Wan2.2-TI2V-5B \
     --lora ./output/wan_lora/epoch-2.safetensors \
     --mode validate \

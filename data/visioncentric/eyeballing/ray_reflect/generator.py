@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class RayReflectGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where a ray reflects off a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_reflect"
-    DEFAULT_PROMPT="Draw the ray of light starting from the small circle and reflecting off the line in black, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="A ray of light starts from the small circle and reflects off the line. Which option will the reflected ray pass through? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw the ray of light starting from the small circle and reflecting off the line in black, then mark the correct option red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="A ray of light starts from the small circle and reflects off the line. Which option will the reflected ray pass through? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _reflect_point(self, point_to_reflect: Point, line_p1: Point, line_p2: Point) -> Point:
         """Helper to reflect a point across a line defined by two other points."""
@@ -107,9 +108,15 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
         line_angle = math.atan2(target.y - p_mirror.y, target.x - p_mirror.x)
         self.place_candidates_line(target, line_angle+math.pi/2)
 
-        record = self.save_puzzle()
-        record.points = self.points
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        source, p_mirror, m1, m2 = self.points
+        return {
+            "light_source": source.to_list(),
+            "mirror_line": [m1.to_list(), m2.to_list()],
+            "reflection_point": p_mirror.to_list(),
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

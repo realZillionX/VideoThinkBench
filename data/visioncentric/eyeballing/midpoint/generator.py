@@ -35,7 +35,7 @@ class Segment:
 @dataclass
 class MidpointPuzzleRecord:
     id: str
-    prompt: str
+    ti2v_prompt: str
     canvas_dimensions: Tuple[int, int]
     margin: int
     midpoint: Tuple[float, float]
@@ -45,12 +45,14 @@ class MidpointPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
+    vlm_prompt: Optional[str] = None
+    ti2i_prompt: Optional[str] = None
     solution_video_path: Optional[str] = None
 
     def to_dict(self) -> dict:
         payload = {
             "id": self.id,
-            "prompt": self.prompt,
+            "ti2v_prompt": self.ti2v_prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "midpoint": list(self.midpoint),
@@ -62,6 +64,10 @@ class MidpointPuzzleRecord:
             "solution_image_path": self.solution_image_path,
             "type": "midpoint",
         }
+        if self.vlm_prompt is not None:
+            payload["vlm_prompt"] = self.vlm_prompt
+        if self.ti2i_prompt is not None:
+            payload["ti2i_prompt"] = self.ti2i_prompt
         if self.solution_video_path is not None:
             payload["solution_video_path"] = self.solution_video_path
         return payload
@@ -73,8 +79,9 @@ CandidatePoint = PointCandidate
 class MidpointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the midpoint of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/midpoint"
-    DEFAULT_PROMPT="Draw a black line connecting the two large circles, then mark the midpoint red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the midpoint of the two circles? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw a black line connecting the two large circles, then mark the midpoint red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the midpoint of the two circles? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> MidpointPuzzleRecord:
         midpoint = self.pick_target_point()
@@ -114,7 +121,7 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
 
         return MidpointPuzzleRecord(
             id=pid,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             canvas_dimensions=self.canvas_dimensions,
             margin=self.margin,
             midpoint=midpoint.to_list(),
@@ -124,6 +131,8 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
             correct_option=self.correct_label,
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
+            vlm_prompt=self.vlm_prompt,
+            ti2i_prompt=self.ti2i_prompt,
             solution_video_path=video_rel_path,
         )
 

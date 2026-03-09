@@ -26,7 +26,7 @@ class MazeEvaluator(MazePuzzleEvaluator):
             rows=rows,
             cols=cols,
             cell_size=cell_size,
-            prompt=record["prompt"],
+            ti2v_prompt=str(record.get("ti2v_prompt") or record.get("prompt") or ""),
             show_cell_id=False,
             video=False,
         )

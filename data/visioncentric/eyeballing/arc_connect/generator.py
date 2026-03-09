@@ -57,7 +57,7 @@ class CandidateArc:
 @dataclass
 class ArcConnectPuzzleRecord:
     id: str
-    prompt: str
+    ti2v_prompt: str
     canvas_dimensions: Tuple[int, int]
     margin: int
     mask_rect: Tuple[int, int, int, int]
@@ -66,11 +66,13 @@ class ArcConnectPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
+    vlm_prompt: Optional[str] = None
+    ti2i_prompt: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "id": self.id,
-            "prompt": self.prompt,
+            "ti2v_prompt": self.ti2v_prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "mask_rect": list(self.mask_rect),
@@ -81,18 +83,28 @@ class ArcConnectPuzzleRecord:
             "solution_image_path": self.solution_image_path,
             "type": "arc_connect",
         }
+        if self.vlm_prompt is not None:
+            payload["vlm_prompt"] = self.vlm_prompt
+        if self.ti2i_prompt is not None:
+            payload["ti2i_prompt"] = self.ti2i_prompt
+        return payload
 
 
 class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
+    DEFAULT_OUTPUT_DIR = "data/arc_connect"
+    DEFAULT_TI2V_PROMPT = "Remove the masked band so the left arc continues smoothly into the matching right arc, then highlight the correct labeled option in red. In portrait. Static camera. No zoom."
+    DEFAULT_VLM_PROMPT = "One arc on the left continues across the masked band to one of the labeled arcs on the right. Which labeled arc matches? Answer with A-E."
+    DEFAULT_TI2I_PROMPT = "Remove the masked band so the left arc continues smoothly into the matching right arc, then highlight the correct labeled option in red."
+
     def __init__(
         self,
-        output_dir: PathLike = "data/arc_connect",
+        output_dir: PathLike = DEFAULT_OUTPUT_DIR,
         *,
         canvas_width: int = 480,
         aspect: Optional[float] = None,  # W/H; <1 => portrait
         mask_fraction: float = 0.18,  # band width fraction of W
         arc_span_deg: float = 20.0,   # degrees to extend from crossing
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         seed: Optional[int] = None,
     ) -> None:
         super().__init__(output_dir)
@@ -109,9 +121,10 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
         self.mask_fraction = max(0.08, min(0.35, float(mask_fraction)))
         self.arc_span_deg = max(2.0, min(90.0, float(arc_span_deg)))
 
-        if prompt is None:
-            prompt = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Remove the masked band quickly while keeping the arcs still. Speak out the answer in phonetic alphabet. In portrait. Static Camera. No zoom."
-        self.prompt = prompt
+        self.ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
+        self.vlm_prompt = self.DEFAULT_VLM_PROMPT
+        self.ti2i_prompt = self.DEFAULT_TI2I_PROMPT
+        self.prompt = self.ti2v_prompt
 
         out = Path(self.output_dir)
         self.puzzle_dir = out / "puzzles"
@@ -220,7 +233,7 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
 
         return ArcConnectPuzzleRecord(
             id=pid,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             canvas_dimensions=self.canvas_dimensions,
             margin=self.margin,
             mask_rect=mask_rect,
@@ -229,6 +242,8 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
             correct_option=correct_label or "A",
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
+            vlm_prompt=self.vlm_prompt,
+            ti2i_prompt=self.ti2i_prompt,
         )
 
     def create_random_puzzle(self) -> ArcConnectPuzzleRecord:
@@ -444,7 +459,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         mask_fraction=args.mask_fraction,
         arc_span_deg=args.arc_span_deg,
         seed=args.seed,
-        prompt=args.prompt,
+        ti2v_prompt=args.prompt,
     )
     records = [gen.create_random_puzzle() for _ in range(max(1, args.count))]
     gen.write_metadata(records, Path(args.output_dir) / "data.json")

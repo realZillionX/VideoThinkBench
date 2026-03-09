@@ -9,8 +9,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class CircleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_center"
-    DEFAULT_PROMPT="Mark the center of the circle red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the center of the circle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Mark the center of the circle red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the center of the circle? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         target_point = self.pick_target_point()
@@ -24,9 +25,13 @@ class CircleCenterGenerator(PointTargetPuzzleGenerator):
         r=(self._rng.random()*0.5+0.25)*r_max
         self.r=r
         self.place_candidates(target_point)
-        record = self.save_puzzle()
-        record.r=r
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        return {
+            "circle_center": self.target_point.to_list(),
+            "radius": self.r,
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

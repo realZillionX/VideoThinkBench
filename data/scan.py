@@ -22,7 +22,13 @@ def build_canonical_sample(
 
     task_type = str(record.get("task_type") or source_task_name)
     sample_id = str(record.get("id") or f"{task_type}:{record.get('image', '')}")
-    prompt_raw = str(record.get("prompt") or record.get("gpt5_prompt") or "").strip()
+    prompt_raw = str(
+        record.get("ti2v_prompt")
+        or record.get("vlm_prompt")
+        or record.get("prompt")
+        or record.get("gpt5_prompt")
+        or ""
+    ).strip()
     prompt_train = normalize_prompt_for_task(task_group, prompt_raw)
 
     image_value = record.get("image")

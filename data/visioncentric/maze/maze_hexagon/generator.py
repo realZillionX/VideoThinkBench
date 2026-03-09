@@ -49,6 +49,9 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
     """Generate mazes laid out on a finite hexagonal grid."""
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_hexagon"
+    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
+    DEFAULT_VLM_PROMPT = "Find a path connecting two red dots without touching the black walls in the maze. Movement is between adjacent hex cells through shared edges only. No diagonal corner moves. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
+    DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     DEFAULT_RADIUS = 4
     DEFAULT_CELL_RADIUS = 38
@@ -62,7 +65,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         wall_thickness: Optional[int] = None,
         size: Optional[int] = None,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         canvas_width: Optional[int] = None,
         aspect: Optional[float] = None,
         show_cell_id: bool = False,
@@ -156,7 +159,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
             aspect=aspect_for_super,
             size=self.cell_radius,
             seed=seed,
-            prompt=prompt,
+            ti2v_prompt=ti2v_prompt,
             show_cell_id=show_cell_id,
             video=video,
         )
@@ -241,7 +244,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
             goal_point=goal_point,
             puzzle_path=puzzle_path,
             solution_path=solution_path,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             extra={
                 "radius": self.radius,
                 "cell_radius": self.cell_radius,
@@ -446,7 +449,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         parser.add_argument("--seed", type=int, default=None)
         parser.add_argument("--prompt", type=str, default=None)
         parser.add_argument("--show-cell-id", action="store_true", help="Draw cell IDs on the maze")
-        parser.add_argument("--use-gpt-5", action="store_true", help="Same as --show-cell-id")
+        parser.add_argument("--use-gpt-5", action="store_true", help="Use DEFAULT_VLM_PROMPT and show cell IDs.")
         parser.add_argument("--video", action="store_true", help="Generate solution video")
         namespace=parser.parse_args(argv)
         if namespace.use_gpt_5:
@@ -459,14 +462,16 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         cell_radius = (
             args.cell_radius if args.cell_radius is not None else args.size
         )
-        prompt_arg = args.prompt if args.prompt is not None else cls.DEFAULT_PROMPT
+        prompt_arg = args.prompt if args.prompt is not None else (
+            cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 else cls.DEFAULT_TI2V_PROMPT
+        )
         generator = cls(
             output_dir=args.output_dir,
             radius=args.radius,
             cell_radius=cell_radius,
             wall_thickness=args.wall_thickness,
             seed=args.seed,
-            prompt=prompt_arg,
+            ti2v_prompt=prompt_arg,
             canvas_width=args.canvas_width,
             aspect=args.aspect,
             show_cell_id=args.show_cell_id,

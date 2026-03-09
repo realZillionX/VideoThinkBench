@@ -13,9 +13,16 @@ pip install ms-swift peft vllm datasets
 ## 数据准备
 
 ```bash
-# 将 VideoThinkBench 数据集转换为 ms-swift 格式
+# 推荐：从 canonical_manifest.jsonl 直接导出
+python3 cli.py data export \
+    --manifest /path/to/canonical_manifest.jsonl \
+    --target ms-swift \
+    --output-dir ./data \
+    --mode sft,grpo
+
+# 兼容：从 cli.py data generate 的 output_root 重新扫描导出
 python3 scripts/prepare_vlm_data.py \
-    --data_root /path/to/VideoThinkBench/dataset \
+    --data_root /path/to/VideoThinkBench/output_root \
     --output_dir ./data
 
 # 输出:

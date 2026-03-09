@@ -24,8 +24,9 @@ def distanceToLine(point: Point, line_point1: Point, line_point2: Point) -> floa
 class ParallelGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallel"
-    DEFAULT_PROMPT="Draw a black line through the small circle and parallel to the existing line, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Draw a line through the small circle and parallel to the existing line, which option is on it? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw a black line through the small circle and parallel to the existing line, then mark the correct option red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Draw a line through the small circle and parallel to the existing line, which option is on it? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         self.margin=80
@@ -50,9 +51,13 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
                 tries += 1
                 continue
             break
-        record = self.save_puzzle()
-        record.points=self.points
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        return {
+            "reference_line_endpoints": [self.points[1].to_list(), self.points[2].to_list()],
+            "through_point": self.points[0].to_list(),
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

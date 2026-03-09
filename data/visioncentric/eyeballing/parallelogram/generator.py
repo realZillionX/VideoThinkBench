@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ParallelogramGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the parallelogram of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallelogram"
-    DEFAULT_PROMPT="Draw a black parallelogram with two sides given, then mark the fourth vertex red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the fourth vertex of the parallelogram with two sides given? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw a black parallelogram with two sides given, then mark the fourth vertex red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the fourth vertex of the parallelogram with two sides given? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         target_point = self.pick_target_point()
@@ -31,9 +32,12 @@ class ParallelogramGenerator(PointTargetPuzzleGenerator):
             break
         self.parallelogram_points = (p1, p2, p3, target_point)
         self.place_candidates(target_point)
-        record = self.save_puzzle()
-        record.parallelogram_points=self.parallelogram_points
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        return {
+            "known_vertices": [point.to_list() for point in self.parallelogram_points[:3]],
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

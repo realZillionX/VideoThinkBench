@@ -141,6 +141,8 @@ The repository maintains 3 training branches:
 
 `training/` does not read task directories directly — it consumes unified exported intermediate data via: generate/scan → export → train.
 
+For backward compatibility, `scripts/prepare_video_data.py`, `scripts/prepare_image_data.py`, and `scripts/prepare_vlm_data.py` wrap the same unified export path for the existing training shell scripts. The canonical interface remains `python3 cli.py data export`.
+
 ### Branch Details
 
 - **`video`** — supports automatic resume for LoRA, optimizer, scheduler, and step counter. Primary path for follow-up maze-focused experiments.

@@ -28,6 +28,9 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     """Generate mazes arranged on concentric rings with angular segments."""
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_labyrinth"
+    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
+    DEFAULT_VLM_PROMPT = "Find a path connecting the outer red start dot to the center red goal dot without touching the black walls in the circular labyrinth. Move only between adjacent labyrinth cells through open passages. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [12, 25, 26, 9, 0]. Must answer now without asking for clarifications."
+    DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     DEFAULT_RINGS = 6  # Number of rings excluding the central cell.
     DEFAULT_SEGMENTS = 18
@@ -43,7 +46,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         wall_thickness: Optional[int] = None,
         size: Optional[int] = None,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         canvas_width: Optional[int] = None,
         aspect: Optional[float] = None,
         show_cell_id: bool = False,
@@ -116,7 +119,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             aspect=final_aspect,
             size=self.ring_width,
             seed=seed,
-            prompt=prompt,
+            ti2v_prompt=ti2v_prompt,
             show_cell_id=show_cell_id,
             video=video,
         )
@@ -207,7 +210,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             goal_point=goal_point,
             puzzle_path=puzzle_path,
             solution_path=solution_path,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             extra={
                 "total_rings": self.total_rings,
                 "rings": self.rings,
@@ -546,7 +549,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         parser.add_argument("--seed", type=int, default=None)
         parser.add_argument("--prompt", type=str, default=None)
         parser.add_argument("--show-cell-id", action="store_true", help="Draw cell IDs on the maze")
-        parser.add_argument("--use-gpt-5", action="store_true", help="Same as --show-cell-id")
+        parser.add_argument("--use-gpt-5", action="store_true", help="Use DEFAULT_VLM_PROMPT and show cell IDs.")
         parser.add_argument("--video", action="store_true", help="Generate solution video")
         namespace=parser.parse_args(argv)
         if namespace.use_gpt_5:
@@ -557,7 +560,9 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     def main(cls, argv: Optional[List[str]] = None) -> None:
         args = cls._parse_args(argv)
         ring_width = args.ring_width if args.ring_width is not None else args.size
-        prompt_arg = args.prompt if args.prompt is not None else cls.DEFAULT_PROMPT
+        prompt_arg = args.prompt if args.prompt is not None else (
+            cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 else cls.DEFAULT_TI2V_PROMPT
+        )
         generator = cls(
             output_dir=args.output_dir,
             rings=args.rings,
@@ -565,7 +570,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             ring_width=ring_width,
             wall_thickness=args.wall_thickness,
             seed=args.seed,
-            prompt=prompt_arg,
+            ti2v_prompt=prompt_arg,
             canvas_width=args.canvas_width,
             aspect=args.aspect,
             show_cell_id=args.show_cell_id,

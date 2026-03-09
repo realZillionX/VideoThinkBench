@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class TriangleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/triangle_center"
-    DEFAULT_PROMPT="Mark the center of the triangle red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the center of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Mark the center of the triangle red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the center of the triangle? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         tries=0
@@ -35,9 +36,12 @@ class TriangleCenterGenerator(PointTargetPuzzleGenerator):
         self.midpoints = (p23, p31, p12)
         self.target_point = center
         self.place_candidates(center)
-        record = self.save_puzzle()
-        record.triangle_points=self.triangle_points
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        return {
+            "triangle_vertices": [point.to_list() for point in self.triangle_points],
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

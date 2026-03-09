@@ -55,8 +55,9 @@ def calculate_circumcenter(p1: Point, p2: Point, p3: Point):
 class CircumcenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the circumcenter of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circumcenter"
-    DEFAULT_PROMPT="Mark the circumcenter of the triangle red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the circumcenter of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Mark the circumcenter of the triangle red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the circumcenter of the triangle? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         tries=0

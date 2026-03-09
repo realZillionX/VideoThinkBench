@@ -14,8 +14,9 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
     The goal is to identify the vertex with the right angle.
     """
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/right_triangle"
-    DEFAULT_PROMPT = "Out of the 5 points, 3 form a right-angled triangle. Mark the vertex with the right angle in red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT = "Which option is the vertex of the right angle, given that exactly three of the five options form a right-angled triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT = "Out of the 5 points, 3 form a right-angled triangle. Mark the vertex with the right angle in red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT = "Which option is the vertex of the right angle, given that exactly three of the five options form a right-angled triangle? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _cos_angle(self, p_a: Point, p_b: Point, p_c: Point) -> float:
         """Calculates the cosine of the angle at vertex p_b for triangle p_a, p_b, p_c."""

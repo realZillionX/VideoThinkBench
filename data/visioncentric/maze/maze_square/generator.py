@@ -29,6 +29,9 @@ class MazeGenerator(MazePuzzleGenerator):
     DEFAULT_ROWS = 15
     DEFAULT_COLS = 15
     DEFAULT_CELL_SIZE = 32
+    DEFAULT_TI2V_PROMPT = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
+    DEFAULT_VLM_PROMPT = "Find a path connecting two red dots without touching the black walls in the maze. Movement is between adjacent grid cells that share a side only: up, down, left, or right. No diagonal moves. Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [1, 4, 7, 10]. Must answer now without asking for clarifications."
+    DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(
         self,
@@ -42,7 +45,7 @@ class MazeGenerator(MazePuzzleGenerator):
         cell_size: Optional[int] = None,
         aspect_ratio: Optional[float] = None,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         show_cell_id: bool = False,
         video: bool = False,
     ) -> None:
@@ -78,7 +81,7 @@ class MazeGenerator(MazePuzzleGenerator):
             aspect=aspect_for_super,
             size=effective_cell_size,
             seed=seed,
-            prompt=prompt,
+            ti2v_prompt=ti2v_prompt,
             show_cell_id=show_cell_id,
             video=video,
         )
@@ -142,7 +145,7 @@ class MazeGenerator(MazePuzzleGenerator):
             goal_point=goal_point,
             puzzle_path=puzzle_path,
             solution_path=solution_path,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             extra=extra_payload,
             video_path=video_path,
         )
@@ -375,7 +378,7 @@ class MazeGenerator(MazePuzzleGenerator):
         parser.add_argument("--prompt", type=str, default=None)
         parser.add_argument("--seed", type=int, default=None)
         parser.add_argument("--show-cell-id", action="store_true", help="Draw cell IDs on the maze")
-        parser.add_argument("--use-gpt-5", action="store_true", help="Same as --show-cell-id")
+        parser.add_argument("--use-gpt-5", action="store_true", help="Use DEFAULT_VLM_PROMPT and show cell IDs.")
         parser.add_argument("--video", action="store_true", help="Generate solution video")
         namespace=parser.parse_args(argv)
         if namespace.use_gpt_5:
@@ -386,7 +389,9 @@ class MazeGenerator(MazePuzzleGenerator):
     def main(cls, argv: Optional[List[str]] = None) -> None:
         args = cls._parse_args(argv)
         cell_size = args.cell_size if args.cell_size is not None else (args.size if args.size is not None else cls.DEFAULT_CELL_SIZE)
-        prompt_arg = args.prompt if args.prompt is not None else cls.DEFAULT_PROMPT
+        prompt_arg = args.prompt if args.prompt is not None else (
+            cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 else cls.DEFAULT_TI2V_PROMPT
+        )
         generator = cls(
             output_dir=args.output_dir,
             canvas_width=args.canvas_width,
@@ -396,7 +401,7 @@ class MazeGenerator(MazePuzzleGenerator):
             cols=args.cols,
             cell_size=cell_size,
             seed=args.seed,
-            prompt=prompt_arg,
+            ti2v_prompt=prompt_arg,
             show_cell_id=args.show_cell_id,
             video=args.video,
         )

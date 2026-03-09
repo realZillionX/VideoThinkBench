@@ -14,8 +14,9 @@ def distance(p1: Point, p2: Point) -> float:
 class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find a point on the perpendicular bisector of a line segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular_bisector"
-    DEFAULT_PROMPT="Draw a black line that is the perpendicular bisector of the segment between the two small circles, then mark the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is on the perpendicular bisector of the segment connecting the two small circles? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Draw a black line that is the perpendicular bisector of the segment between the two small circles, then mark the correct option red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is on the perpendicular bisector of the segment connecting the two small circles? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         self.margin = 80

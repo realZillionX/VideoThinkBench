@@ -24,7 +24,7 @@ class MazeLabyrinthEvaluator(MazePuzzleEvaluator):
             wall_thickness=record["wall_thickness"],
             canvas_width=width,
             aspect=aspect,
-            prompt=record["prompt"],
+            ti2v_prompt=str(record.get("ti2v_prompt") or record.get("prompt") or ""),
             show_cell_id=False,
             video=False,
         )

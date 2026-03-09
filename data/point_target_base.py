@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Sequence, Tuple
 import argparse
@@ -24,6 +24,23 @@ import numpy as np
 from .base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 
 from PIL import Image, ImageFont, ImageDraw
+
+
+def _strip_video_instruction(prompt: Optional[str]) -> Optional[str]:
+    if prompt is None:
+        return None
+    stripped = prompt.strip()
+    suffixes = (
+        " In portrait, static camera, no zoom, no pan.",
+        " In portrait. Static camera.",
+        " In portrait. Static Camera. No zoom.",
+        " In portrait. Static Camera. No zoom, no pan.",
+        " Static camera perspective, no zoom or pan.",
+    )
+    for suffix in suffixes:
+        if stripped.endswith(suffix):
+            return stripped[: -len(suffix)].strip()
+    return stripped
 
 
 @dataclass
@@ -50,19 +67,25 @@ class PointTargetPuzzleRecord:
     """Base record fields for point-target puzzles."""
 
     id: str
-    prompt: str
+    ti2v_prompt: str
     canvas_dimensions: Tuple[int, int]
     margin: int
     candidates: List[PointCandidate]
     correct_option: str
     image: str
     solution_image_path: str
+    point_radius: int
+    line_width: int
+    vlm_prompt: Optional[str] = None
+    ti2i_prompt: Optional[str] = None
+    seed: Optional[int] = None
+    extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         payload = {
             "id": self.id,
-            "prompt": self.prompt,
+            "ti2v_prompt": self.ti2v_prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             # Handle list of dataclass objects
@@ -70,9 +93,20 @@ class PointTargetPuzzleRecord:
             "correct_option": self.correct_option,
             "image": self.image,
             "solution_image_path": self.solution_image_path,
+            "point_radius": self.point_radius,
+            "line_width": self.line_width,
         }
+        if self.vlm_prompt is not None:
+            payload["vlm_prompt"] = self.vlm_prompt
+        if self.ti2i_prompt is not None:
+            payload["ti2i_prompt"] = self.ti2i_prompt
+        if self.seed is not None:
+            payload["seed"] = self.seed
         if self.solution_video_path is not None:
             payload["solution_video_path"] = self.solution_video_path
+        for key, value in self.extra.items():
+            if key not in payload:
+                payload[key] = value
         return payload
 
 class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
@@ -90,8 +124,9 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
     CANDIDATE_LABEL_OFFSET_Y: int = 0
     MAX_VIDEO_FRAMES: int = 193
     DEFAULT_OUTPUT_DIR: str = None
-    DEFAULT_PROMPT: str = None
-    DEFAULT_GPT5_PROMPT: str = None
+    DEFAULT_TI2V_PROMPT: str = None
+    DEFAULT_VLM_PROMPT: str = None
+    DEFAULT_TI2I_PROMPT: str = None
 
     def __init__(
         self,
@@ -100,7 +135,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         canvas_width: int = 480,
         aspect: Optional[float] = None,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         option_labels: Sequence[str] = ("A", "B", "C", "D", "E"),
         margin_ratio: float = 0.06,
         record_video: bool = False,
@@ -108,7 +143,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         line_width: Optional[int] = None,
     ) -> None:
         output_dir = output_dir if output_dir is not None else Path(self.DEFAULT_OUTPUT_DIR)
-        prompt = prompt if prompt is not None else self.DEFAULT_PROMPT
+        resolved_ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
         super().__init__(output_dir)
         width = int(canvas_width)
         if width <= 0:
@@ -127,7 +162,15 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         if not option_labels:
             raise ValueError("option_labels must contain at least one label")
         self.option_labels = tuple(option_labels)
-        self.prompt = prompt
+        self.seed = seed
+        self.ti2v_prompt = resolved_ti2v_prompt or ""
+        self.vlm_prompt = self.DEFAULT_VLM_PROMPT
+        self.ti2i_prompt = (
+            self.DEFAULT_TI2I_PROMPT
+            or _strip_video_instruction(self.ti2v_prompt)
+            or self.ti2v_prompt
+        )
+        self.prompt = self.ti2v_prompt
         self._candidate_font: Optional[Any] = None
         self.point_radius = int(point_radius) if point_radius is not None else int(self.POINT_RADIUS)
         if self.point_radius <= 0:
@@ -143,6 +186,10 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         self.record_video = record_video
         self._recording_active = False
         self._recorder: Optional[DrawingRecorder] = None
+
+    @staticmethod
+    def strip_video_instruction(prompt: Optional[str]) -> Optional[str]:
+        return _strip_video_instruction(prompt)
 
     @property
     def rng(self) -> random.Random:
@@ -360,6 +407,9 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         base = Image.new("RGB", (width, height), (255, 255, 255))
         draw = ImageDraw.Draw(base)
         return draw, base
+
+    def build_record_extra(self) -> Dict[str, Any]:
+        return {}
     
     def save_puzzle(self) -> PointTargetPuzzleRecord:
         pid = str(uuid.uuid4())
@@ -390,13 +440,19 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
 
         return PointTargetPuzzleRecord(
             id=self.pid,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             canvas_dimensions=self.canvas_dimensions,
             margin=self.margin,
             candidates=self.candidates,
             correct_option=self.correct_label,
             image=self.relativize_path(self.puzzle_path),
             solution_image_path=self.relativize_path(self.solution_path),
+            point_radius=self.point_radius,
+            line_width=self.line_width,
+            vlm_prompt=self.vlm_prompt,
+            ti2i_prompt=self.ti2i_prompt,
+            seed=self.seed,
+            extra=self.build_record_extra(),
             solution_video_path=video_rel_path,
         )
 
@@ -517,7 +573,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         parser.add_argument("--aspect", type=float, default=None)
         parser.add_argument("--seed", type=int, default=None)
         parser.add_argument("--prompt", type=str, default=None)
-        parser.add_argument("--use-gpt-5", action="store_true", help="Use GPT5_PROMPT defined by puzzle generator. Will be overridden by --prompt if both are provided.")
+        parser.add_argument("--use-gpt-5", action="store_true", help="Use DEFAULT_VLM_PROMPT defined by the puzzle generator. Will be overridden by --prompt if both are provided.")
         parser.add_argument("--video", action="store_true", help="Generate video solution")
         return parser.parse_args(argv)
 
@@ -529,7 +585,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             canvas_width=args.canvas_width,
             aspect=args.aspect,
             seed=args.seed,
-            prompt=cls.DEFAULT_GPT5_PROMPT if args.use_gpt_5 and not args.prompt else args.prompt,
+            ti2v_prompt=cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 and not args.prompt else args.prompt,
             record_video=args.video,
         )
         records = [generator.create_random_puzzle() for _ in range(max(1, args.count))]

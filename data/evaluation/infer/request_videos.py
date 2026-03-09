@@ -121,6 +121,16 @@ def build_direct_payload(prompt_value: str, model_name: str, image_b64: Optional
 	}
 
 
+def resolve_video_prompt(entry: Dict[str, object]) -> Optional[str]:
+	if not isinstance(entry, dict):
+		return None
+	for key in ("ti2v_prompt", "prompt", "vlm_prompt", "gpt5_prompt"):
+		value = entry.get(key)
+		if isinstance(value, str) and value.strip():
+			return value
+	return None
+
+
 def _direct_headers(config: DirectRequestConfig) -> Dict[str, str]:
 	return {
 		"Authorization": f"Bearer {config.api_key}",
@@ -179,9 +189,9 @@ def request_entry_direct(
 ) -> str:
 	entry_id = entry.get("id") or entry.get("index") or entry.get("question_id")
 	prefix = f"Entry {entry_id}" if entry_id is not None else "Entry"
-	prompt_value = entry.get("prompt") if isinstance(entry, dict) else None
-	if not prompt_value or not isinstance(prompt_value, str):
-		raise ValueError(f"{prefix}: missing prompt field")
+	prompt_value = resolve_video_prompt(entry)
+	if not prompt_value:
+		raise ValueError(f"{prefix}: missing ti2v_prompt/prompt field")
 	image_b64: Optional[str] = None
 	if include_image:
 		image_path = resolve_image_path(entry, dataset_dir)
@@ -206,9 +216,9 @@ def request_entry(
 	entry_id = entry.get("id") or entry.get("index") or entry.get("question_id")
 	prefix = f"Entry {entry_id}" if entry_id is not None else "Entry"
 
-	prompt_value = entry.get("prompt") if isinstance(entry, dict) else None
-	if not prompt_value or not isinstance(prompt_value, str):
-		raise ValueError(f"{prefix}: missing prompt field")
+	prompt_value = resolve_video_prompt(entry)
+	if not prompt_value:
+		raise ValueError(f"{prefix}: missing ti2v_prompt/prompt field")
 
 	image_b64: Optional[str] = None
 	if include_image:
@@ -586,4 +596,3 @@ def main() -> None:
 
 if __name__ == "__main__":
 	main()
-

@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class ReflectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the reflection of a point across a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/reflection"
-    DEFAULT_PROMPT="Reflect the small circle across the line and mark the reflection red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the reflection of the small circle across the line? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Reflect the small circle across the line and mark the reflection red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the reflection of the small circle across the line? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         """
@@ -79,10 +80,13 @@ class ReflectionGenerator(PointTargetPuzzleGenerator):
         self.target_point = target_point
         
         self.place_candidates(target_point)
-        record = self.save_puzzle()
-        record.line_points = self.line_points
-        record.source_point = self.source_point
-        return record
+        return self.save_puzzle()
+
+    def build_record_extra(self) -> dict[str, object]:
+        return {
+            "reflection_axis": [point.to_list() for point in self.line_points],
+            "source_point": self.source_point.to_list(),
+        }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         """Renders the reflection puzzle on an image canvas."""

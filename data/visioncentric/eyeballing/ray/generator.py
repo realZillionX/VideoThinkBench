@@ -55,7 +55,7 @@ class RayStart:
 @dataclass
 class RayPuzzleRecord:
     id: str
-    prompt: str
+    ti2v_prompt: str
     canvas_dimensions: Tuple[int, int]
     margin: int
     start: RayStart
@@ -65,11 +65,13 @@ class RayPuzzleRecord:
     reflections: int
     image: str
     solution_image_path: str
+    vlm_prompt: Optional[str] = None
+    ti2i_prompt: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "id": self.id,
-            "prompt": self.prompt,
+            "ti2v_prompt": self.ti2v_prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "start": self.start.to_dict(),
@@ -81,20 +83,30 @@ class RayPuzzleRecord:
             "solution_image_path": self.solution_image_path,
             "type": "ray",
         }
+        if self.vlm_prompt is not None:
+            payload["vlm_prompt"] = self.vlm_prompt
+        if self.ti2i_prompt is not None:
+            payload["ti2i_prompt"] = self.ti2i_prompt
+        return payload
 
 
 class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
     """Generate continuous ray puzzles with line-segment mirrors and NATO prompt."""
 
+    DEFAULT_OUTPUT_DIR = "data/ray"
+    DEFAULT_TI2V_PROMPT = "Trace the laser ray from the green arrow as it reflects off the mirrors until it exits, then highlight the correct labeled point in red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT = "A laser ray starts from the green arrow and reflects perfectly off the mirrors until it exits. Which labeled point lies on the ray's path? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = "Trace the laser ray from the green arrow as it reflects off the mirrors until it exits, then highlight the correct labeled point in red."
+
     def __init__(
         self,
-        output_dir: PathLike = "data/ray",
+        output_dir: PathLike = DEFAULT_OUTPUT_DIR,
         *,
         canvas_size: int = 480,
         aspect: Optional[float] = None,
         mirror_count: int = 12,
         min_reflections: int = 2,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         seed: Optional[int] = None,
     ) -> None:
         super().__init__(output_dir)
@@ -119,11 +131,10 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
         self.min_reflections = max(0, int(min_reflections))
         self._rng = random.Random(seed)
 
-        if prompt is None:
-            prompt = (
-                "Physics simulation. A green arrow marks the laser source. Fire a single laser ray from the arrow; it moves straight and reflects perfectly off the mirrors until it exits. Exactly one labeled point lies on the ray’s path."#There is exactly one correct point. Speak out the option in phonetic alphabet. Alpha for A, Bravo for B, Charlie for C, Delta for D, Echo for E."
-            )
-        self.prompt = prompt
+        self.ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
+        self.vlm_prompt = self.DEFAULT_VLM_PROMPT
+        self.ti2i_prompt = self.DEFAULT_TI2I_PROMPT
+        self.prompt = self.ti2v_prompt
 
         self.puzzle_dir = Path(self.output_dir) / "puzzles"
         self.solution_dir = Path(self.output_dir) / "solutions"
@@ -159,7 +170,7 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
 
             return RayPuzzleRecord(
                 id=puzzle_uuid,
-                prompt=self.prompt,
+                ti2v_prompt=self.ti2v_prompt,
                 canvas_dimensions=self.canvas_dimensions,
                 margin=self.margin,
                 start=start,
@@ -169,6 +180,8 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
                 reflections=reflections,
                 image=self.relativize_path(puzzle_path),
                 solution_image_path=self.relativize_path(solution_path),
+                vlm_prompt=self.vlm_prompt,
+                ti2i_prompt=self.ti2i_prompt,
             )
 
         raise RuntimeError("Failed to generate a valid ray puzzle after many attempts")

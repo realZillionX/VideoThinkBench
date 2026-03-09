@@ -32,8 +32,9 @@ class CircleSpec:
 
 class ArcConnectGenerator(PointTargetPuzzleGenerator):
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/arc_connect_point_ver"
-    DEFAULT_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Remove the masked band, then paint the correct option red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Answer with A-E."
+    DEFAULT_TI2V_PROMPT = "Remove the masked band so the left arc continues into the matching right arc, then paint the correct option red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT = "One arc on the left continues across the masked band to one of the arcs on the right. Which labeled arc matches? Answer with A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(
         self,
@@ -42,7 +43,7 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         canvas_width: int = 480,
         aspect: Optional[float] = None,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         record_video: bool = False,
         point_radius: Optional[int] = None,
         line_width: Optional[int] = None,
@@ -52,7 +53,7 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
             canvas_width=canvas_width,
             aspect=aspect,
             seed=seed,
-            prompt=prompt,
+            ti2v_prompt=ti2v_prompt,
             record_video=record_video,
             point_radius=point_radius,
             line_width=line_width,
@@ -289,7 +290,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--aspect", type=float, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--prompt", type=str, default=None)
-    parser.add_argument("--use-gpt-5", action="store_true", help="Use GPT5 prompt")
+    parser.add_argument("--use-gpt-5", action="store_true", help="Legacy flag retained for CLI compatibility.")
     parser.add_argument("--video", action="store_true", help="Generate video solution")
     return parser.parse_args(argv)
 
@@ -300,7 +301,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         canvas_width=args.canvas_width,
         aspect=args.aspect,
         seed=args.seed,
-        prompt=ArcConnectGenerator.DEFAULT_GPT5_PROMPT if args.use_gpt_5 and not args.prompt else args.prompt,
+        ti2v_prompt=args.prompt,
         record_video=args.video,
     )
     records = [generator.create_random_puzzle() for _ in range(max(1, args.count))]

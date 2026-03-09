@@ -10,8 +10,9 @@ from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzle
 class OrthocenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the orthocenter of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/orthocenter"
-    DEFAULT_PROMPT="Find the orthocenter (intersection of altitudes) of the triangle and mark it red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the orthocenter of the triangle? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Find the orthocenter (intersection of altitudes) of the triangle and mark it red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the orthocenter of the triangle? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def _calculate_orthocenter(self, p1: Point, p2: Point, p3: Point) -> Optional[Point]:
         """

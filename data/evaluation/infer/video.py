@@ -62,7 +62,13 @@ def run_video_infer(
         sample_id = str(row.get("id") or Path(str(row.get("video") or f"row_{index:06d}")).stem)
         task_group = str(row.get("task_group") or "unknown")
         task_type = str(row.get("task_type") or "unknown")
-        prompt = str(row.get("prompt") or "")
+        prompt = str(
+            row.get("ti2v_prompt")
+            or row.get("prompt")
+            or row.get("vlm_prompt")
+            or row.get("gpt5_prompt")
+            or ""
+        )
 
         result = EvalRecord(
             sample_id=sample_id,

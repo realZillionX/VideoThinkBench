@@ -6,14 +6,14 @@
 #
 # Usage:
 #   DIFFSYNTH_PATH=/path/to/DiffSynth-Studio bash train_sft.sh \
-#       --dataset_root /path/to/VideoThinkBench/dataset \
+#       --dataset_root /path/to/VideoThinkBench/output_root \
 #       --output_dir ./outputs/train
 #
 # Required Environment Variables:
 #   DIFFSYNTH_PATH: Path to DiffSynth-Studio installation
 #
 # Optional Arguments:
-#   --dataset_root: VideoThinkBench dataset root
+#   --dataset_root: VideoThinkBench dataset root used by the compatibility export wrapper
 #   --output_dir: Output directory for checkpoints
 #   --metadata_path: Path to metadata.json (default: ./data/metadata.json)
 #   --num_nodes: Total nodes (default: 1)
@@ -123,7 +123,7 @@ if [ -z "${DIFFSYNTH_PATH}" ]; then
     echo ""
     echo "Example:"
     echo "  export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio"
-    echo "  bash train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset"
+    echo "  bash train_sft.sh --dataset_root /path/to/VideoThinkBench/output_root"
     exit 1
 fi
 
@@ -140,7 +140,7 @@ if [ ! -f "${METADATA_PATH}" ]; then
         exit 1
     fi
     
-    echo "Generating metadata from dataset via VideoThinkBench unified data pipeline..."
+    echo "Generating metadata from dataset via VideoThinkBench unified export compatibility wrapper..."
     python3 "${REPO_ROOT}/scripts/prepare_image_data.py" \
         --dataset_root "${DATASET_ROOT}" \
         --output_path "${METADATA_PATH}"

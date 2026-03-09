@@ -17,9 +17,15 @@ pip install accelerate deepspeed
 ## 数据准备
 
 ```bash
-# 将 VideoThinkBench 数据集转换为 DiffSynth-Studio 格式
+# 推荐：从 canonical_manifest.jsonl 直接导出
+python3 cli.py data export \
+    --manifest /path/to/canonical_manifest.jsonl \
+    --target diffsynth-image \
+    --output ./data/metadata.json
+
+# 兼容：从 cli.py data generate 的 output_root 重新扫描导出
 python3 scripts/prepare_image_data.py \
-    --dataset_root /path/to/VideoThinkBench/dataset \
+    --dataset_root /path/to/VideoThinkBench/output_root \
     --output_path ./data/metadata.json
 
 # 输出: data/metadata.json
@@ -32,7 +38,7 @@ python3 scripts/prepare_image_data.py \
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
 # 启动训练
-bash training/image/train_sft.sh --dataset_root /path/to/VideoThinkBench/dataset
+bash training/image/train_sft.sh --metadata_path ./data/metadata.json
 
 # 可选参数:
 #   --output_dir ./outputs/train
@@ -102,9 +108,14 @@ python3 cli.py eval run \
 
 训练数据格式（metadata.json）:
 ```json
-{
+[
+  {
+    "id": "maze_square-00001",
     "prompt": "Draw a red path connecting two red dots...",
-    "image": "maze_square/solutions/xxx.png",
-    "edit_image": "maze_square/puzzles/xxx.png"
-}
+    "image": "/abs/path/to/solution.png",
+    "edit_image": "/abs/path/to/puzzle.png",
+    "task_type": "maze_square",
+    "task_group": "maze"
+  }
+]
 ```

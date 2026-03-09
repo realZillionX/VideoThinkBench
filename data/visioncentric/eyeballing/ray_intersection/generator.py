@@ -40,7 +40,7 @@ class RaySegment:
 @dataclass
 class RayIntersectionPuzzleRecord:
     id: str
-    prompt: str
+    ti2v_prompt: str
     canvas_dimensions: Tuple[int, int]
     margin: int
     intersection: Tuple[float, float]
@@ -50,12 +50,14 @@ class RayIntersectionPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
+    vlm_prompt: Optional[str] = None
+    ti2i_prompt: Optional[str] = None
     solution_video_path: Optional[str] = None
 
     def to_dict(self) -> dict:
         payload = {
             "id": self.id,
-            "prompt": self.prompt,
+            "ti2v_prompt": self.ti2v_prompt,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "intersection": list(self.intersection),
@@ -67,6 +69,10 @@ class RayIntersectionPuzzleRecord:
             "solution_image_path": self.solution_image_path,
             "type": "ray_intersection",
         }
+        if self.vlm_prompt is not None:
+            payload["vlm_prompt"] = self.vlm_prompt
+        if self.ti2i_prompt is not None:
+            payload["ti2i_prompt"] = self.ti2i_prompt
         if self.solution_video_path is not None:
             payload["solution_video_path"] = self.solution_video_path
         return payload
@@ -78,8 +84,9 @@ CandidatePoint = PointCandidate
 class RayIntersectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles with partially hidden ray intersections."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_intersection"
-    DEFAULT_PROMPT="Extend the three black lines and mark the intersection point red. In portrait, static camera, no zoom, no pan."
-    DEFAULT_GPT5_PROMPT="Which option is the intersection point of the three lines? Answer an option in A-E."
+    DEFAULT_TI2V_PROMPT="Extend the three black lines and mark the intersection point red. In portrait, static camera, no zoom, no pan."
+    DEFAULT_VLM_PROMPT="Which option is the intersection point of the three lines? Answer an option in A-E."
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> RayIntersectionPuzzleRecord:
         intersection = self.pick_target_point()
@@ -119,7 +126,7 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
 
         return RayIntersectionPuzzleRecord(
             id=pid,
-            prompt=self.prompt,
+            ti2v_prompt=self.ti2v_prompt,
             canvas_dimensions=self.canvas_dimensions,
             margin=self.margin,
             intersection=intersection,
@@ -129,6 +136,8 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
             correct_option=self.correct_label,
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
+            vlm_prompt=self.vlm_prompt,
+            ti2i_prompt=self.ti2i_prompt,
             solution_video_path=video_rel_path,
         )
 
@@ -302,7 +311,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         canvas_width=args.canvas_width,
         aspect=args.aspect,
         seed=args.seed,
-        prompt=args.prompt,
+        ti2v_prompt=args.prompt,
         record_video=args.video,
     )
     records = [generator.create_random_puzzle() for _ in range(max(1, args.count))]

@@ -26,6 +26,22 @@ from PIL import Image, ImageDraw
 from data.base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 
 
+def _strip_video_instruction(prompt: Optional[str]) -> Optional[str]:
+    if prompt is None:
+        return None
+    stripped = prompt.strip()
+    suffixes = (
+        " In portrait, static camera, no zoom, no pan.",
+        " In portrait. Static camera.",
+        " In portrait. Static Camera. No zoom.",
+        " In portrait. Static Camera. No zoom, no pan.",
+    )
+    for suffix in suffixes:
+        if stripped.endswith(suffix):
+            return stripped[: -len(suffix)].strip()
+    return stripped
+
+
 def _draw_path_segment_rect(
     draw: ImageDraw.ImageDraw,
     p1: Tuple[float, float],
@@ -93,8 +109,9 @@ class MazePuzzleRecord:
     """Serializable metadata for a maze puzzle asset pair."""
 
     id: str
-    prompt: str
-    gpt5_prompt: str
+    ti2v_prompt: str
+    vlm_prompt: str
+    ti2i_prompt: str
     canvas_dimensions: Tuple[int, int]
     start_point: Tuple[float, float]
     goal_point: Tuple[float, float]
@@ -106,8 +123,9 @@ class MazePuzzleRecord:
     def to_dict(self) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
             "id": self.id,
-            "prompt": self.prompt,
-            "gpt5_prompt": self.gpt5_prompt,
+            "ti2v_prompt": self.ti2v_prompt,
+            "vlm_prompt": self.vlm_prompt,
+            "ti2i_prompt": self.ti2i_prompt,
             "canvas_dimensions": [int(self.canvas_dimensions[0]), int(self.canvas_dimensions[1])],
             "start_point": [float(self.start_point[0]), float(self.start_point[1])],
             "goal_point": [float(self.goal_point[0]), float(self.goal_point[1])],
@@ -126,8 +144,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
     """Base generator providing canvas configuration and asset management."""
 
     DEFAULT_OUTPUT_DIR: Optional[PathLike] = "data/visioncentric/maze"
-    DEFAULT_PROMPT: Optional[str] = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
-    DEFAULT_GPT5_PROMPT: Optional[str] = "Find a path connecting two red dots without touching the black walls in the maze. Movement is between adjacent hex cells through shared edges only (no diagonal corner moves). Each cell has its ID printed on it. Present your answer as a list of cell IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
+    DEFAULT_TI2V_PROMPT: Optional[str] = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
+    DEFAULT_VLM_PROMPT: Optional[str] = "Find a path connecting the two red dots without touching the black walls in the maze. Each traversable region has its ID printed on it. Present your answer as a list of IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
+    DEFAULT_TI2I_PROMPT: Optional[str] = _strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(
         self,
@@ -137,7 +156,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         aspect: Optional[float] = None,
         size: int = 32,
         seed: Optional[int] = None,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         show_cell_id: bool = False,
         video: bool = False,
     ) -> None:
@@ -162,7 +181,16 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         if size <= 0:
             raise ValueError("size must be positive")
         self.size = int(size)
-        self.prompt = prompt if prompt is not None else (self.DEFAULT_PROMPT or "")
+        resolved_ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
+        self.seed = seed
+        self.ti2v_prompt = resolved_ti2v_prompt or ""
+        self.vlm_prompt = self.DEFAULT_VLM_PROMPT or self.ti2v_prompt
+        self.ti2i_prompt = (
+            self.DEFAULT_TI2I_PROMPT
+            or _strip_video_instruction(self.ti2v_prompt)
+            or self.ti2v_prompt
+        )
+        self.prompt = self.ti2v_prompt
         self.show_cell_id = show_cell_id
         self.video = video
         self._rng = random.Random(seed)
@@ -187,6 +215,10 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
 
     def next_id(self) -> str:
         return str(uuid.uuid4())
+
+    @staticmethod
+    def strip_video_instruction(prompt: Optional[str]) -> Optional[str]:
+        return _strip_video_instruction(prompt)
 
     def save_images(
         self,
@@ -355,19 +387,20 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         goal_point: Tuple[float, float],
         puzzle_path: Path,
         solution_path: Path,
-        prompt: Optional[str] = None,
+        ti2v_prompt: Optional[str] = None,
         extra: Optional[Dict[str, Any]] = None,
         video_path: Optional[Path] = None,
     ) -> MazePuzzleRecord:
-        record_prompt = prompt if prompt is not None else self.prompt
+        record_ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.ti2v_prompt
         extra_payload = extra if extra is not None else {}
         video_rel: Optional[str] = None
         if video_path is not None:
             video_rel = self.relativize_path(video_path)
         return MazePuzzleRecord(
             id=record_id,
-            prompt=record_prompt,
-            gpt5_prompt=self.DEFAULT_GPT5_PROMPT or record_prompt,
+            ti2v_prompt=record_ti2v_prompt,
+            vlm_prompt=self.vlm_prompt,
+            ti2i_prompt=_strip_video_instruction(record_ti2v_prompt) or self.ti2i_prompt,
             canvas_dimensions=self.canvas_dimensions,
             start_point=start_point,
             goal_point=goal_point,
@@ -388,7 +421,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         parser.add_argument("--seed", type=int, default=None)
         parser.add_argument("--prompt", type=str, default=None)
         parser.add_argument("--show-cell-id", action="store_true", help="Draw cell IDs on the maze")
-        parser.add_argument("--use-gpt-5", action="store_true", help="Same as --show-cell-id")
+        parser.add_argument("--use-gpt-5", action="store_true", help="Use DEFAULT_VLM_PROMPT and show cell IDs for VLM-style maze solving.")
         parser.add_argument("--video", action="store_true", help="Generate solution video")
         namespace=parser.parse_args(argv)
         if namespace.use_gpt_5:
@@ -398,7 +431,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
     @classmethod
     def main(cls, argv: Optional[List[str]] = None) -> None:
         args = cls._parse_args(argv)
-        prompt_arg = args.prompt if args.prompt is not None else cls.DEFAULT_PROMPT
+        prompt_arg = args.prompt if args.prompt is not None else (
+            cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 else cls.DEFAULT_TI2V_PROMPT
+        )
         output_arg = args.output_dir if args.output_dir is not None else cls.DEFAULT_OUTPUT_DIR
         generator = cls(
             output_dir=output_arg,
@@ -406,7 +441,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             aspect=args.aspect,
             size=args.size,
             seed=args.seed,
-            prompt=prompt_arg,
+            ti2v_prompt=prompt_arg,
             show_cell_id=args.show_cell_id,
             video=args.video,
         )
