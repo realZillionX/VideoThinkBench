@@ -231,9 +231,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         full_frame = puzzle_image.copy()
         full_draw = ImageDraw.Draw(full_frame)
         full_draw.line(points, fill=color, width=thickness, joint="curve")
-        # Fill every waypoint with a square to eliminate corner gaps
-        for pt in points:
-            _draw_path_cap(full_draw, pt, color, thickness)
+        # Square caps only at the very start and end of the path
+        _draw_path_cap(full_draw, points[0], color, thickness)
+        _draw_path_cap(full_draw, points[-1], color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
         _draw_path_cap(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
@@ -266,24 +266,31 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 else:
                     visible_tip = p1
 
+            # Build a polyline of all newly revealed points and draw in
+            # one call so PIL handles joints natively (no corner gaps).
             revealed_draw = ImageDraw.Draw(revealed_mask)
+            new_pts: list = []
             if current_segment == prev_segment:
                 if visible_tip != prev_tip:
-                    revealed_draw.line([prev_tip, visible_tip], fill=255, width=thickness, joint="curve")
+                    new_pts = [prev_tip, visible_tip]
             else:
+                new_pts.append(prev_tip)
                 prev_end = segments[prev_segment][2]
-                if prev_tip != prev_end:
-                    revealed_draw.line([prev_tip, prev_end], fill=255, width=thickness, joint="curve")
-                _draw_path_cap(revealed_draw, prev_end, 255, thickness)
+                if prev_end != prev_tip:
+                    new_pts.append(prev_end)
                 for seg_idx in range(prev_segment + 1, current_segment):
                     _, seg_p1, seg_p2 = segments[seg_idx]
-                    _draw_path_cap(revealed_draw, seg_p1, 255, thickness)
-                    revealed_draw.line([seg_p1, seg_p2], fill=255, width=thickness, joint="curve")
-                    _draw_path_cap(revealed_draw, seg_p2, 255, thickness)
+                    if not new_pts or seg_p1 != new_pts[-1]:
+                        new_pts.append(seg_p1)
+                    new_pts.append(seg_p2)
                 current_start = segments[current_segment][1]
-                _draw_path_cap(revealed_draw, current_start, 255, thickness)
+                if not new_pts or current_start != new_pts[-1]:
+                    new_pts.append(current_start)
                 if visible_tip != current_start:
-                    revealed_draw.line([current_start, visible_tip], fill=255, width=thickness, joint="curve")
+                    new_pts.append(visible_tip)
+
+            if len(new_pts) >= 2:
+                revealed_draw.line(new_pts, fill=255, width=thickness, joint="curve")
 
             frame_mask = revealed_mask.copy()
             mask_draw = ImageDraw.Draw(frame_mask)
