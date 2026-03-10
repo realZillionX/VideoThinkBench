@@ -434,14 +434,12 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         if self.record_video:
             try:
                 video_num_frames = self.save_video_solution(pid)
-                for video_abs in (
-                    self.solution_dir / f"{pid}_solution.mp4",
-                    self.solution_dir / f"{pid}_solution.avi",
-                ):
-                    if video_abs.exists():
-                        video_rel_path = self.relativize_path(video_abs)
-                        video_fps = 16
-                        break
+                video_abs = self.solution_dir / f"{pid}_solution.mp4"
+                if not video_abs.exists():
+                    video_abs = video_abs.with_suffix(".avi")
+                if video_abs.exists():
+                    video_rel_path = self.relativize_path(video_abs)
+                    video_fps = 16
             except Exception as e:
                 import traceback
                 traceback.print_exc()

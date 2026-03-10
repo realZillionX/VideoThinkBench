@@ -270,6 +270,8 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
             vp = vdir / f"{pid}_solution.mp4"
             nf, actual_video_path = self._save_crossfade_video(puzzle_img, solution_img, str(vp), fps=16)
             actual_video_file = Path(actual_video_path)
+            if not actual_video_file.exists():
+                actual_video_file = vp.with_suffix(".avi")
             if nf > 0 and actual_video_file.exists():
                 video_path_val = self.relativize_path(actual_video_file)
                 video_fps_val = 16

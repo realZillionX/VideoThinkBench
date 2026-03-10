@@ -127,6 +127,8 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
             try:
                 video_num_frames = self.save_video_solution(pid)
                 video_abs = self.solution_dir / f"{pid}_solution.mp4"
+                if not video_abs.exists():
+                    video_abs = video_abs.with_suffix(".avi")
                 if video_abs.exists():
                     video_rel_path = self.relativize_path(video_abs)
             except Exception as e:

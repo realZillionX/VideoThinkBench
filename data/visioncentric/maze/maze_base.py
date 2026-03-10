@@ -413,9 +413,15 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         video_fps: Optional[int] = None
         video_num_frames: Optional[int] = None
         if video_path is not None:
-            video_rel = self.relativize_path(video_path)
-            video_fps = self._last_video_fps
-            video_num_frames = self._last_video_num_frames
+            actual_video_path = video_path
+            if not actual_video_path.exists():
+                fallback_video_path = actual_video_path.with_suffix(".avi")
+                if fallback_video_path.exists():
+                    actual_video_path = fallback_video_path
+            if actual_video_path.exists():
+                video_rel = self.relativize_path(actual_video_path)
+                video_fps = self._last_video_fps
+                video_num_frames = self._last_video_num_frames
         # Derive vlm_answer from solution path cell IDs
         vlm_answer: Optional[str] = None
         path_ids = extra_payload.get("solution_path_cell_ids")
