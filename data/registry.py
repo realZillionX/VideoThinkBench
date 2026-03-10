@@ -20,7 +20,6 @@ EYEBALLING_TASKS: List[str] = [
     "circle_tangent_line",
     "circle_tangent_point",
     "circumcenter",
-    "fermat_point",
     "incenter",
     "isosceles_trapezoid",
     "midpoint",
