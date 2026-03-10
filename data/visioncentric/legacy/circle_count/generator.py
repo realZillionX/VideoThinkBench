@@ -70,7 +70,7 @@ class CircleCountGenerator(AbstractPuzzleGenerator[CircleCountPuzzleRecord]):
         self,
         output_dir: PathLike = "data/circle_count",
         *,
-        canvas_width: int = 480,
+        canvas_width: int = 512,
         aspect: Optional[float] = None,
         prompt: Optional[str] = None,
         seed: Optional[int] = None,
@@ -198,7 +198,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate circle count puzzles")
     parser.add_argument("count", type=int, help="Number of puzzles to create")
     parser.add_argument("--output-dir", type=Path, default=Path("data/circle_count"))
-    parser.add_argument("--canvas-width", type=int, default=480)
+    parser.add_argument("--canvas-width", type=int, default=512)
     parser.add_argument("--aspect", type=float, default=None, help="Canvas aspect ratio W/H")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--prompt", type=str, default=None)

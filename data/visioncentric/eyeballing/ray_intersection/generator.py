@@ -316,7 +316,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate ray intersection puzzles")
     parser.add_argument("count", type=int, help="Number of puzzles to create")
     parser.add_argument("--output-dir", type=Path, default=Path("data/ray_intersection"))
-    parser.add_argument("--canvas-width", type=int, default=480)
+    parser.add_argument("--canvas-width", type=int, default=512)
     parser.add_argument("--aspect", type=float, default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--prompt", type=str, default=None)

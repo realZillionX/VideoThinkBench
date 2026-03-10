@@ -121,22 +121,30 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
             h = int(math.ceil((spread_y + 2.0) * cr + 2.0 * wt))
             return w, h
 
-        def _check_fits(cr: int) -> bool:
-            if canvas_width is None:
+        def _check_fits(cr: int, width_limit: Optional[int] = None) -> bool:
+            limit = width_limit if width_limit is not None else canvas_width
+            if limit is None:
                 return True
             bw, bh = _get_layout_size(cr)
-            w_limit = int(canvas_width)
+            w_limit = int(limit)
             if aspect is None:
-                return w_limit >= bw - 1
+                return bw <= w_limit and bh <= w_limit
             asp = float(aspect)
             min_w_needed = max(bw, int(math.ceil(bh * asp)))
             return w_limit >= min_w_needed - 1
 
-        if not is_user_set and canvas_width is not None and not _check_fits(target_cr):
-             for cr in range(target_cr - 1, 11, -1):
-                 if _check_fits(cr):
-                     target_cr = cr
-                     break
+        if not is_user_set:
+            target_w = int(canvas_width) if canvas_width is not None else 512
+            low, high = 12, max(12, target_w)
+            best = 12
+            while low <= high:
+                mid = (low + high) // 2
+                if _check_fits(mid, target_w):
+                    best = mid
+                    low = mid + 1
+                else:
+                    high = mid - 1
+            target_cr = best
 
         if target_cr < 12:
             raise ValueError("cell_radius (or auto-sized) must be at least 12 pixels to preserve visible walls")
@@ -214,13 +222,11 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         else:
             if canvas_width is not None:
                 width = int(canvas_width)
-                if width < natural_width:
+                if width < natural_width or width < natural_height:
                     raise ValueError("canvas_width is too small for the hexagon layout")
-                scale = width / float(natural_width)
-                height = int(math.ceil(natural_height * scale))
             else:
-                width = natural_width
-                height = natural_height
+                width = max(natural_width, natural_height)
+            height = width
         return max(width, natural_width), max(height, natural_height)
 
     # ------------------------------------------------------------------

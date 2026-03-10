@@ -64,12 +64,16 @@ class MazeGenerator(MazePuzzleGenerator):
             raise ValueError("rows and cols must be at least 5")
         adjusted_rows = rows if rows % 2 == 1 else rows + 1
         adjusted_cols = cols if cols % 2 == 1 else cols + 1
-        effective_cell_size = int(
-            cell_size if cell_size is not None else (size if size is not None else self.DEFAULT_CELL_SIZE)
-        )
+        ratio = aspect_ratio if aspect_ratio is not None else aspect
+        if cell_size is None and size is None:
+            target_w = int(canvas_width) if canvas_width is not None else 512
+            effective_cell_size = max(4, target_w // max(adjusted_rows, adjusted_cols))
+        else:
+            effective_cell_size = int(
+                cell_size if cell_size is not None else (size if size is not None else self.DEFAULT_CELL_SIZE)
+            )
         if effective_cell_size <= 0:
             raise ValueError("cell_size must be positive")
-        ratio = aspect_ratio if aspect_ratio is not None else aspect
         pad_left, pad_top, pad_right, pad_bottom, canvas_dims = self._layout_for(
             adjusted_rows,
             adjusted_cols,
@@ -83,6 +87,13 @@ class MazeGenerator(MazePuzzleGenerator):
             pad_left += left_extra
             pad_right += right_extra
             canvas_dims = (canvas_width, canvas_dims[1])
+        if ratio is None and canvas_width is not None and canvas_width > canvas_dims[1]:
+            extra = canvas_width - canvas_dims[1]
+            top_extra = extra // 2
+            bottom_extra = extra - top_extra
+            pad_top += top_extra
+            pad_bottom += bottom_extra
+            canvas_dims = (canvas_dims[0], canvas_width)
         final_width, final_height = canvas_dims
         aspect_for_super = (final_width / final_height) if final_height else None
         resolved_output = output_dir if output_dir is not None else self.DEFAULT_OUTPUT_DIR
@@ -214,7 +225,10 @@ class MazeGenerator(MazePuzzleGenerator):
         return r * self.cols + c
 
     def _compute_padding(self) -> Tuple[int, int, int, int, Tuple[int, int]]:
-        return self._layout_for(self.rows, self.cols, self.cell_size, self.aspect_ratio)
+        # Reuse the resolved canvas from __init__ so later renders keep any extra
+        # padding added to hit the requested final canvas size.
+        pad_left, pad_top, pad_right, pad_bottom = self.padding
+        return pad_left, pad_top, pad_right, pad_bottom, self.canvas_dimensions
 
     @staticmethod
     def _layout_for(
@@ -399,7 +413,7 @@ class MazeGenerator(MazePuzzleGenerator):
     @classmethod
     def main(cls, argv: Optional[List[str]] = None) -> None:
         args = cls._parse_args(argv)
-        cell_size = args.cell_size if args.cell_size is not None else (args.size if args.size is not None else cls.DEFAULT_CELL_SIZE)
+        cell_size = args.cell_size if args.cell_size is not None else args.size
         prompt_arg = args.prompt if args.prompt is not None else (
             cls.DEFAULT_VLM_PROMPT if args.use_gpt_5 else cls.DEFAULT_TI2V_PROMPT
         )

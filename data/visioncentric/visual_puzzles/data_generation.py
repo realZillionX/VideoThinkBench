@@ -1302,7 +1302,7 @@ def convert_image_to_text(image: Image) -> str:
     return base64.b64encode(data).decode("utf-8")
 
 
-def pad_image(img, target_size=(1280, 704)) -> Image:
+def pad_image(img, target_size=(512, 512)) -> Image:
     # Create a new image with a white background
     new_img = Image.new("RGB", target_size, "white")
     
@@ -1409,7 +1409,7 @@ def create_data(
     path: str,
     limit: int = 1,
     seed: int = 42,
-    target_size: Tuple[int, int] = (1280, 704),
+    target_size: Tuple[int, int] = (512, 512),
     unique: bool = True
 ):
     random.seed(seed)

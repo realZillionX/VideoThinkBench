@@ -85,11 +85,12 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             sz = int(math.ceil((mr + io) * 2))
             return wt, io, sz
 
-        def _check_fits(rw: int) -> bool:
-            if canvas_width is None:
+        def _check_fits(rw: int, width_limit: Optional[int] = None) -> bool:
+            limit = width_limit if width_limit is not None else canvas_width
+            if limit is None:
                 return True
             _, _, sz = _get_layout_params(rw)
-            w = int(canvas_width)
+            w = int(limit)
             
             if aspect is None:
                 return w >= sz
@@ -101,11 +102,18 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
                 mw = sz
             return w >= mw - 1
 
-        if not is_user_set and canvas_width is not None and not _check_fits(target_rw):
-             for rw in range(target_rw - 1, 6, -1):
-                 if _check_fits(rw):
-                     target_rw = rw
-                     break
+        if not is_user_set:
+            target_w = int(canvas_width) if canvas_width is not None else 512
+            low, high = 7, max(7, target_w)
+            best = 7
+            while low <= high:
+                mid = (low + high) // 2
+                if _check_fits(mid, target_w):
+                    best = mid
+                    low = mid + 1
+                else:
+                    high = mid - 1
+            target_rw = best
 
         if target_rw <= 6:
             raise ValueError("ring_width (or resulting auto-sized width) must be greater than 6 pixels")

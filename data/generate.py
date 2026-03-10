@@ -91,7 +91,7 @@ def build_default_kwargs(spec: TaskSpec, args: argparse.Namespace, seed: Optiona
     elif spec.group == "visual_puzzle":
         kwargs.update(
             seed=seed,
-            target_size=(1280, 704),
+            target_size=(512, 512),
             unique=True,
             video=args.video,
         )
@@ -109,7 +109,7 @@ def _generate_visual_puzzle_worker(
 
     pattern_kwargs = dict(kwargs)
     seed = pattern_kwargs.pop("seed", None)
-    target_size = tuple(pattern_kwargs.pop("target_size", (1280, 704)))
+    target_size = tuple(pattern_kwargs.pop("target_size", (512, 512)))
     unique = bool(pattern_kwargs.pop("unique", True))
     video = bool(pattern_kwargs.pop("video", False))
 
@@ -440,22 +440,22 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--video", action="store_true", help="Generate solution videos when supported")
-    parser.add_argument("--canvas-width", type=int, default=480)
+    parser.add_argument("--canvas-width", type=int, default=512)
 
     parser.add_argument("--point-radius", type=int, default=None)
     parser.add_argument("--line-width", type=int, default=None)
 
     parser.add_argument("--maze-rows", type=int, default=9)
     parser.add_argument("--maze-cols", type=int, default=9)
-    parser.add_argument("--maze-cell-size", type=int, default=32)
+    parser.add_argument("--maze-cell-size", type=int, default=None)
 
     parser.add_argument("--hex-radius", type=int, default=4)
-    parser.add_argument("--hex-cell-size", type=int, default=24)
+    parser.add_argument("--hex-cell-size", type=int, default=None)
     parser.add_argument("--hex-wall-thickness", type=int, default=None)
 
     parser.add_argument("--lab-rings", type=int, default=6)
     parser.add_argument("--lab-segments", type=int, default=18)
-    parser.add_argument("--lab-cell-size", type=int, default=18)
+    parser.add_argument("--lab-cell-size", type=int, default=None)
     parser.add_argument("--lab-wall-thickness", type=int, default=None)
 
     parser.add_argument("--task-config-path", type=str, default=None)
