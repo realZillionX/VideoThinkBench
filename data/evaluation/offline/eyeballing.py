@@ -14,10 +14,6 @@ def _eyeballing_evaluator_class(task_type: str):
         from data.visioncentric.eyeballing.arc_connect.evaluator import ArcConnectEvaluator as EvaluatorClass
 
         return EvaluatorClass
-    if task_type == "ray":
-        from data.visioncentric.eyeballing.ray.evaluator import RayEvaluator as EvaluatorClass
-
-        return EvaluatorClass
     if task_type == "ray_intersection":
         from data.visioncentric.eyeballing.ray_intersection.evaluator import RayIntersectionEvaluator as EvaluatorClass
 

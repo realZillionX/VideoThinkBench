@@ -16,7 +16,6 @@ class TaskSpec:
 EYEBALLING_TASKS: List[str] = [
     "angle_bisector",
     "arc_connect",
-    "arc_connect_point_ver",
     "circle_center",
     "circle_tangent_line",
     "circle_tangent_point",
@@ -30,7 +29,6 @@ EYEBALLING_TASKS: List[str] = [
     "parallelogram",
     "perpendicular",
     "perpendicular_bisector",
-    "ray",
     "ray_intersection",
     "ray_reflect",
     "reflection",

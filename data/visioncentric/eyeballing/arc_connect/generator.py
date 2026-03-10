@@ -1,31 +1,24 @@
-"""Arc connection puzzle generator (masked vertical band, side arcs).
+"""Arc connection point puzzle generator.
 
-Visual design per request:
-- Define mask_left_x and mask_right_x.
-- Draw the true circle as arcs only on x < mask_left_x and x > mask_right_x.
-- Create four false circles by shifting the true circle up and down with equal gaps.
-- For false circles, draw arcs only on x > mask_right_x (right side).
-- Label A–E at the mask-right end of each right arc; exactly one matches the
-  true circle geometry. Prompt includes NATO phonetic instruction and requests
-  portrait.
+Simplified version with vertical mask and side arcs.
 """
 
 from __future__ import annotations
-
 import argparse
 import math
-import numpy as np
-import random
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-from data.base import AbstractPuzzleGenerator, PathLike
-from data.video_encoding import encode_rgb_frames_to_mp4
-
+from data.base import PathLike
+from data.point_target_base import (
+    PointCandidate,
+    PointTargetPuzzleGenerator,
+    PointTargetPuzzleRecord,
+    VideoRenderer,
+)
 
 @dataclass
 class CircleSpec:
@@ -34,512 +27,305 @@ class CircleSpec:
     r: float
 
     def bbox(self) -> Tuple[int, int, int, int]:
-        return (
-            int(round(self.cx - self.r)),
-            int(round(self.cy - self.r)),
-            int(round(self.cx + self.r)),
-            int(round(self.cy + self.r)),
-        )
+        return (int(round(self.cx - self.r)), int(round(self.cy - self.r)),
+                int(round(self.cx + self.r)), int(round(self.cy + self.r)))
 
-    def to_dict(self) -> dict:
-        return {"cx": self.cx, "cy": self.cy, "r": self.r}
-
-
-@dataclass
-class CandidateArc:
-    circle: CircleSpec
-    label: str  # 'A'..'E'
-
-    def to_dict(self) -> dict:
-        d = self.circle.to_dict()
-        d.update({"label": self.label})
-        return d
-
-
-@dataclass
-class ArcConnectPuzzleRecord:
-    id: str
-    ti2v_prompt: str
-    canvas_dimensions: Tuple[int, int]
-    margin: int
-    mask_rect: Tuple[int, int, int, int]
-    left_arc: CircleSpec
-    candidates: List[CandidateArc]
-    correct_option: str
-    image: str
-    solution_image_path: str
-    vlm_prompt: Optional[str] = None
-    ti2i_prompt: Optional[str] = None
-    vlm_answer: Optional[str] = None
-    seed: Optional[int] = None
-    solution_video_path: Optional[str] = None
-    video_fps: Optional[int] = None
-    video_num_frames: Optional[int] = None
-
-    def to_dict(self) -> dict:
-        return {
-            "id": self.id,
-            "ti2v_prompt": self.ti2v_prompt,
-            "vlm_prompt": self.vlm_prompt,
-            "ti2i_prompt": self.ti2i_prompt,
-            "vlm_answer": self.vlm_answer,
-            "canvas_dimensions": list(self.canvas_dimensions),
-            "margin": self.margin,
-            "mask_rect": list(self.mask_rect),
-            "left_arc": self.left_arc.to_dict(),
-            "candidates": [c.to_dict() for c in self.candidates],
-            "correct_option": self.correct_option,
-            "image": self.image,
-            "solution_image_path": self.solution_image_path,
-            "solution_video_path": self.solution_video_path,
-            "video_fps": self.video_fps,
-            "video_num_frames": self.video_num_frames,
-            "seed": self.seed,
-            "type": "arc_connect",
-        }
-
-
-class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
-    DEFAULT_OUTPUT_DIR = "data/arc_connect"
+class ArcConnectGenerator(PointTargetPuzzleGenerator):
+    DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/arc_connect"
     DEFAULT_TI2V_PROMPT = (
-        "On a white portrait canvas, place a wide vertical light gray mask band in the center with slightly darker gray "
-        "vertical edge lines. To the left of the band, show one short near-black circular arc fragment. To the right of the "
-        "band, show five short dark gray arc fragments stacked from top to bottom, each representing a different possible "
-        "continuation of the hidden circle. Put blue letters A-E near the visible end of each right-side arc. Animate the "
-        "solution by first holding this masked layout, then keeping all arc fragments fixed while a bright green ring grows "
-        "around the one label whose right-side arc matches the left arc in curvature, branch, radius, and hidden circle "
-        "center, and finally hold on the highlighted answer. In portrait. Static camera. No zoom."
+        "On a white square or portrait canvas, place a wide vertical light gray mask band in the middle with darker gray "
+        "edge lines. Show five dark gray arc fragments emerging on the right side, each ending near a labeled candidate "
+        "circle A-E drawn as a white marker with a dark gray outline and black letter. Also show the matching left-side arc "
+        "fragment for exactly one of those circles, but keep the center of the geometry hidden behind the mask. Animate the "
+        "solution in three stages: hold the masked puzzle first, then shrink the central mask smoothly until it disappears "
+        "and reveals the full continuous arc geometry through the middle, and finally change the correct candidate circle to "
+        "pale red with a dark red outline while the other four candidates stay white. In portrait, static camera, no zoom, "
+        "no pan."
     )
     DEFAULT_VLM_PROMPT = (
-        "A white canvas shows one short arc on the left of a central light gray mask band and five labeled arc fragments "
-        "A-E on the right. Determine which right-side arc would continue the left arc smoothly across the hidden band, so "
-        "that both visible pieces belong to the same circle with the same center, radius, and upper-or-lower branch. Answer "
-        "with one option from A-E."
+        "A white canvas shows a central light gray vertical mask band, one visible left arc fragment, five right arc "
+        "fragments, and five labeled candidate circles A-E placed near the right arc endpoints. Determine which candidate's "
+        "arc continues the left arc smoothly across the hidden band, meaning both visible arc pieces belong to the same "
+        "circle with matching curvature and position. Answer with one option from A-E."
     )
-    DEFAULT_TI2I_PROMPT = (
-        "On a white portrait canvas, place a wide vertical light gray mask band in the center with slightly darker gray "
-        "vertical edge lines. To the left of the band, show one short near-black circular arc fragment. To the right of the "
-        "band, show five short dark gray arc fragments stacked from top to bottom, with blue letters A-E near the visible "
-        "end of each arc. Show the final solution image by adding a bright green ring around the single label whose right "
-        "arc continues the left arc smoothly across the hidden band."
-    )
+    DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def __init__(
         self,
-        output_dir: PathLike = DEFAULT_OUTPUT_DIR,
+        output_dir: PathLike = None,
         *,
         canvas_width: int = 480,
-        aspect: Optional[float] = None,  # W/H; <1 => portrait
-        mask_fraction: float = 0.18,  # band width fraction of W
-        arc_span_deg: float = 20.0,   # degrees to extend from crossing
-        ti2v_prompt: Optional[str] = None,
+        aspect: Optional[float] = None,
         seed: Optional[int] = None,
+        ti2v_prompt: Optional[str] = None,
         record_video: bool = False,
+        point_radius: Optional[int] = None,
+        line_width: Optional[int] = None,
     ) -> None:
-        super().__init__(output_dir)
-
-        W = int(canvas_width)
-        if aspect and aspect > 0:
-            H = int(round(W / float(aspect)))
-        else:
-            H = W
-        self.canvas_dimensions = (W, H)
-        self.margin = max(16, int(round(min(W, H) * 0.05)))
-        self._rng = random.Random(seed)
-
-        self.mask_fraction = max(0.08, min(0.35, float(mask_fraction)))
-        self.arc_span_deg = max(2.0, min(90.0, float(arc_span_deg)))
-
-        self.ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
-        self.vlm_prompt = self.DEFAULT_VLM_PROMPT
-        self.ti2i_prompt = self.DEFAULT_TI2I_PROMPT
-        self.prompt = self.ti2v_prompt
-        self.seed = seed
-        self.record_video = record_video
-
-        out = Path(self.output_dir)
-        self.puzzle_dir = out / "puzzles"
-        self.solution_dir = out / "solutions"
-        self.puzzle_dir.mkdir(parents=True, exist_ok=True)
-        self.solution_dir.mkdir(parents=True, exist_ok=True)
-
-    # --------------- public API ---------------
-    def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> ArcConnectPuzzleRecord:
-        W, H = self.canvas_dimensions
-        left = self.margin
-        right = W - self.margin
-        top = self.margin
-        bottom = H - self.margin
-
-        # mask band
-        mask_w = int(round(W * self.mask_fraction))
-        mask_cx = W // 2
-        mask_left = max(left + 8, mask_cx - mask_w // 2)
-        mask_right = min(right - 8, mask_cx + mask_w // 2)
-        mask_rect = (mask_left, top, mask_right, bottom)
-
-        # choose a base (true) circle that crosses mask_right (for label position)
-        base = self._pick_true_circle(mask_left, mask_right, left, right, top, bottom)
-
-        # decide how many go above and below (sum=4)
-        n_up = self._rng.randint(0, 4)
-        n_down = 4 - n_up
-
-        # compute equal gap so n_up and n_down fit within the canvas
-        max_up_space = max(0.0, (base.cy - (top + 1.5 * base.r)))
-        max_down_space = max(0.0, ((bottom - 1.5 * base.r) - base.cy))
-        # initial gap guess
-        gap_guess = 0.12 * H
-        gap_min = 24.0
-        gap_bounds: List[float] = [gap_guess]
-        if n_up > 0:
-            gap_bounds.append(max_up_space / n_up)
-        if n_down > 0:
-            gap_bounds.append(max_down_space / n_down)
-        gap = max(gap_min, min(gap_bounds))
-
-        # build shifted circles
-        circles: List[CircleSpec] = [base]
-        for i in range(1, n_up + 1):
-            cy_up = base.cy - i * gap
-            circles.append(CircleSpec(base.cx, cy_up, base.r))
-        for i in range(1, n_down + 1):
-            cy_down = base.cy + i * gap
-            circles.append(CircleSpec(base.cx, cy_down, base.r))
-
-        # choose one branch (upper/lower) for the whole puzzle
-        branch_upper = bool(self._rng.getrandbits(1))
-        # sort by the chosen branch crossing y (top to bottom) and label A..E accordingly
-        labeled: List[Tuple[CircleSpec, float]] = []
-        for c in circles:
-            ys = self._crossing_ys(c, mask_right)
-            if ys:
-                y_for_label = ys[0] if branch_upper else ys[1]
-            else:
-                y_for_label = c.cy
-            labeled.append((c, y_for_label))
-        labeled.sort(key=lambda t: t[1])
-
-        letters = list("ABCDE")
-        candidates: List[CandidateArc] = []
-        correct_label = None
-        for idx, (c, _y) in enumerate(labeled):
-            lab = letters[idx]
-            candidates.append(CandidateArc(circle=c, label=lab))
-            if c is base:
-                correct_label = lab
-        if correct_label is None:
-            # fallback via value equality
-            for idx, (c, _y) in enumerate(labeled):
-                if (c.cx, c.cy, c.r) == (base.cx, base.cy, base.r):
-                    correct_label = letters[idx]
-                    break
-        assert correct_label is not None
-
-        # render
-        pid = puzzle_id or str(uuid.uuid4())
-        puzzle_img = self._render(
-            left_circle=base,
-            candidates=candidates,
-            mask_rect=mask_rect,
-            mask_right=mask_right,
-            branch_upper=branch_upper,
-            show_solution=False,
-            highlight_label=None,
+        super().__init__(
+            output_dir=output_dir,
+            canvas_width=canvas_width,
+            aspect=aspect,
+            seed=seed,
+            ti2v_prompt=ti2v_prompt,
+            record_video=record_video,
+            point_radius=point_radius,
+            line_width=line_width,
         )
-        solution_img = self._render(
-            left_circle=base,
-            candidates=candidates,
-            mask_rect=mask_rect,
-            mask_right=mask_right,
-            branch_upper=branch_upper,
-            show_solution=True,
-            highlight_label=correct_label,
-        )
+        self.mask_fraction = 0.35
+        self.arc_span_deg = 20.0
+        self.circles: List[CircleSpec] = []
+        self.mask_x_center: float = 0.0
+        self.mask_width: float = 0.0
 
-        puzzle_path = self.puzzle_dir / f"{pid}_puzzle.png"
-        solution_path = self.solution_dir / f"{pid}_solution.png"
-        puzzle_img.save(puzzle_path)
-        solution_img.save(solution_path)
+    def create_puzzle(self) -> PointTargetPuzzleRecord:
+        width, height = self.canvas_dimensions
+        self.mask_width = width * self.mask_fraction
+        self.mask_x_center = width / 2.0
+        span_rad = math.radians(self.arc_span_deg)
+        margin = self.margin
+        stroke = max(3, int(round(min(width, height) * 0.015)))
 
-        video_path_val = None
-        video_fps_val = None
-        video_num_frames_val = None
-        if self.record_video:
-            vdir = Path(self.output_dir) / "solutions"
-            vdir.mkdir(parents=True, exist_ok=True)
-            vp = vdir / f"{pid}_solution.mp4"
-            nf = self._save_crossfade_video(puzzle_img, solution_img, vp, fps=16)
-            if nf > 0 and vp.exists():
-                video_path_val = self.relativize_path(vp)
-                video_fps_val = 16
-                video_num_frames_val = nf
-
-        return ArcConnectPuzzleRecord(
-            id=pid,
-            ti2v_prompt=self.ti2v_prompt,
-            canvas_dimensions=self.canvas_dimensions,
-            margin=self.margin,
-            mask_rect=mask_rect,
-            left_arc=base,
-            candidates=candidates,
-            correct_option=correct_label or "A",
-            image=self.relativize_path(puzzle_path),
-            solution_image_path=self.relativize_path(solution_path),
-            vlm_prompt=self.vlm_prompt,
-            ti2i_prompt=self.ti2i_prompt,
-            vlm_answer=correct_label,
-            seed=self.seed,
-            solution_video_path=video_path_val,
-            video_fps=video_fps_val,
-            video_num_frames=video_num_frames_val,
-        )
-
-    def create_random_puzzle(self) -> ArcConnectPuzzleRecord:
-        return self.create_puzzle()
-
-    # --------------- internals ---------------
-    def _save_crossfade_video(
-        self,
-        puzzle_img: Image.Image,
-        solution_img: Image.Image,
-        video_path: Path,
-        fps: int = 16,
-    ) -> int:
-        """Save crossfade video: hold puzzle -> blend -> hold solution."""
-        puzzle_arr = np.array(puzzle_img.convert("RGB"), dtype=np.uint8)
-        solution_arr = np.array(solution_img.convert("RGB"), dtype=np.uint8)
-
-        frames: List[np.ndarray] = []
-        frames.extend(puzzle_arr.copy() for _ in range(fps))
-        for i in range(fps):
-            alpha = (i + 1) / fps
-            blended = np.clip(
-                np.round(puzzle_arr * (1.0 - alpha) + solution_arr * alpha),
-                0,
-                255,
-            ).astype(np.uint8)
-            frames.append(blended)
-        frames.extend(solution_arr.copy() for _ in range(fps))
-
-        if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
-            return 0
-        return len(frames)
-
-    def _pick_true_circle(
-        self,
-        mask_left: int,
-        mask_right: int,
-        left: int,
-        right: int,
-        top: int,
-        bottom: int,
-    ) -> CircleSpec:
-        W, H = self.canvas_dimensions
-        for _ in range(200):
-            r = self._rng.uniform(0.38, 0.55) * min(W, H)
-            cx = self._rng.uniform(mask_left - 0.2 * r, mask_right + 0.2 * r)
-            cy = self._rng.uniform(top + 1.5 * r, bottom - 1.5 * r)
-            # ensure mask_right intersects circle for label placement
-            if abs(mask_right - cx)*1.2 < r and abs(mask_left - cx)*1.2 < r:
-                return CircleSpec(cx, cy, r)
-        # fallback centered
-        r = 0.45 * min(W, H)
-        cx = (mask_left + mask_right) / 2
-        cy = (top + bottom) / 2
-        return CircleSpec(cx, cy, r)
-
-    @staticmethod
-    def _crossing_ys(circle: CircleSpec, x: float) -> Optional[Tuple[float, float]]:
-        dx = x - circle.cx
-        val = circle.r * circle.r - dx * dx
-        if val <= 1e-6:
-            return None
-        root = math.sqrt(val)
-        y1 = circle.cy - root
-        y2 = circle.cy + root
-        return (y1, y2)
-
-    def _render(
-        self,
-        *,
-        left_circle: CircleSpec,
-        candidates: Sequence[CandidateArc],
-        mask_rect: Tuple[int, int, int, int],
-        mask_right: int,
-        branch_upper: bool,
-        show_solution: bool,
-        highlight_label: Optional[str],
-    ) -> Image.Image:
-        W, H = self.canvas_dimensions
-        base = Image.new("RGB", (W, H), (255, 255, 255))
-        base_draw = ImageDraw.Draw(base)
-
-        arc_color = (40, 40, 40, 255)
-        left_color = (10, 10, 10, 255)
-        width = max(3, int(round(min(W, H) * 0.015)))
-
-        # helper to compute crossing angles in radians at a vertical line
-        def crossing_angles(circle: CircleSpec, x_line: float) -> List[float]:
-            dx = x_line - circle.cx
-            val = circle.r * circle.r - dx * dx
-            if val <= 1e-6:
-                return []
-            root = math.sqrt(val)
-            y1 = circle.cy - root
-            y2 = circle.cy + root
-            th1 = math.atan2(y1 - circle.cy, dx)
-            th2 = math.atan2(y2 - circle.cy, dx)
-            return [th1, th2]
-
-        def deg(angle_rad: float) -> float:
-            d = math.degrees(angle_rad) % 360.0
-            if d < 0:
-                d += 360.0
-            return d
-
-        span = math.radians(self.arc_span_deg)
-
-        # 1) Right-side layer: draw arc segments away from mask, keep only x > mask_right
-        right_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        rd = ImageDraw.Draw(right_layer)
-        for cand in candidates:
-            ths = crossing_angles(cand.circle, mask_right)
-            if not ths:
+        for _ in range(1000):
+            # Restore original radius logic: uniform(0.38, 0.55) * min_dimension
+            radius = self.rng.uniform(0.38, 0.55) * min(width, height)
+            
+            mask_left = self.mask_x_center - self.mask_width/2
+            mask_right = self.mask_x_center + self.mask_width/2
+            
+            cx = self.rng.uniform(self.mask_x_center - 0.4 * radius, self.mask_x_center + 0.4 * radius)
+            
+            # Validate strict crossing: check if valid Y exists at mask boundaries
+            check_x_left = mask_left
+            check_x_right = mask_right
+            if abs(check_x_left - cx) >= radius or abs(check_x_right - cx) >= radius:
                 continue
-            th = ths[0] if branch_upper else ths[1]
-            # choose direction that moves into x > mask_right
-            sign = 1.0 if math.sin(th) < 0 else -1.0
-            t0 = th
-            t1 = th + sign * span
-            d0, d1 = deg(t0), deg(t1)
-            if d1 < d0:
-                d0, d1 = d1, d0
-            rd.arc(cand.circle.bbox(), start=d0, end=d1, fill=arc_color, width=width)
-        # erase everything to the left of the right mask edge
-        rd.rectangle((0, 0, mask_right, H), fill=(0, 0, 0, 0))
-        base.paste(right_layer, (0, 0), right_layer)
 
-        # 2) Left-side layer: draw base arc segments away from mask, keep only x < mask_left
-        left_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        ld = ImageDraw.Draw(left_layer)
-        ths_left = crossing_angles(left_circle, mask_rect[0])
-        if ths_left:
-            th = ths_left[0] if branch_upper else ths_left[1]
-            # choose direction that moves into x < mask_left
-            sign = -1.0 if math.sin(th) < 0 else 1.0
-            t0 = th
-            t1 = th + sign * span
-            d0, d1 = deg(t0), deg(t1)
-            if d1 < d0:
-                d0, d1 = d1, d0
-            ld.arc(left_circle.bbox(), start=d0, end=d1, fill=left_color, width=width)
-        # erase everything to the right of the left mask edge
-        ld.rectangle((mask_rect[0], 0, W, H), fill=(0, 0, 0, 0))
-        base.paste(left_layer, (0, 0), left_layer)
+            gap = self.rng.uniform(height * 0.05, height * 0.08)
+            
+            # We want 5 candidate arcs. Let's space their crossings at mask_right evenly.
+            # Pick center crossing Y for the middle candidate (index 2)
+            base_crossing_y = self.rng.uniform(height * 0.2, height * 0.8)
+            
+            # Generate 5 crossing Ys
+            crossing_ys = [base_crossing_y + (i - 2) * gap for i in range(5)]
+            
+            temp_circles = []
+            temp_candidates_points = []
+            valid_group = True
+            
+            sign = 1 if self.rng.choice([True, False]) else -1
 
-        # 3) Mask band edge lines to visualize the hidden middle
-        edge_color = (200, 200, 200)
-        base_draw.rectangle(mask_rect, fill=(240, 240, 240))
-        base_draw.line((mask_rect[0], 0, mask_rect[0], H), fill=edge_color, width=5)
-        base_draw.line((mask_rect[2], 0, mask_rect[2], H), fill=edge_color, width=5)
-
-        # 4) Labels at mask_right upper crossing points for each candidate (A–E top to bottom)
-        try:
-            font = ImageFont.load_default(24)
-        except Exception:
-            font = None
-        # compute consistent top-to-bottom order based on crossing y
-        order: List[Tuple[CandidateArc, int]] = []
-        for idx, cand in enumerate(candidates):
-            ys = self._crossing_ys(cand.circle, mask_right)
-            y_for_order = (ys[0] if ys else cand.circle.cy) if branch_upper else (ys[1] if ys else cand.circle.cy)
-            order.append((cand, int(round(max(self.margin, min(H - self.margin, y_for_order))))))
-        # candidates already labeled A–E in top-to-bottom order; draw accordingly
-        order.sort(key=lambda t: t[1])
-        for cand, _ in order:
-            # compute the end point of the drawn right arc segment and place label there
-            dx = mask_right - cand.circle.cx
-            val = cand.circle.r * cand.circle.r - dx * dx
-            if val <= 1e-6:
-                ex = mask_right + 8
-                ey = cand.circle.cy
-            else:
-                root = math.sqrt(val)
-                y1 = cand.circle.cy - root
-                y2 = cand.circle.cy + root
-                th = math.atan2(y1 - cand.circle.cy, dx) if branch_upper else math.atan2(y2 - cand.circle.cy, dx)
-                sign = 1.0 if math.sin(th) < 0 else -1.0
-                t1 = th + sign * span
-                ex = cand.circle.cx + cand.circle.r * math.cos(t1)
-                ey = cand.circle.cy + cand.circle.r * math.sin(t1)
-            lx = int(round(min(W - self.margin, max(mask_right + 4, ex + 6))))
-            ly = int(round(max(self.margin, min(H - self.margin, ey - 6))))
-            base_draw.text((lx, ly), cand.label, fill=(0, 0, 160), font=font)
-
-        # 5) Solution highlight
-        if show_solution and highlight_label:
-            # find the label position again to draw a ring
-            for cand, _ in order:
-                if cand.label != highlight_label:
-                    continue
-                dx = mask_right - cand.circle.cx
-                val = cand.circle.r * cand.circle.r - dx * dx
-                if val <= 1e-6:
-                    ex = mask_right + 8
-                    ey = cand.circle.cy
+            for y_cross in crossing_ys:
+                dx = mask_right - cx
+                dy_term = math.sqrt(max(0, radius**2 - dx**2))
+                
+                cy = y_cross + sign * dy_term
+                
+                c = CircleSpec(cx, cy, radius)
+                
+                # Now validate endpoints
+                # Requirement: "visible part has 20 degrees"
+                theta_base = math.atan2(y_cross - cy, mask_right - cx)
+                
+                test_pt = self._point_on_circle(c, theta_base + 0.01)
+                direction = 1.0 if test_pt[0] > mask_right else -1.0
+                
+                theta_end = theta_base + direction * span_rad
+                
+                # Validate endpoints y-coordinates
+                p_start = (mask_right, y_cross)
+                p_end = self._point_on_circle(c, theta_end)
+                
+                # Check right arc containment
+                if not (margin < p_start[1] < height - margin): valid_group = False
+                if not (margin < p_end[1] < height - margin): valid_group = False
+                if p_end[0] <= mask_right: valid_group = False
+                
+                # Check left arc containment (theoretical left arc for this circle)
+                cross_ys_left = self._get_y_at_x(c, mask_left)
+                if not cross_ys_left: 
+                    valid_group = False
                 else:
-                    root = math.sqrt(val)
-                    y1 = cand.circle.cy - root
-                    y2 = cand.circle.cy + root
-                    th = math.atan2(y1 - cand.circle.cy, dx) if branch_upper else math.atan2(y2 - cand.circle.cy, dx)
-                    sign = 1.0 if math.sin(th) < 0 else -1.0
-                    t1 = th + sign * span
-                    ex = cand.circle.cx + cand.circle.r * math.cos(t1)
-                    ey = cand.circle.cy + cand.circle.r * math.sin(t1)
-                cx, cy = int(round(ex + 12)), int(round(ey + 0))
-                r = max(10, int(round(min(W, H) * 0.03)))
-                base_draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(20, 180, 20), width=3)
-                break
+                    y_cross_left = min(cross_ys_left, key=lambda y: abs(y - y_cross))
+                    theta_left_base = math.atan2(y_cross_left - c.cy, mask_left - c.cx)
+                    
+                    test_pt_left = self._point_on_circle(c, theta_left_base - 0.01)
+                    dir_left = -1.0 if test_pt_left[0] < mask_left else 1.0
+                    theta_left_end = theta_left_base + dir_left * span_rad
+                    
+                    p_left_start = (mask_left, y_cross_left)
+                    p_left_end = self._point_on_circle(c, theta_left_end)
+                    
+                    if not (margin < p_left_start[1] < height - margin): valid_group = False
+                    if not (margin < p_left_end[1] < height - margin): valid_group = False
+                    if p_left_end[0] >= mask_left: valid_group = False
 
+                if not valid_group: break
+                
+                temp_circles.append(c)
+                temp_candidates_points.append(p_end)
+
+            
+            if valid_group:
+                self.circles = temp_circles
+                labels = ["A", "B", "C", "D", "E"]
+                self.candidates = [
+                    PointCandidate(x=pt[0] + 15, y=pt[1], label=l) 
+                    for pt, l in zip(temp_candidates_points, labels)
+                ]
+                self.correct_label = labels[self.rng.randint(0, 4)]
+                break
+        else:
+             raise RuntimeError("Failed to generate valid geometry")
+
+        # Create unique ID and save
+        return self.save_puzzle()
+
+    def _get_y_at_x(self, c: CircleSpec, x: float) -> Optional[List[float]]:
+        dist_x = abs(x - c.cx)
+        if dist_x > c.r:
+            return None
+        dy = math.sqrt(c.r**2 - dist_x**2)
+        return [c.cy - dy, c.cy + dy]
+
+    def _point_on_circle(self, c: CircleSpec, theta: float) -> Tuple[float, float]:
+        return (c.cx + c.r * math.cos(theta), c.cy + c.r * math.sin(theta))
+
+    def _render(self, highlight_label: Optional[str], mask_factor: float = 1.0) -> Image.Image:
+        width, height = self.canvas_dimensions
+        draw, base = self.get_draw_base()
+        
+        span_rad = math.radians(self.arc_span_deg)
+        stroke = max(3, int(round(min(width, height) * 0.015)))
+
+        mask_left = self.mask_x_center - self.mask_width/2
+        mask_right = self.mask_x_center + self.mask_width/2
+
+        for i, c in enumerate(self.circles):
+            # Calculate theta at center line for drawing "from center"
+            # We need to find the specific crossing that corresponds to our generated arc
+            # Our generated arc was based on a specific y crossing at mask_right.
+            # To be robust, let's find the crossing at mask_right closest to the candidate point
+            cross_ys_right = self._get_y_at_x(c, mask_right)
+            if not cross_ys_right: continue # Should not happen
+            y_cross_right = min(cross_ys_right, key=lambda y: abs(y - self.candidates[i].y))
+            
+            theta_right_base = math.atan2(y_cross_right - c.cy, mask_right - c.cx)
+            
+            # Determine direction towards Right (away from mask)
+            test_pt = self._point_on_circle(c, theta_right_base + 0.01)
+            direction = 1.0 if test_pt[0] > mask_right else -1.0
+            
+            # Visual Requirement: "Draw from central vertical line to right end"
+            # But the "20 degrees" requirement applies to the "Visible" part (mask_right to end).
+            # So End Angle = Angle(mask_right) + direction * 20deg
+            # Start Angle = Angle(center_line)
+            
+            theta_end = theta_right_base + direction * span_rad # This ensures 20 deg visible from mask edge
+            
+            # Find center crossing
+            cross_ys_center = self._get_y_at_x(c, self.mask_x_center)
+            if not cross_ys_center: continue
+            y_cross_center = min(cross_ys_center, key=lambda y: abs(y - y_cross_right))
+            theta_center = math.atan2(y_cross_center - c.cy, self.mask_x_center - c.cx)
+            
+            deg_center = math.degrees(theta_center)
+            deg_end = math.degrees(theta_end)
+            
+            # Draw Right Arc
+            self._draw_arc_safe(draw, c, deg_center, deg_end, (40, 40, 40), stroke)
+            
+            # Draw Left Arc (Answer only)
+            if self.candidates[i].label == self.correct_label:
+                # Mirror logic for left side
+                # Visible part starts at mask_left
+                cross_ys_left = self._get_y_at_x(c, mask_left)
+                if cross_ys_left:
+                    y_cross_left = min(cross_ys_left, key=lambda y: abs(y - y_cross_center))
+                    theta_left_base = math.atan2(y_cross_left - c.cy, mask_left - c.cx)
+                    
+                    # Direction: towards Left (away from mask towards left)
+                    # If direction for right was +1 (clockwise/CCW?), left is usually opposite relative to top/bottom?
+                    # Be careful. Let's check test pt.
+                    test_pt_left = self._point_on_circle(c, theta_left_base - 0.01)
+                    dir_left = -1.0 if test_pt_left[0] < mask_left else 1.0 # Moving towards left means x decreases
+                    
+                    theta_left_end = theta_left_base + dir_left * span_rad
+                    deg_left_end = math.degrees(theta_left_end)
+                    
+                    self._draw_arc_safe(draw, c, deg_center, deg_left_end, (10, 10, 10), stroke)
+
+        # Draw Mask
+        if not highlight_label and mask_factor > 0.01:
+            curr_w = self.mask_width * mask_factor
+            mx1, mx2 = self.mask_x_center - curr_w / 2, self.mask_x_center + curr_w / 2
+            draw.rectangle((mx1, 0, mx2, height), fill=(240, 240, 240))
+            draw.line((mx1, 0, mx1, height), fill=(200, 200, 200), width=5)
+            draw.line((mx2, 0, mx2, height), fill=(200, 200, 200), width=5)
+
+        self.draw_candidates(draw, highlight_label=highlight_label)
         return base
 
+    def _draw_arc_safe(self, draw: ImageDraw.ImageDraw, c: CircleSpec, d1: float, d2: float, color: Tuple[int, int, int], w: int) -> None:
+        d1, d2 = d1 % 360, d2 % 360
+        mn, mx = min(d1, d2), max(d1, d2)
+        if mx - mn > 180:
+            start, end = mx, mn
+        else:
+            start, end = mn, mx
+        draw.arc(c.bbox(), start=start, end=end, fill=color, width=w)
 
-__all__ = [
-    "ArcConnectGenerator",
-    "ArcConnectPuzzleRecord",
-    "CircleSpec",
-    "CandidateArc",
-]
-
+    def save_video_solution(self, pid: str) -> Optional[int]:
+        width, height = self.canvas_dimensions
+        renderer = VideoRenderer(width, height, self)
+        
+        # 1. Hold (0.5s at 16 fps)
+        frame1 = self._render(None, 1.0)
+        for _ in range(8):
+            renderer.add_pil_frame(frame1)
+        
+        # 2. Shrink (1.5s at 16 fps)
+        steps = 24
+        for i in range(steps):
+            f = 1.0 - i / (steps - 1)
+            renderer.add_pil_frame(self._render(None, f))
+            
+        # 3. Reveal (1.0s at 16 fps)
+        frame2 = self._render(self.correct_label, 0.0)
+        for _ in range(16):
+            renderer.add_pil_frame(frame2)
+        
+        video_path = self.solution_dir / f"{pid}_solution.mp4"
+        renderer.save(video_path)
+        if not video_path.exists():
+            return None
+        return len(renderer.frames)
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate masked arc-connection puzzles")
+    parser = argparse.ArgumentParser(description="Generate arc connect point puzzles")
     parser.add_argument("count", type=int, help="Number of puzzles to create")
-    parser.add_argument("--output-dir", type=Path, default=Path("data/arc_connect"))
+    parser.add_argument("--output-dir", type=Path, default=Path(ArcConnectGenerator.DEFAULT_OUTPUT_DIR))
     parser.add_argument("--canvas-width", type=int, default=480)
-    parser.add_argument("--aspect", type=float, default=None, help="Canvas aspect ratio W/H (e.g., 3/4=0.75 portrait)")
-    parser.add_argument("--mask-fraction", type=float, default=0.5)
-    parser.add_argument("--arc-span-deg", type=float, default=20.0, help="Arc length in degrees from each mask crossing")
+    parser.add_argument("--aspect", type=float, default=None)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--prompt",type=str, default=None)
+    parser.add_argument("--prompt", type=str, default=None)
+    parser.add_argument("--use-gpt-5", action="store_true", help="Legacy flag retained for CLI compatibility.")
+    parser.add_argument("--video", action="store_true", help="Generate video solution")
     return parser.parse_args(argv)
-
 
 def main(argv: Optional[List[str]] = None) -> None:
     args = _parse_args(argv)
-    gen = ArcConnectGenerator(
-        args.output_dir,
+    generator = ArcConnectGenerator(
+        output_dir=args.output_dir,
         canvas_width=args.canvas_width,
         aspect=args.aspect,
-        mask_fraction=args.mask_fraction,
-        arc_span_deg=args.arc_span_deg,
         seed=args.seed,
         ti2v_prompt=args.prompt,
+        record_video=args.video,
     )
-    records = [gen.create_random_puzzle() for _ in range(max(1, args.count))]
-    gen.write_metadata(records, Path(args.output_dir) / "data.json")
-
+    records = [generator.create_random_puzzle() for _ in range(max(1, args.count))]
+    generator.write_metadata(records, generator.output_dir / "data.json")
 
 if __name__ == "__main__":
     main()
