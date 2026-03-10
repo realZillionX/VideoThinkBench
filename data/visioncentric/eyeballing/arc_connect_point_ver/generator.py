@@ -276,7 +276,7 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
             start, end = mn, mx
         draw.arc(c.bbox(), start=start, end=end, fill=color, width=w)
 
-    def save_video_solution(self, pid: str) -> None:
+    def save_video_solution(self, pid: str) -> Optional[int]:
         width, height = self.canvas_dimensions
         renderer = VideoRenderer(width, height, self)
         
@@ -294,7 +294,11 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         frame2 = self._render(self.correct_label, 0.0)
         for _ in range(45): renderer.add_pil_frame(frame2)
         
-        renderer.save(self.solution_dir / f"{pid}_solution.mp4")
+        video_path = self.solution_dir / f"{pid}_solution.mp4"
+        renderer.save(video_path)
+        if not video_path.exists():
+            return None
+        return len(renderer.frames)
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate arc connect point puzzles")

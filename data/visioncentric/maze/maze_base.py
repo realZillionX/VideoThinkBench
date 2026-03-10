@@ -121,6 +121,8 @@ class MazePuzzleRecord:
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
+    video_fps: Optional[int] = None
+    video_num_frames: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
@@ -135,6 +137,8 @@ class MazePuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "video_fps": self.video_fps,
+            "video_num_frames": self.video_num_frames,
             "seed": self.seed,
         }
         for key, value in self.extra.items():
@@ -197,6 +201,8 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         self.show_cell_id = show_cell_id
         self.video = video
         self._rng = random.Random(seed)
+        self._last_video_fps: Optional[int] = None
+        self._last_video_num_frames: Optional[int] = None
 
         root = Path(self.output_dir)
         self.puzzle_dir = root / "puzzles"
@@ -242,10 +248,12 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         points: List[Tuple[float, float]],
         thickness: int = 5,
         color: Tuple[int, int, int] = (220, 30, 30),
-        fps: int = 30,
+        fps: int = 16,
         duration: float = 6.4,
     ) -> Optional[Path]:
         """Generates a solution video if video output is enabled."""
+        self._last_video_fps = None
+        self._last_video_num_frames = None
         if not self.video:
             return None
         
@@ -290,6 +298,8 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             for _ in range(fps):
                 out.write(frame_bgr)
             out.release()
+            self._last_video_fps = fps
+            self._last_video_num_frames = fps
             return video_path
 
         # Determine reasonable duration, capped at 10s
@@ -372,10 +382,13 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             prev_tip = visible_tip
             
         # Hold end
-        for _ in range(int(fps * 1.0)):
+        end_hold_frames = int(fps * 1.0)
+        for _ in range(end_hold_frames):
             out.write(frame_bgr)
 
         out.release()
+        self._last_video_fps = fps
+        self._last_video_num_frames = total_frames + 1 + end_hold_frames
         return video_path
 
     @abstractmethod
@@ -397,8 +410,12 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         record_ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.ti2v_prompt
         extra_payload = extra if extra is not None else {}
         video_rel: Optional[str] = None
+        video_fps: Optional[int] = None
+        video_num_frames: Optional[int] = None
         if video_path is not None:
             video_rel = self.relativize_path(video_path)
+            video_fps = self._last_video_fps
+            video_num_frames = self._last_video_num_frames
         # Derive vlm_answer from solution path cell IDs
         vlm_answer: Optional[str] = None
         path_ids = extra_payload.get("solution_path_cell_ids")
@@ -418,6 +435,8 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             seed=self.seed,
             extra=extra_payload,
             solution_video_path=video_rel,
+            video_fps=video_fps,
+            video_num_frames=video_num_frames,
         )
 
     @classmethod

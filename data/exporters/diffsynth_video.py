@@ -19,6 +19,11 @@ def export_diffsynth_video(
     for sample in filtered:
         if not sample.assets.solution_video:
             continue
+        raw = sample.extra.get("raw_record") or {}
+        vlm_answer = raw.get("vlm_answer")
+        sol_image = raw.get("solution_image_path")
+        ti2ti_text = str(vlm_answer) if vlm_answer else None
+        ti2ti_image = str(sol_image) if sol_image else None
         rows.append(
             {
                 "video": sample.assets.solution_video,
@@ -26,8 +31,14 @@ def export_diffsynth_video(
                 "task_type": sample.task_type,
                 "task_group": sample.task_group,
                 "id": sample.id,
+                "ti2ti_text": ti2ti_text or "",
+                "ti2ti_image": ti2ti_image or "",
             }
         )
 
-    write_csv(output_path, ["video", "prompt", "task_type", "task_group", "id"], rows)
+    write_csv(
+        output_path,
+        ["video", "prompt", "task_type", "task_group", "id", "ti2ti_text", "ti2ti_image"],
+        rows,
+    )
     return output_path

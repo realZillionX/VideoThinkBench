@@ -82,6 +82,8 @@ class PointTargetPuzzleRecord:
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
+    video_fps: Optional[int] = None
+    video_num_frames: Optional[int] = None
 
     def to_dict(self) -> Dict[str, object]:
         payload = {
@@ -98,6 +100,8 @@ class PointTargetPuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "video_fps": self.video_fps,
+            "video_num_frames": self.video_num_frames,
             "point_radius": self.point_radius,
             "line_width": self.line_width,
             "seed": self.seed,
@@ -425,12 +429,15 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         solution_img.save(self.solution_path)
 
         video_rel_path: Optional[str] = None
+        video_fps: Optional[int] = None
+        video_num_frames: Optional[int] = None
         if self.record_video:
             try:
-                self.save_video_solution(pid)
+                video_num_frames = self.save_video_solution(pid)
                 video_abs = self.solution_dir / f"{pid}_solution.mp4"
                 if video_abs.exists():
                     video_rel_path = self.relativize_path(video_abs)
+                    video_fps = 16
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -453,9 +460,11 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             seed=self.seed,
             extra=self.build_record_extra(),
             solution_video_path=video_rel_path,
+            video_fps=video_fps,
+            video_num_frames=video_num_frames,
         )
 
-    def save_video_solution(self, pid: str) -> None:
+    def save_video_solution(self, pid: str) -> Optional[int]:
         # Phase 1: Record trace without highlights
         self._recording_active = True
         self._recorder = None # Reset
@@ -470,7 +479,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
 
         if not trace_base and not trace_solution:
             # Generator likely doesn't use get_draw_base
-            return
+            return None
 
         # Diff commands
         # Use simple queue based diffing against the non-candidate base geometry.
@@ -507,11 +516,11 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         # Generate Video
         video_path = self.solution_dir / f"{pid}_solution.mp4"
         width, height = self.canvas_dimensions
-        fps = 30
+        fps = 16
         
-        base_hold = 10
-        end_hold = 30
-        step_frames = 30
+        base_hold = 16
+        end_hold = 16
+        step_frames = 16
 
         estimated_frames = base_hold + len(solution_steps) * step_frames + end_hold
         if estimated_frames > self.MAX_VIDEO_FRAMES:
@@ -561,6 +570,9 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
                 video_renderer.add_pil_frame(candidates_overlay(video_renderer.canvas, highlight=highlight))
 
         video_renderer.save(video_path)
+        if not video_path.exists():
+            return None
+        return len(video_renderer.frames)
 
     
     @staticmethod
@@ -851,19 +863,19 @@ class VideoRenderer:
         
         # Try avc1 (H.264) for better web/vscode compatibility
         fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        out = cv2.VideoWriter(str(path), fourcc, 30.0, (self.width, self.height))
+        out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
         
         if not out.isOpened():
             # Try vp09 (VP9) for web compatibility if H.264 is missing
             fourcc = cv2.VideoWriter_fourcc(*'vp09')
-            out = cv2.VideoWriter(str(path), fourcc, 30.0, (self.width, self.height))
+            out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
 
         if not out.isOpened():
             # Fallback to mp4v if avc1 and vp09 are not supported.
             # This is common on systems without recent codecs.
             print(f"Warning: avc1/vp09 codec not available for {path}, falling back to mp4v", flush=True)
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(str(path), fourcc, 30.0, (self.width, self.height))
+            out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
 
         if not out.isOpened():
             print(f"Error: Failed to open VideoWriter for {path}. Codecs avc1, vp09, mp4v failed.", flush=True)

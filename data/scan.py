@@ -70,6 +70,8 @@ def build_canonical_sample(
             puzzle_image=puzzle_image,
             solution_image=solution_image,
             solution_video=solution_video,
+            video_fps=int(record["video_fps"]) if record.get("video_fps") is not None else None,
+            video_num_frames=int(record["video_num_frames"]) if record.get("video_num_frames") is not None else None,
         ),
         answer=answer,
         source={

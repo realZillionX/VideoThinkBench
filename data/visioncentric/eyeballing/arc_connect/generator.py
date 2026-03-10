@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import numpy as np
 import random
 import uuid
 from dataclasses import dataclass
@@ -71,6 +72,8 @@ class ArcConnectPuzzleRecord:
     vlm_answer: Optional[str] = None
     seed: Optional[int] = None
     solution_video_path: Optional[str] = None
+    video_fps: Optional[int] = None
+    video_num_frames: Optional[int] = None
 
     def to_dict(self) -> dict:
         return {
@@ -88,6 +91,8 @@ class ArcConnectPuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "video_fps": self.video_fps,
+            "video_num_frames": self.video_num_frames,
             "seed": self.seed,
             "type": "arc_connect",
         }
@@ -128,6 +133,7 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
         arc_span_deg: float = 20.0,   # degrees to extend from crossing
         ti2v_prompt: Optional[str] = None,
         seed: Optional[int] = None,
+        record_video: bool = False,
     ) -> None:
         super().__init__(output_dir)
 
@@ -147,6 +153,8 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
         self.vlm_prompt = self.DEFAULT_VLM_PROMPT
         self.ti2i_prompt = self.DEFAULT_TI2I_PROMPT
         self.prompt = self.ti2v_prompt
+        self.seed = seed
+        self.record_video = record_video
 
         out = Path(self.output_dir)
         self.puzzle_dir = out / "puzzles"
@@ -253,6 +261,19 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
         puzzle_img.save(puzzle_path)
         solution_img.save(solution_path)
 
+        video_path_val = None
+        video_fps_val = None
+        video_num_frames_val = None
+        if self.record_video:
+            vdir = Path(self.output_dir) / "solutions"
+            vdir.mkdir(parents=True, exist_ok=True)
+            vp = vdir / f"{pid}_solution.mp4"
+            nf = self._save_crossfade_video(puzzle_img, solution_img, str(vp), fps=16)
+            if nf > 0 and vp.exists():
+                video_path_val = self.relativize_path(vp)
+                video_fps_val = 16
+                video_num_frames_val = nf
+
         return ArcConnectPuzzleRecord(
             id=pid,
             ti2v_prompt=self.ti2v_prompt,
@@ -268,12 +289,55 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
             ti2i_prompt=self.ti2i_prompt,
             vlm_answer=correct_label,
             seed=self.seed,
+            solution_video_path=video_path_val,
+            video_fps=video_fps_val,
+            video_num_frames=video_num_frames_val,
         )
 
     def create_random_puzzle(self) -> ArcConnectPuzzleRecord:
         return self.create_puzzle()
 
     # --------------- internals ---------------
+    def _save_crossfade_video(
+        self,
+        puzzle_img: Image.Image,
+        solution_img: Image.Image,
+        video_path: str,
+        fps: int = 16,
+    ) -> int:
+        """Save crossfade video: hold puzzle -> blend -> hold solution."""
+        import cv2
+
+        w, h = puzzle_img.size
+        puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]
+        solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
+
+        writer = None
+        for codec in ("avc1", "mp4v"):
+            fourcc = cv2.VideoWriter_fourcc(*codec)
+            writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
+            if writer.isOpened():
+                break
+            writer.release()
+            writer = None
+
+        if writer is None:
+            return 0
+
+        n = 0
+        for _ in range(fps):
+            writer.write(puzzle_arr)
+            n += 1
+        for i in range(fps):
+            alpha = (i + 1) / fps
+            writer.write(cv2.addWeighted(puzzle_arr, 1.0 - alpha, solution_arr, alpha, 0.0))
+            n += 1
+        for _ in range(fps):
+            writer.write(solution_arr)
+            n += 1
+        writer.release()
+        return n
+
     def _pick_true_circle(
         self,
         mask_left: int,

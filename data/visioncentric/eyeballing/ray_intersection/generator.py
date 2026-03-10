@@ -55,6 +55,8 @@ class RayIntersectionPuzzleRecord:
     vlm_answer: Optional[str] = None
     seed: Optional[int] = None
     solution_video_path: Optional[str] = None
+    video_fps: Optional[int] = None
+    video_num_frames: Optional[int] = None
 
     def to_dict(self) -> dict:
         return {
@@ -73,6 +75,8 @@ class RayIntersectionPuzzleRecord:
             "image": self.image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
+            "video_fps": self.video_fps,
+            "video_num_frames": self.video_num_frames,
             "seed": self.seed,
             "type": "ray_intersection",
         }
@@ -124,9 +128,10 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
         solution_img.save(solution_path)
 
         video_rel_path: Optional[str] = None
+        video_num_frames: Optional[int] = None
         if self.record_video:
             try:
-                self.save_video_solution(pid)
+                video_num_frames = self.save_video_solution(pid)
                 video_abs = self.solution_dir / f"{pid}_solution.mp4"
                 if video_abs.exists():
                     video_rel_path = self.relativize_path(video_abs)
@@ -152,6 +157,8 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
             vlm_answer=self.correct_label,
             seed=self.seed,
             solution_video_path=video_rel_path,
+            video_fps=16 if video_rel_path else None,
+            video_num_frames=video_num_frames if video_rel_path else None,
         )
 
     def create_random_puzzle(self) -> RayIntersectionPuzzleRecord:

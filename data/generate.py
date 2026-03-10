@@ -93,6 +93,7 @@ def build_default_kwargs(spec: TaskSpec, args: argparse.Namespace, seed: Optiona
             seed=seed,
             target_size=(1280, 704),
             unique=True,
+            video=args.video,
         )
     return kwargs
 
@@ -110,6 +111,7 @@ def _generate_visual_puzzle_worker(
     seed = pattern_kwargs.pop("seed", None)
     target_size = tuple(pattern_kwargs.pop("target_size", (1280, 704)))
     unique = bool(pattern_kwargs.pop("unique", True))
+    video = bool(pattern_kwargs.pop("video", False))
 
     if seed is not None:
         random.seed(seed)
@@ -164,9 +166,24 @@ def _generate_visual_puzzle_worker(
         solution_path = solutions_dir / f"{question_idx:02d}.png"
         puzzle_image.save(image_path)
         solution_image.save(solution_path)
+        solution_video_rel = None
+        video_fps_val = None
+        video_num_frames_val = None
+        if video:
+            video_file = solutions_dir / f"{question_idx:02d}.mp4"
+            num_frames = module.save_visual_puzzle_video(
+                puzzle_image, solution_image, str(video_file), fps=16,
+            )
+            if num_frames > 0 and video_file.exists():
+                solution_video_rel = video_file.relative_to(output_dir).as_posix()
+                video_fps_val = 16
+                video_num_frames_val = num_frames
 
         sample["image"] = image_path.relative_to(output_dir).as_posix()
         sample["solution_image_path"] = solution_path.relative_to(output_dir).as_posix()
+        sample["solution_video_path"] = solution_video_rel
+        sample["video_fps"] = video_fps_val
+        sample["video_num_frames"] = video_num_frames_val
         samples.append(sample)
         question_idx += 1
 

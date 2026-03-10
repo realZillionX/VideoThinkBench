@@ -9,12 +9,16 @@ class CanonicalAssets:
     puzzle_image: str
     solution_image: str
     solution_video: Optional[str] = None
+    video_fps: Optional[int] = None
+    video_num_frames: Optional[int] = None
 
-    def to_dict(self) -> Dict[str, Optional[str]]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "puzzle_image": self.puzzle_image,
             "solution_image": self.solution_image,
             "solution_video": self.solution_video,
+            "video_fps": self.video_fps,
+            "video_num_frames": self.video_num_frames,
         }
 
     @staticmethod
@@ -23,6 +27,8 @@ class CanonicalAssets:
             puzzle_image=str(payload["puzzle_image"]),
             solution_image=str(payload["solution_image"]),
             solution_video=(str(payload["solution_video"]) if payload.get("solution_video") else None),
+            video_fps=int(payload["video_fps"]) if payload.get("video_fps") is not None else None,
+            video_num_frames=int(payload["video_num_frames"]) if payload.get("video_num_frames") is not None else None,
         )
 
 

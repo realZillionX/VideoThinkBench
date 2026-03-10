@@ -1314,6 +1314,52 @@ def pad_image(img, target_size=(1280, 704)) -> Image:
     return new_img
 
 
+def save_visual_puzzle_video(
+    puzzle_img,
+    solution_img,
+    video_path: str,
+    fps: int = 16,
+) -> int:
+    """Save a crossfade video from puzzle to solution image.
+
+    Three phases (each lasting 1 second):
+    1. Hold puzzle image
+    2. Crossfade puzzle -> solution
+    3. Hold solution image
+
+    Returns the total number of frames written, or 0 on failure.
+    """
+    import cv2
+
+    w, h = puzzle_img.size
+    puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]   # RGB -> BGR
+    solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
+
+    for codec in ("avc1", "mp4v"):
+        fourcc = cv2.VideoWriter_fourcc(*codec)
+        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
+        if writer.isOpened():
+            break
+        writer.release()
+        writer = None  # type: ignore[assignment]
+
+    if writer is None:
+        return 0
+
+    n = 0
+    for _ in range(fps):                       # phase 1: hold puzzle
+        writer.write(puzzle_arr); n += 1
+    for i in range(fps):                       # phase 2: crossfade
+        alpha = (i + 1) / fps
+        writer.write(cv2.addWeighted(puzzle_arr, 1.0 - alpha, solution_arr, alpha, 0.0))
+        n += 1
+    for _ in range(fps):                       # phase 3: hold solution
+        writer.write(solution_arr); n += 1
+
+    writer.release()
+    return n
+
+
 def select_pattern(name: str, **kwargs):
 
     if name == "color_grid":
