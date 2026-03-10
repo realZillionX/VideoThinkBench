@@ -24,6 +24,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from data.base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
+from data.video_encoding import encode_rgb_frames_to_mp4
 
 
 def _strip_video_instruction(prompt: Optional[str]) -> Optional[str]:
@@ -256,48 +257,15 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         self._last_video_num_frames = None
         if not self.video:
             return None
-        
-        try:
-            import cv2
-        except ImportError:
-            print("Warning: opencv-python not installed, skipping video generation")
-            return None
 
         video_path = self.solution_dir / f"{record_id}_solution.mp4"
         width, height = puzzle_image.size
-        # Video codecs require even dimensions; pad the image if odd
-        padded = False
-        vid_w = width + (width % 2)
-        vid_h = height + (height % 2)
-        if vid_w != width or vid_h != height:
-            padded_img = Image.new("RGB", (vid_w, vid_h), (0, 0, 0))
-            padded_img.paste(puzzle_image, (0, 0))
-            puzzle_image = padded_img
-            width, height = vid_w, vid_h
-            padded = True
-        
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")
-        out = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
-        if not out.isOpened():
-            out.release()
-            # Fall back to XVID + avi
-            video_path = video_path.with_suffix(".avi")
-            fourcc = cv2.VideoWriter_fourcc(*"XVID")
-            out = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            out.release()
-            print(f"Warning: Could not open video writer for {video_path} (tried avc1/XVID)")
-            return None
 
         n_points = len(points)
         if n_points < 2:
-            # Just write static frame
-            frame_np = np.array(puzzle_image)
-            frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
-            for _ in range(fps):
-                out.write(frame_bgr)
-            out.release()
+            frames = [puzzle_image.copy() for _ in range(fps)]
+            if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
+                return None
             self._last_video_fps = fps
             self._last_video_num_frames = fps
             return video_path
@@ -327,6 +295,8 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         _draw_path_segment_rect(ImageDraw.Draw(revealed_mask), points[0], points[0], 255, thickness)
         prev_segment = 0
         prev_tip: Tuple[float, float] = points[0]
+        frames: List[Image.Image] = []
+        last_frame = puzzle_image.copy()
 
         # Generate frames
         for f in range(total_frames + 1):
@@ -374,19 +344,18 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             _draw_path_segment_rect(mask_draw, visible_tip, visible_tip, 255, thickness)
 
             frame_img = Image.composite(full_frame, puzzle_image, frame_mask)
-
-            frame_np = np.array(frame_img)
-            frame_bgr = cv2.cvtColor(frame_np, cv2.COLOR_RGB2BGR)
-            out.write(frame_bgr)
+            frames.append(frame_img.copy())
+            last_frame = frame_img.copy()
             prev_segment = current_segment
             prev_tip = visible_tip
             
         # Hold end
         end_hold_frames = int(fps * 1.0)
         for _ in range(end_hold_frames):
-            out.write(frame_bgr)
+            frames.append(last_frame.copy())
 
-        out.release()
+        if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
+            return None
         self._last_video_fps = fps
         self._last_video_num_frames = total_frames + 1 + end_hold_frames
         return video_path
@@ -414,10 +383,6 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         video_num_frames: Optional[int] = None
         if video_path is not None:
             actual_video_path = video_path
-            if not actual_video_path.exists():
-                fallback_video_path = actual_video_path.with_suffix(".avi")
-                if fallback_video_path.exists():
-                    actual_video_path = fallback_video_path
             if actual_video_path.exists():
                 video_rel = self.relativize_path(actual_video_path)
                 video_fps = self._last_video_fps

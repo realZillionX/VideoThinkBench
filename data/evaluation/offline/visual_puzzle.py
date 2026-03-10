@@ -24,7 +24,6 @@ def _resolve_candidate_video(pred_root: Path, sample_id: str) -> Optional[Path]:
         candidates.extend(sample_dir.glob("*.mp4"))
         candidates.extend(sample_dir.glob("*.mov"))
         candidates.extend(sample_dir.glob("*.webm"))
-        candidates.extend(sample_dir.glob("*.avi"))
     return first_existing_path(candidates)
 
 

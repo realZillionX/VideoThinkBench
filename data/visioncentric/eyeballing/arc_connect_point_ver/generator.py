@@ -299,11 +299,7 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         video_path = self.solution_dir / f"{pid}_solution.mp4"
         renderer.save(video_path)
         if not video_path.exists():
-            avi_path = video_path.with_suffix(".avi")
-            if avi_path.exists():
-                video_path = avi_path
-            else:
-                return None
+            return None
         return len(renderer.frames)
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:

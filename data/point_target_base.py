@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import math
 import random
+import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Generic, Iterable, List, Optional, Sequence, Tuple
@@ -435,8 +437,6 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             try:
                 video_num_frames = self.save_video_solution(pid)
                 video_abs = self.solution_dir / f"{pid}_solution.mp4"
-                if not video_abs.exists():
-                    video_abs = video_abs.with_suffix(".avi")
                 if video_abs.exists():
                     video_rel_path = self.relativize_path(video_abs)
                     video_fps = 16
@@ -532,7 +532,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             else:
                 step_frames = 1
 
-        # We need a renderer that can paint these commands onto a cv2 frame
+        # Render the recorded commands into an in-memory frame sequence.
         video_renderer = VideoRenderer(width, height, self)
 
         def candidates_overlay(
@@ -572,7 +572,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
                 video_renderer.add_pil_frame(candidates_overlay(video_renderer.canvas, highlight=highlight))
 
         video_renderer.save(video_path)
-        if not video_path.exists() and not video_path.with_suffix('.avi').exists():
+        if not video_path.exists():
             return None
         return len(video_renderer.frames)
 
@@ -855,31 +855,99 @@ class VideoRenderer:
         self.add_pil_frame(self.canvas)
         
     def add_pil_frame(self, pil_img):
-        # Convert RGB PIL to BGR numpy for opencv
-        rgb = np.array(pil_img)
-        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-        self.frames.append(bgr)
+        self.frames.append(pil_img.convert("RGB").copy())
 
-    def save(self, path):
-        if not self.frames: return
-        
-        # Try avc1 (H.264) for better web/vscode compatibility
-        fourcc = cv2.VideoWriter_fourcc(*'avc1')
-        out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
-        
-        if not out.isOpened():
-            path = path.with_suffix('.avi')
-            print(f"Warning: H.264 not available, falling back to XVID for {path}", flush=True)
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
-
-        if not out.isOpened():
-            print(f"Error: Failed to open VideoWriter for {path}. Codecs avc1 and XVID failed.", flush=True)
-            print("Please install ffmpeg / libav codecs for OpenCV.", flush=True)
+    def save(self, path: Path):
+        if not self.frames:
             return
-            
+
+        fps = 16
+        path.parent.mkdir(parents=True, exist_ok=True)
+        target_width = self.width + (self.width % 2)
+        target_height = self.height + (self.height % 2)
+        rgb_frames: List[np.ndarray] = []
         for frame in self.frames:
-            out.write(frame)
+            rgb_frame = np.ascontiguousarray(np.array(frame.convert("RGB"), dtype=np.uint8))
+            if (rgb_frame.shape[1], rgb_frame.shape[0]) != (self.width, self.height):
+                raise ValueError("VideoRenderer frame size does not match renderer dimensions")
+            if target_width != self.width or target_height != self.height:
+                padded = np.full((target_height, target_width, 3), 255, dtype=np.uint8)
+                padded[: self.height, : self.width] = rgb_frame
+                rgb_frame = padded
+            rgb_frames.append(rgb_frame)
+
+        if shutil.which("ffmpeg") is not None:
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "rawvideo",
+                "-vcodec",
+                "rawvideo",
+                "-s",
+                f"{target_width}x{target_height}",
+                "-pix_fmt",
+                "rgb24",
+                "-r",
+                str(fps),
+                "-i",
+                "-",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                "-preset",
+                "fast",
+                "-crf",
+                "23",
+                str(path),
+            ]
+            try:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            except OSError as exc:
+                print(f"Error: Failed to launch ffmpeg for {path}: {exc}", flush=True)
+                return
+            stderr_output = b""
+            try:
+                for frame in rgb_frames:
+                    if proc.stdin is None:
+                        raise BrokenPipeError("ffmpeg stdin pipe is unavailable")
+                    proc.stdin.write(frame.tobytes())
+            except BrokenPipeError:
+                if proc.stdin is not None:
+                    proc.stdin.close()
+                if proc.stderr is not None:
+                    stderr_output = proc.stderr.read()
+                proc.wait()
+            else:
+                if proc.stdin is not None:
+                    proc.stdin.close()
+                if proc.stderr is not None:
+                    stderr_output = proc.stderr.read()
+                proc.wait()
+            finally:
+                if proc.stderr is not None:
+                    proc.stderr.close()
+
+            if proc.returncode == 0 and path.exists():
+                return
+
+            error_message = stderr_output.decode("utf-8", errors="replace").strip()
+            print(
+                f"Error: ffmpeg failed to encode {path}: {error_message or f'return code {proc.returncode}'}",
+                flush=True,
+            )
+            return
+
+        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        out = cv2.VideoWriter(str(path), fourcc, float(fps), (target_width, target_height))
+        if not out.isOpened():
+            out.release()
+            print(f"Error: Failed to open OpenCV avc1 writer for {path}", flush=True)
+            return
+
+        for frame in rgb_frames:
+            out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
         out.release()
 
 

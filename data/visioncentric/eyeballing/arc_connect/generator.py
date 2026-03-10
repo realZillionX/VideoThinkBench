@@ -24,6 +24,7 @@ from typing import List, Optional, Sequence, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from data.base import AbstractPuzzleGenerator, PathLike
+from data.video_encoding import encode_rgb_frames_to_mp4
 
 
 @dataclass
@@ -268,12 +269,9 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
             vdir = Path(self.output_dir) / "solutions"
             vdir.mkdir(parents=True, exist_ok=True)
             vp = vdir / f"{pid}_solution.mp4"
-            nf, actual_video_path = self._save_crossfade_video(puzzle_img, solution_img, str(vp), fps=16)
-            actual_video_file = Path(actual_video_path)
-            if not actual_video_file.exists():
-                actual_video_file = vp.with_suffix(".avi")
-            if nf > 0 and actual_video_file.exists():
-                video_path_val = self.relativize_path(actual_video_file)
+            nf = self._save_crossfade_video(puzzle_img, solution_img, vp, fps=16)
+            if nf > 0 and vp.exists():
+                video_path_val = self.relativize_path(vp)
                 video_fps_val = 16
                 video_num_frames_val = nf
 
@@ -305,42 +303,28 @@ class ArcConnectGenerator(AbstractPuzzleGenerator[ArcConnectPuzzleRecord]):
         self,
         puzzle_img: Image.Image,
         solution_img: Image.Image,
-        video_path: str,
+        video_path: Path,
         fps: int = 16,
-    ) -> Tuple[int, str]:
+    ) -> int:
         """Save crossfade video: hold puzzle -> blend -> hold solution."""
-        import cv2
+        puzzle_arr = np.array(puzzle_img.convert("RGB"), dtype=np.uint8)
+        solution_arr = np.array(solution_img.convert("RGB"), dtype=np.uint8)
 
-        w, h = puzzle_img.size
-        puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]
-        solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
-
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")
-        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-        if not writer.isOpened():
-            writer.release()
-            # Fall back to XVID + avi
-            video_path = str(Path(video_path).with_suffix(".avi"))
-            fourcc = cv2.VideoWriter_fourcc(*"XVID")
-            writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-
-        if not writer.isOpened():
-            writer.release()
-            return 0, video_path
-
-        n = 0
-        for _ in range(fps):
-            writer.write(puzzle_arr)
-            n += 1
+        frames: List[np.ndarray] = []
+        frames.extend(puzzle_arr.copy() for _ in range(fps))
         for i in range(fps):
             alpha = (i + 1) / fps
-            writer.write(cv2.addWeighted(puzzle_arr, 1.0 - alpha, solution_arr, alpha, 0.0))
-            n += 1
-        for _ in range(fps):
-            writer.write(solution_arr)
-            n += 1
-        writer.release()
-        return n, video_path
+            blended = np.clip(
+                np.round(puzzle_arr * (1.0 - alpha) + solution_arr * alpha),
+                0,
+                255,
+            ).astype(np.uint8)
+            frames.append(blended)
+        frames.extend(solution_arr.copy() for _ in range(fps))
+
+        if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
+            return 0
+        return len(frames)
 
     def _pick_true_circle(
         self,

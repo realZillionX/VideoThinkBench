@@ -10,6 +10,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+from data.video_encoding import encode_rgb_frames_to_mp4
 try:
     from tqdm import tqdm
 except Exception:
@@ -1319,7 +1321,7 @@ def save_visual_puzzle_video(
     solution_img,
     video_path: str,
     fps: int = 16,
-) -> tuple[int, str]:
+) -> int:
     """Save a crossfade video from puzzle to solution image.
 
     Three phases (each lasting 1 second):
@@ -1327,39 +1329,26 @@ def save_visual_puzzle_video(
     2. Crossfade puzzle -> solution
     3. Hold solution image
 
-    Returns the total number of frames written and the actual video path used.
+    Returns the total number of frames written.
     """
-    import cv2
+    puzzle_arr = np.array(puzzle_img.convert("RGB"), dtype=np.uint8)
+    solution_arr = np.array(solution_img.convert("RGB"), dtype=np.uint8)
 
-    w, h = puzzle_img.size
-    puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]   # RGB -> BGR
-    solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
-
-    fourcc = cv2.VideoWriter_fourcc(*"avc1")
-    writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-    if not writer.isOpened():
-        writer.release()
-        # Fall back to XVID + avi
-        video_path = str(Path(video_path).with_suffix(".avi"))
-        fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-
-    if not writer.isOpened():
-        writer.release()
-        return 0, video_path
-
-    n = 0
-    for _ in range(fps):                       # phase 1: hold puzzle
-        writer.write(puzzle_arr); n += 1
-    for i in range(fps):                       # phase 2: crossfade
+    frames: List[np.ndarray] = []
+    frames.extend(puzzle_arr.copy() for _ in range(fps))
+    for i in range(fps):
         alpha = (i + 1) / fps
-        writer.write(cv2.addWeighted(puzzle_arr, 1.0 - alpha, solution_arr, alpha, 0.0))
-        n += 1
-    for _ in range(fps):                       # phase 3: hold solution
-        writer.write(solution_arr); n += 1
+        blended = np.clip(
+            np.round(puzzle_arr * (1.0 - alpha) + solution_arr * alpha),
+            0,
+            255,
+        ).astype(np.uint8)
+        frames.append(blended)
+    frames.extend(solution_arr.copy() for _ in range(fps))
 
-    writer.release()
-    return n, video_path
+    if not encode_rgb_frames_to_mp4(frames, Path(video_path), fps=fps):
+        return 0
+    return len(frames)
 
 
 def select_pattern(name: str, **kwargs):
