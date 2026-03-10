@@ -62,6 +62,8 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
                 tries += 1
                 continue
             break
+        else:
+            raise RuntimeError("Failed to find valid parallel geometry after 9999 tries")
         return self.save_puzzle()
 
     def build_record_extra(self) -> dict[str, object]:
