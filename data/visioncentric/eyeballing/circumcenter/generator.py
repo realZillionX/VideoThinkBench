@@ -70,11 +70,18 @@ class CircumcenterGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
+        width, height = self.canvas_dimensions
         tries=0
         while tries<999:
             p1,p2,p3=self.pick_target_point(0.8), self.pick_target_point(0.8), self.pick_target_point(0.8)
             circumcenter,r=calculate_circumcenter(p1,p2,p3)
-            if r<self.canvas_short_side*0.1 or not self.inside_canvas(circumcenter):
+            circle_fits = (
+                circumcenter.x - r >= self.margin and
+                circumcenter.y - r >= self.margin and
+                circumcenter.x + r <= width - self.margin and
+                circumcenter.y + r <= height - self.margin
+            )
+            if r<self.canvas_short_side*0.1 or not self.inside_canvas(circumcenter) or not circle_fits:
                 tries+=1
                 continue
             break

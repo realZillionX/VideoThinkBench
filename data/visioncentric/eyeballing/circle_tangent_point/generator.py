@@ -95,7 +95,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         self.candidates = candidates
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        
+        width, height = self.canvas_dimensions
         min_R_ratio = 0.2
         max_R_ratio = 0.4
         min_dist_ratio = 1.5 # P must be at least 1.5 R from C
@@ -106,6 +106,15 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             # 1. Define Circle
             R = self.canvas_short_side * self._rng.uniform(min_R_ratio, max_R_ratio)
             center = self.pick_target_point(R / self.canvas_short_side + 0.1)
+            circle_fits = (
+                center.x - R >= self.margin and
+                center.y - R >= self.margin and
+                center.x + R <= width - self.margin and
+                center.y + R <= height - self.margin
+            )
+            if not circle_fits:
+                tries += 1
+                continue
 
             # 2. Define External Point P
             D_min = R * min_dist_ratio

@@ -26,6 +26,7 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
+        width, height = self.canvas_dimensions
         tries=0
         while tries<999:
             # 1. Define the circle's center and radius
@@ -33,6 +34,15 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
             min_radius = self.canvas_short_side * 0.2
             max_radius = self.canvas_short_side * 0.4
             radius = self._rng.uniform(min_radius, max_radius)
+            circle_fits = (
+                center.x - radius >= self.margin and
+                center.y - radius >= self.margin and
+                center.x + radius <= width - self.margin and
+                center.y + radius <= height - self.margin
+            )
+            if not circle_fits:
+                tries += 1
+                continue
 
             # 2. Define the point on the circle's circumference
             radius_angle = self._rng.uniform(0, math.tau)

@@ -171,11 +171,12 @@ def _generate_visual_puzzle_worker(
         video_num_frames_val = None
         if video:
             video_file = solutions_dir / f"{question_idx:02d}.mp4"
-            num_frames = module.save_visual_puzzle_video(
+            num_frames, actual_video_path = module.save_visual_puzzle_video(
                 puzzle_image, solution_image, str(video_file), fps=16,
             )
-            if num_frames > 0 and video_file.exists():
-                solution_video_rel = video_file.relative_to(output_dir).as_posix()
+            actual_video_file = Path(actual_video_path)
+            if num_frames > 0 and actual_video_file.exists():
+                solution_video_rel = actual_video_file.relative_to(output_dir).as_posix()
                 video_fps_val = 16
                 video_num_frames_val = num_frames
 

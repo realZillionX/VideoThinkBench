@@ -1319,7 +1319,7 @@ def save_visual_puzzle_video(
     solution_img,
     video_path: str,
     fps: int = 16,
-) -> int:
+) -> tuple[int, str]:
     """Save a crossfade video from puzzle to solution image.
 
     Three phases (each lasting 1 second):
@@ -1327,7 +1327,7 @@ def save_visual_puzzle_video(
     2. Crossfade puzzle -> solution
     3. Hold solution image
 
-    Returns the total number of frames written, or 0 on failure.
+    Returns the total number of frames written and the actual video path used.
     """
     import cv2
 
@@ -1335,16 +1335,18 @@ def save_visual_puzzle_video(
     puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]   # RGB -> BGR
     solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
 
-    for codec in ("avc1", "mp4v"):
-        fourcc = cv2.VideoWriter_fourcc(*codec)
-        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-        if writer.isOpened():
-            break
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")
+    writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
+    if not writer.isOpened():
         writer.release()
-        writer = None  # type: ignore[assignment]
+        # Fall back to XVID + avi
+        video_path = str(Path(video_path).with_suffix(".avi"))
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
+        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
 
-    if writer is None:
-        return 0
+    if not writer.isOpened():
+        writer.release()
+        return 0, video_path
 
     n = 0
     for _ in range(fps):                       # phase 1: hold puzzle
@@ -1357,7 +1359,7 @@ def save_visual_puzzle_video(
         writer.write(solution_arr); n += 1
 
     writer.release()
-    return n
+    return n, video_path
 
 
 def select_pattern(name: str, **kwargs):

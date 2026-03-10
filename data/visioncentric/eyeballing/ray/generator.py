@@ -204,9 +204,10 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
                 vdir = Path(self.output_dir) / "solutions"
                 vdir.mkdir(parents=True, exist_ok=True)
                 vp = vdir / f"{puzzle_uuid}_solution.mp4"
-                nf = self._save_crossfade_video(puzzle_img, solution_img, str(vp), fps=16)
-                if nf > 0 and vp.exists():
-                    video_path_val = self.relativize_path(vp)
+                nf, actual_video_path = self._save_crossfade_video(puzzle_img, solution_img, str(vp), fps=16)
+                actual_video_file = Path(actual_video_path)
+                if nf > 0 and actual_video_file.exists():
+                    video_path_val = self.relativize_path(actual_video_file)
                     video_fps_val = 16
                     video_num_frames_val = nf
 
@@ -243,7 +244,7 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
         solution_img: Image.Image,
         video_path: str,
         fps: int = 16,
-    ) -> int:
+    ) -> Tuple[int, str]:
         """Save crossfade video: hold puzzle -> blend -> hold solution."""
         import cv2
 
@@ -251,17 +252,18 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
         puzzle_arr = np.array(puzzle_img.convert("RGB"))[:, :, ::-1]
         solution_arr = np.array(solution_img.convert("RGB"))[:, :, ::-1]
 
-        writer = None
-        for codec in ("avc1", "mp4v"):
-            fourcc = cv2.VideoWriter_fourcc(*codec)
-            writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
-            if writer.isOpened():
-                break
+        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
+        if not writer.isOpened():
             writer.release()
-            writer = None
+            # Fall back to XVID + avi
+            video_path = str(Path(video_path).with_suffix(".avi"))
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            writer = cv2.VideoWriter(video_path, fourcc, float(fps), (w, h))
 
-        if writer is None:
-            return 0
+        if not writer.isOpened():
+            writer.release()
+            return 0, video_path
 
         n = 0
         for _ in range(fps):
@@ -275,7 +277,7 @@ class RayGenerator(AbstractPuzzleGenerator[RayPuzzleRecord]):
             writer.write(solution_arr)
             n += 1
         writer.release()
-        return n
+        return n, video_path
 
     def _random_mirrors(self) -> List[MirrorSpec]:
         mirrors: List[MirrorSpec] = []

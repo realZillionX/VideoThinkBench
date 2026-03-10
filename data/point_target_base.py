@@ -434,10 +434,14 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         if self.record_video:
             try:
                 video_num_frames = self.save_video_solution(pid)
-                video_abs = self.solution_dir / f"{pid}_solution.mp4"
-                if video_abs.exists():
-                    video_rel_path = self.relativize_path(video_abs)
-                    video_fps = 16
+                for video_abs in (
+                    self.solution_dir / f"{pid}_solution.mp4",
+                    self.solution_dir / f"{pid}_solution.avi",
+                ):
+                    if video_abs.exists():
+                        video_rel_path = self.relativize_path(video_abs)
+                        video_fps = 16
+                        break
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -518,9 +522,9 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         width, height = self.canvas_dimensions
         fps = 16
         
-        base_hold = 16
+        base_hold = 8
         end_hold = 16
-        step_frames = 16
+        step_frames = 8
 
         estimated_frames = base_hold + len(solution_steps) * step_frames + end_hold
         if estimated_frames > self.MAX_VIDEO_FRAMES:
@@ -570,7 +574,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
                 video_renderer.add_pil_frame(candidates_overlay(video_renderer.canvas, highlight=highlight))
 
         video_renderer.save(video_path)
-        if not video_path.exists():
+        if not video_path.exists() and not video_path.with_suffix('.avi').exists():
             return None
         return len(video_renderer.frames)
 
@@ -674,7 +678,7 @@ class VideoRenderer:
     def animate_command(
         self,
         cmd,
-        duration_frames=30,
+        duration_frames=16,
         overlay_callback: Optional[Callable[[Image.Image], Image.Image]] = None,
     ):
         t = cmd['type']
@@ -866,19 +870,13 @@ class VideoRenderer:
         out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
         
         if not out.isOpened():
-            # Try vp09 (VP9) for web compatibility if H.264 is missing
-            fourcc = cv2.VideoWriter_fourcc(*'vp09')
+            path = path.with_suffix('.avi')
+            print(f"Warning: H.264 not available, falling back to XVID for {path}", flush=True)
+            fourcc = cv2.VideoWriter_fourcc(*'XVID')
             out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
 
         if not out.isOpened():
-            # Fallback to mp4v if avc1 and vp09 are not supported.
-            # This is common on systems without recent codecs.
-            print(f"Warning: avc1/vp09 codec not available for {path}, falling back to mp4v", flush=True)
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(str(path), fourcc, 16.0, (self.width, self.height))
-
-        if not out.isOpened():
-            print(f"Error: Failed to open VideoWriter for {path}. Codecs avc1, vp09, mp4v failed.", flush=True)
+            print(f"Error: Failed to open VideoWriter for {path}. Codecs avc1 and XVID failed.", flush=True)
             print("Please install ffmpeg / libav codecs for OpenCV.", flush=True)
             return
             
