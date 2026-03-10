@@ -280,20 +280,20 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         width, height = self.canvas_dimensions
         renderer = VideoRenderer(width, height, self)
         
-        # 1. Hold (1.0s at 16 fps)
+        # 1. Hold (0.5s at 16 fps)
         frame1 = self._render(None, 1.0)
-        for _ in range(16):
+        for _ in range(8):
             renderer.add_pil_frame(frame1)
         
-        # 2. Shrink (1.5s at 16 fps)
-        steps = 24
+        # 2. Shrink (2.0s at 16 fps)
+        steps = 32
         for i in range(steps):
             f = 1.0 - i / (steps - 1)
             renderer.add_pil_frame(self._render(None, f))
             
-        # 3. Reveal (1.5s at 16 fps)
+        # 3. Reveal (1.0s at 16 fps)
         frame2 = self._render(self.correct_label, 0.0)
-        for _ in range(24):
+        for _ in range(16):
             renderer.add_pil_frame(frame2)
         
         video_path = self.solution_dir / f"{pid}_solution.mp4"

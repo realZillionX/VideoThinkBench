@@ -1334,8 +1334,8 @@ def save_visual_puzzle_video(
     puzzle_arr = np.array(puzzle_img.convert("RGB"), dtype=np.uint8)
     solution_arr = np.array(solution_img.convert("RGB"), dtype=np.uint8)
 
-    hold_frames = fps + fps // 2
-    fade_frames = fps
+    hold_frames = fps
+    fade_frames = fps * 2
 
     frames: List[np.ndarray] = []
     frames.extend(puzzle_arr.copy() for _ in range(hold_frames))
