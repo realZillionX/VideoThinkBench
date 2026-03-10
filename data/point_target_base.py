@@ -520,8 +520,8 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         width, height = self.canvas_dimensions
         fps = 16
         
-        base_hold = 8
-        end_hold = 16
+        base_hold = 16
+        end_hold = 24
         step_frames = 8
 
         estimated_frames = base_hold + len(solution_steps) * step_frames + end_hold

@@ -1324,7 +1324,7 @@ def save_visual_puzzle_video(
 ) -> int:
     """Save a crossfade video from puzzle to solution image.
 
-    Three phases (each lasting 1 second):
+    Three phases:
     1. Hold puzzle image
     2. Crossfade puzzle -> solution
     3. Hold solution image
@@ -1334,17 +1334,20 @@ def save_visual_puzzle_video(
     puzzle_arr = np.array(puzzle_img.convert("RGB"), dtype=np.uint8)
     solution_arr = np.array(solution_img.convert("RGB"), dtype=np.uint8)
 
+    hold_frames = fps + fps // 2
+    fade_frames = fps
+
     frames: List[np.ndarray] = []
-    frames.extend(puzzle_arr.copy() for _ in range(fps))
-    for i in range(fps):
-        alpha = (i + 1) / fps
+    frames.extend(puzzle_arr.copy() for _ in range(hold_frames))
+    for i in range(fade_frames):
+        alpha = (i + 1) / fade_frames
         blended = np.clip(
             np.round(puzzle_arr * (1.0 - alpha) + solution_arr * alpha),
             0,
             255,
         ).astype(np.uint8)
         frames.append(blended)
-    frames.extend(solution_arr.copy() for _ in range(fps))
+    frames.extend(solution_arr.copy() for _ in range(hold_frames))
 
     if not encode_rgb_frames_to_mp4(frames, Path(video_path), fps=fps):
         return 0
