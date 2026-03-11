@@ -4,7 +4,6 @@
 from __future__ import annotations
 from typing import List, Optional, Sequence, Tuple
 from PIL import Image, ImageDraw, ImageFont
-import math
 from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzleRecord, Point
 
 class OrthocenterGenerator(PointTargetPuzzleGenerator):
@@ -132,19 +131,25 @@ class OrthocenterGenerator(PointTargetPuzzleGenerator):
         self.draw_line(draw, [p1, p2, p3, p1])
 
         if highlight_label:
-            # For the solution image, draw the altitudes
-            f1 = self._get_altitude_foot(p1, p2, p3)
-            self.draw_line(draw, [p1, f1])
-            
-            f2 = self._get_altitude_foot(p2, p1, p3)
-            self.draw_line(draw, [p2, f2])
+            # Draw each altitude with the fewest strokes that still show the
+            # orthocenter intersection and any needed extension.
+            feet = [
+                self._get_altitude_foot(p1, p2, p3),
+                self._get_altitude_foot(p2, p1, p3),
+                self._get_altitude_foot(p3, p1, p2),
+            ]
+            for vertex, foot in zip((p1, p2, p3), feet):
+                vertex_to_foot = self.distance(vertex, foot)
+                vertex_to_ortho = self.distance(vertex, self.target_point)
+                foot_to_ortho = self.distance(foot, self.target_point)
 
-            f3 = self._get_altitude_foot(p3, p1, p2)
-            self.draw_line(draw, [p3, f3])
-            
-            # possible obtuse angle
-            for p in self.triangle_points:
-                self.draw_line(draw, [self.target_point, p])
+                if abs(vertex_to_ortho + foot_to_ortho - vertex_to_foot) <= 1.0:
+                    self.draw_line(draw, [vertex, foot])
+                elif abs(vertex_to_foot + foot_to_ortho - vertex_to_ortho) <= 1.0:
+                    self.draw_line(draw, [vertex, self.target_point])
+                else:
+                    self.draw_line(draw, [vertex, foot])
+                    self.draw_line(draw, [self.target_point, vertex])
 
         self.draw_candidates(
             draw,
