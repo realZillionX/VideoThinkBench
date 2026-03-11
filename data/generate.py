@@ -445,16 +445,16 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--point-radius", type=int, default=None)
     parser.add_argument("--line-width", type=int, default=None)
 
-    parser.add_argument("--maze-rows", type=int, default=21)
-    parser.add_argument("--maze-cols", type=int, default=21)
+    parser.add_argument("--maze-rows", type=int, default=17)
+    parser.add_argument("--maze-cols", type=int, default=17)
     parser.add_argument("--maze-cell-size", type=int, default=None)
 
-    parser.add_argument("--hex-radius", type=int, default=4)
+    parser.add_argument("--hex-radius", type=int, default=3)
     parser.add_argument("--hex-cell-size", type=int, default=None)
     parser.add_argument("--hex-wall-thickness", type=int, default=None)
 
-    parser.add_argument("--lab-rings", type=int, default=4)
-    parser.add_argument("--lab-segments", type=int, default=10)
+    parser.add_argument("--lab-rings", type=int, default=3)
+    parser.add_argument("--lab-segments", type=int, default=8)
     parser.add_argument("--lab-cell-size", type=int, default=None)
     parser.add_argument("--lab-wall-thickness", type=int, default=None)
 

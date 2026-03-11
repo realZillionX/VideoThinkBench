@@ -64,7 +64,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
     )
     DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
-    DEFAULT_RADIUS = 4
+    DEFAULT_RADIUS = 3
     DEFAULT_CELL_RADIUS = 38
 
     def __init__(
