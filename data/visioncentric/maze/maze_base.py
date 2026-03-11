@@ -55,11 +55,23 @@ def _draw_path_segment_rect(
     x2, y2 = p2
     half = thickness / 2
 
-    if math.isclose(x1, x2, abs_tol=1e-6) or math.isclose(y1, y2, abs_tol=1e-6):
-        left = min(x1, x2) - half
-        top = min(y1, y2) - half
-        right = max(x1, x2) + half
-        bottom = max(y1, y2) + half
+    if math.isclose(x1, x2, abs_tol=1e-6) and math.isclose(y1, y2, abs_tol=1e-6):
+        draw.ellipse((x1 - half, y1 - half, x1 + half, y1 + half), fill=color)
+        return
+
+    if math.isclose(x1, x2, abs_tol=1e-6):
+        left = x1 - half
+        top = min(y1, y2)
+        right = x1 + half
+        bottom = max(y1, y2)
+        draw.rectangle((left, top, right, bottom), fill=color)
+        return
+
+    if math.isclose(y1, y2, abs_tol=1e-6):
+        left = min(x1, x2)
+        top = y1 - half
+        right = max(x1, x2)
+        bottom = y1 + half
         draw.rectangle((left, top, right, bottom), fill=color)
         return
 
@@ -67,7 +79,7 @@ def _draw_path_segment_rect(
     dy = y2 - y1
     seg_len = math.hypot(dx, dy)
     if seg_len <= 1e-6:
-        draw.rectangle((x1 - half, y1 - half, x1 + half, y1 + half), fill=color)
+        draw.ellipse((x1 - half, y1 - half, x1 + half, y1 + half), fill=color)
         return
 
     # Other maze variants in this shared base use angled paths, so keep them
@@ -76,10 +88,10 @@ def _draw_path_segment_rect(
     uy = dy / seg_len
     px = -uy * half
     py = ux * half
-    start_x = x1 - ux * half
-    start_y = y1 - uy * half
-    end_x = x2 + ux * half
-    end_y = y2 + uy * half
+    start_x = x1
+    start_y = y1
+    end_x = x2
+    end_y = y2
     draw.polygon(
         (
             (start_x + px, start_y + py),
@@ -89,6 +101,18 @@ def _draw_path_segment_rect(
         ),
         fill=color,
     )
+
+
+def _draw_path_joint(
+    draw: ImageDraw.ImageDraw,
+    point: Tuple[float, float],
+    color: Any,
+    thickness: int,
+) -> None:
+    """Draw a round joint or cap for a path point."""
+    half = thickness / 2
+    px, py = point
+    draw.ellipse((px - half, py - half, px + half, py + half), fill=color)
 
 
 def draw_path_line(
@@ -102,8 +126,10 @@ def draw_path_line(
     if len(points) >= 2:
         for i in range(len(points) - 1):
             _draw_path_segment_rect(draw, points[i], points[i + 1], color, thickness)
+        for point in points:
+            _draw_path_joint(draw, point, color, thickness)
     elif len(points) == 1:
-        _draw_path_segment_rect(draw, points[0], points[0], color, thickness)
+        _draw_path_joint(draw, points[0], color, thickness)
 
 @dataclass
 class MazePuzzleRecord:
@@ -290,11 +316,14 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         full_draw = ImageDraw.Draw(full_frame)
         for i in range(len(points) - 1):
             _draw_path_segment_rect(full_draw, points[i], points[i + 1], color, thickness)
+        for point in points:
+            _draw_path_joint(full_draw, point, color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
-        _draw_path_segment_rect(ImageDraw.Draw(revealed_mask), points[0], points[0], 255, thickness)
+        _draw_path_joint(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
         prev_segment = 0
         prev_tip: Tuple[float, float] = points[0]
+        prev_full_segments = 0
         frames: List[Image.Image] = []
         last_frame = puzzle_image.copy()
 
@@ -339,15 +368,19 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 if visible_tip != current_start:
                     _draw_path_segment_rect(revealed_draw, current_start, visible_tip, 255, thickness)
 
+            for point_idx in range(prev_full_segments + 1, min(full_segments, len(points) - 1) + 1):
+                _draw_path_joint(revealed_draw, points[point_idx], 255, thickness)
+
             frame_mask = revealed_mask.copy()
             mask_draw = ImageDraw.Draw(frame_mask)
-            _draw_path_segment_rect(mask_draw, visible_tip, visible_tip, 255, thickness)
+            _draw_path_joint(mask_draw, visible_tip, 255, thickness)
 
             frame_img = Image.composite(full_frame, puzzle_image, frame_mask)
             frames.append(frame_img.copy())
             last_frame = frame_img.copy()
             prev_segment = current_segment
             prev_tip = visible_tip
+            prev_full_segments = full_segments
             
         # Hold end
         end_hold_frames = int(fps * 1.0)

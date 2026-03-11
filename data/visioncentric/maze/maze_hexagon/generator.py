@@ -347,6 +347,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
 
         for cell in self.cells:
             self._draw_cell_walls(draw, cell, passages)
+        self._draw_wall_corner_caps(draw, passages)
 
         self._draw_marker(draw, start_cell, START_COLOR)
         self._draw_marker(draw, goal_cell, GOAL_COLOR)
@@ -376,6 +377,38 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
             a = outer_corners[a_idx]
             b = outer_corners[b_idx]
             draw.line([a, b], fill=WALL_COLOR, width=self.wall_thickness)
+
+    def _draw_wall_corner_caps(
+        self,
+        draw: ImageDraw.ImageDraw,
+        passages: Dict[Axial, Set[Axial]],
+    ) -> None:
+        wt_half = self.wall_thickness / 2
+        wall_corners_drawn: Set[Tuple[int, int]] = set()
+        for cell in self.cells:
+            center = self._cell_center_from_cell(cell)
+            outer_corners = self._hex_corners(center, self.cell_radius)
+            for direction_index, delta in enumerate(DIRECTIONS):
+                neighbor = (cell[0] + delta[0], cell[1] + delta[1])
+                has_neighbor = neighbor in self.cell_set
+                connected = has_neighbor and neighbor in passages[cell]
+                if has_neighbor and connected:
+                    continue
+                a_idx, b_idx = EDGE_CORNER_INDICES[direction_index]
+                for corner in (outer_corners[a_idx], outer_corners[b_idx]):
+                    key = (round(corner[0]), round(corner[1]))
+                    if key in wall_corners_drawn:
+                        continue
+                    wall_corners_drawn.add(key)
+                    draw.ellipse(
+                        (
+                            corner[0] - wt_half,
+                            corner[1] - wt_half,
+                            corner[0] + wt_half,
+                            corner[1] + wt_half,
+                        ),
+                        fill=WALL_COLOR,
+                    )
 
     def _draw_marker(self, draw: ImageDraw.ImageDraw, cell: Axial, color: Tuple[int, int, int]) -> None:
         x, y = self._cell_center_from_cell(cell)
