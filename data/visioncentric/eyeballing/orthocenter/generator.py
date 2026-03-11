@@ -131,25 +131,34 @@ class OrthocenterGenerator(PointTargetPuzzleGenerator):
         self.draw_line(draw, [p1, p2, p3, p1])
 
         if highlight_label:
-            # Draw each altitude with the fewest strokes that still show the
-            # orthocenter intersection and any needed extension.
+            vertices = (p1, p2, p3)
             feet = [
                 self._get_altitude_foot(p1, p2, p3),
                 self._get_altitude_foot(p2, p1, p3),
                 self._get_altitude_foot(p3, p1, p2),
             ]
-            for vertex, foot in zip((p1, p2, p3), feet):
-                vertex_to_foot = self.distance(vertex, foot)
-                vertex_to_ortho = self.distance(vertex, self.target_point)
-                foot_to_ortho = self.distance(foot, self.target_point)
+            dot_products = []
+            for i, vertex in enumerate(vertices):
+                other1 = vertices[(i + 1) % 3]
+                other2 = vertices[(i + 2) % 3]
+                dot_products.append(
+                    (other1.x - vertex.x) * (other2.x - vertex.x)
+                    + (other1.y - vertex.y) * (other2.y - vertex.y)
+                )
 
-                if abs(vertex_to_ortho + foot_to_ortho - vertex_to_foot) <= 1.0:
+            non_acute_idx = next(
+                (i for i, dot in enumerate(dot_products) if dot <= 1e-9),
+                None,
+            )
+
+            if non_acute_idx is None:
+                for vertex, foot in zip(vertices, feet):
                     self.draw_line(draw, [vertex, foot])
-                elif abs(vertex_to_foot + foot_to_ortho - vertex_to_ortho) <= 1.0:
-                    self.draw_line(draw, [vertex, self.target_point])
-                else:
-                    self.draw_line(draw, [vertex, foot])
-                    self.draw_line(draw, [self.target_point, vertex])
+            else:
+                acute_indices = [i for i in range(3) if i != non_acute_idx]
+                for idx in acute_indices:
+                    self.draw_line(draw, [vertices[idx], self.target_point])
+                self.draw_line(draw, [self.target_point, feet[non_acute_idx]])
 
         self.draw_candidates(
             draw,
