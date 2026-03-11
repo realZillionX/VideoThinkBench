@@ -43,8 +43,8 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     )
     DEFAULT_TI2I_PROMPT = MazePuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
-    DEFAULT_RINGS = 6  # Number of rings excluding the central cell.
-    DEFAULT_SEGMENTS = 18
+    DEFAULT_RINGS = 4  # Number of rings excluding the central cell.
+    DEFAULT_SEGMENTS = 10
     DEFAULT_RING_WIDTH = 42
 
     def __init__(

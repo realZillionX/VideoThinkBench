@@ -26,8 +26,8 @@ TEXT_COLOR = (0, 0, 255)
 class MazeGenerator(MazePuzzleGenerator):
     """Generate maze puzzles that require drawing a path from start to goal."""
 
-    DEFAULT_ROWS = 15
-    DEFAULT_COLS = 15
+    DEFAULT_ROWS = 21
+    DEFAULT_COLS = 21
     DEFAULT_CELL_SIZE = 32
     DEFAULT_TI2V_PROMPT = (
         "On a dark square canvas, draw a maze as a regular grid of square cells where open corridors are white, blocked "
