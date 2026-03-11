@@ -29,7 +29,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_labyrinth"
     DEFAULT_TI2V_PROMPT = (
-        "A 512x512 portrait video shows a circular labyrinth on a very dark charcoal background. The maze is made of pale "
+        "A square-format video shows a circular labyrinth on a very dark charcoal background. The maze is made of pale "
         "gray concentric ring corridors and a pale gray central disk, separated by thick black circular walls and black "
         "radial spokes, with a solid red start dot on the outer ring and a solid red goal dot at the center. The animation "
         "begins with the static labyrinth, then a thick bright red path is progressively drawn through the centers of "

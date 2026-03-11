@@ -33,10 +33,10 @@ class CircleSpec:
 class ArcConnectGenerator(PointTargetPuzzleGenerator):
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/arc_connect"
     DEFAULT_TI2V_PROMPT = (
-        "A 512x512 white canvas contains a wide vertical mask band in the center, about 35 percent of the canvas width, filled light gray RGB(240,240,240) with two medium gray edge lines RGB(200,200,200) that are 5 px thick. "
-        "To the right of the mask are five thick 8 px arc fragments in dark gray RGB(40,40,40); each ends beside a candidate marker A-E drawn as a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter, and only one option also has a matching left-side arc fragment in darker near-black RGB(10,10,10). "
+        "A square white canvas contains a wide vertical mask band in the center, about 35 percent of the canvas width, filled light gray and bounded by two medium-thickness medium gray edge lines. "
+        "To the right of the mask are five thick dark gray arc fragments; each ends beside a candidate marker A-E drawn as a small white circle with a thin dark gray outline and a black uppercase letter, and only one option also has a matching left-side arc fragment in darker near-black. "
         "The video first holds the fully masked puzzle, then the central mask smoothly narrows and disappears so the hidden middle portions of the arcs are revealed, making exactly one arc read as one continuous left-to-right circle arc while the other four remain right-side arcs only. "
-        "In the final revealed frame, the correct candidate alone switches to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers stay white. In portrait. Static camera."
+        "In the final revealed frame, the correct candidate alone switches to pale red fill with a dark red outline, while the other four markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT = (
         "A white canvas shows a central light gray vertical mask band, one visible left arc fragment, five right arc "

@@ -11,10 +11,10 @@ class TriangleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/triangle_center"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows a triangle drawn only as a black 5 px outline, with no midpoint marks and no interior construction lines at first. "
-        "Five candidate markers A-E are clustered near the hidden centroid; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the bare triangle and the five markers, then draws three black 5 px medians, each running from one triangle vertex to the midpoint of the opposite side so all three meet at one point. "
-        "In the final state, only the centroid marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers remain white. In portrait. Static camera."
+        "A square white canvas shows a triangle drawn only as a black outline of medium thickness, with no midpoint marks and no interior construction lines at first. "
+        "Five candidate markers A-E are clustered near the hidden centroid; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the bare triangle and the five markers, then draws three black medians of medium thickness, each running from one triangle vertex to the midpoint of the opposite side so all three meet at one point. "
+        "In the final state, only the centroid marker changes to pale red fill with a dark red outline, while the other four markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near its interior. "

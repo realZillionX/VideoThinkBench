@@ -25,10 +25,10 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallel"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows one black 5 px reference segment and one separate small 7 px outlined black circle marking the point that a new segment must pass through. "
-        "Five candidate markers A-E sit near the hidden parallel direction on a short straight row; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the reference segment, the through-point circle, and the candidate row, then draws a single black 5 px segment starting at the small marked point and extending toward the correct candidate in a direction parallel to the reference segment. "
-        "In the final frame, only the candidate on that new parallel segment changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other markers remain white. In portrait. Static camera."
+        "A square white canvas shows one black reference segment of medium thickness and one separate small black circle with a thick outline marking the point that a new segment must pass through. "
+        "Five candidate markers A-E sit near the hidden parallel direction on a short straight row; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the reference segment, the through-point circle, and the candidate row, then draws a single black segment of medium thickness starting at the small marked point and extending toward the correct candidate in a direction parallel to the reference segment. "
+        "In the final frame, only the candidate on that new parallel segment changes to pale red fill with a dark red outline, while the other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows one black reference line, one separate small black circle indicating a required through-point, "

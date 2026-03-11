@@ -15,10 +15,10 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find a point on the perpendicular bisector of a line segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular_bisector"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows two small 7 px outlined black endpoint circles connected by one black 5 px segment. "
-        "Five candidate markers A-E are arranged near the hidden perpendicular bisector; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the endpoint circles, the connecting segment, and the candidate markers, then draws a long black 5 px bisector line through the segment midpoint in the perpendicular direction so it runs across the canvas. "
-        "In the final frame, only the candidate lying on that perpendicular bisector changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while all other markers remain white. In portrait. Static camera."
+        "A square white canvas shows two small black endpoint circles with thick outlines connected by one black segment of medium thickness. "
+        "Five candidate markers A-E are arranged near the hidden perpendicular bisector; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the endpoint circles, the connecting segment, and the candidate markers, then draws a long black bisector line of medium thickness through the segment midpoint in the perpendicular direction so it runs across the canvas. "
+        "In the final frame, only the candidate lying on that perpendicular bisector changes to pale red fill with a dark red outline, while all other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows two small endpoint circles connected by a black segment and five labeled candidate circles "

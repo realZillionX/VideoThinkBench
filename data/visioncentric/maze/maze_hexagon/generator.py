@@ -50,7 +50,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_hexagon"
     DEFAULT_TI2V_PROMPT = (
-        "A 512x512 portrait video shows a hexagonal maze on a dark charcoal background. The maze is a centered honeycomb "
+        "A square-format video shows a hexagonal maze on a dark charcoal background. The maze is a centered honeycomb "
         "of light gray hexagonal walkable cells with thick black wall segments and rounded black wall caps, and the start "
         "and goal are solid red dots centered inside two different hexagons. The animation begins with the static maze, "
         "then a thick bright red path is progressively traced through the centers of edge-sharing hex cells without crossing "

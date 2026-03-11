@@ -56,10 +56,10 @@ class CircumcenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the circumcenter of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circumcenter"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows a triangle drawn only as a black 5 px outline, with no fill and no center marks. "
-        "Five candidate markers A-E sit near the hidden circumcenter; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the triangle and the candidate markers, then draws one black 5 px circumcircle centered on the correct option so that the circle passes exactly through all three triangle vertices. "
-        "In the final state, the circumcenter marker alone changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other candidates remain white. In portrait. Static camera."
+        "A square white canvas shows a triangle drawn only as a black outline of medium thickness, with no fill and no center marks. "
+        "Five candidate markers A-E sit near the hidden circumcenter; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the triangle and the candidate markers, then draws one black circumcircle of medium thickness centered on the correct option so that the circle passes exactly through all three triangle vertices. "
+        "In the final state, the circumcenter marker alone changes to pale red fill with a dark red outline, while the other candidates remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near its middle. Find "

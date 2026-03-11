@@ -17,10 +17,10 @@ class AngleBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/angle_bisector"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows two solid black 5 px line segments meeting at one shared vertex and opening into a clear angle, with no arrows and no extra marks. "
-        "Five small candidate markers A-E sit near the hidden bisector on a short straight row: each marker is a 10 px circle with white fill, a 4 px dark gray outline RGB(32,32,32), and a black uppercase letter. "
-        "The video holds this angle-and-candidates puzzle first, then draws one black 5 px bisector segment outward from the shared vertex through the interior of the angle toward the correct marker. "
-        "In the final state, only the correct candidate changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while all other markers remain white. In portrait. Static camera."
+        "A square white canvas shows two solid black line segments of medium thickness meeting at one shared vertex and opening into a clear angle, with no arrows and no extra marks. "
+        "Five small candidate markers A-E sit near the hidden bisector on a short straight row: each marker is a small circle with white fill, a thin dark gray outline, and a black uppercase letter. "
+        "The video holds this angle-and-candidates puzzle first, then draws one black bisector segment of medium thickness outward from the shared vertex through the interior of the angle toward the correct marker. "
+        "In the final state, only the correct candidate changes to pale red fill with a dark red outline, while all other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows two black rays meeting at one vertex and five labeled candidate circles A-E near the interior "

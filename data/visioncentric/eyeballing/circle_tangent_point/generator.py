@@ -8,10 +8,10 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the point on a circle where the tangent line from an external point touches."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_point"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows one large unfilled circle drawn with a black 5 px outline and one small 7 px outlined black external point outside the circle. "
-        "Exactly five candidate markers A-E lie directly on the circumference itself; each candidate is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the circle, the external point, and the five circumference markers, then draws a black 5 px tangent segment from the external point to the correct candidate and also draws a black 5 px radius from the otherwise unmarked center of the circle to that same candidate. "
-        "In the final state, that tangency candidate alone changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four circumference markers stay white. In portrait. Static camera."
+        "A square white canvas shows one large unfilled circle drawn with a black outline of medium thickness and one small black external point with a thick outline outside the circle. "
+        "Exactly five candidate markers A-E lie directly on the circumference itself; each candidate is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the circle, the external point, and the five circumference markers, then draws a black tangent segment of medium thickness from the external point to the correct candidate and also draws a black radius of medium thickness from the otherwise unmarked center of the circle to that same candidate. "
+        "In the final state, that tangency candidate alone changes to pale red fill with a dark red outline, while the other four circumference markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A large black circle and one black external point are shown on a white canvas, with five labeled candidate circles "

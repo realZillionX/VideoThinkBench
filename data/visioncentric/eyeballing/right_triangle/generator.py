@@ -15,10 +15,10 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
     """
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/right_triangle"
     DEFAULT_TI2V_PROMPT = (
-        "A 512x512 white canvas initially shows only five candidate markers A-E and no connecting geometry at all. "
-        "Each candidate marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter, and exactly three of these five points form one right triangle. "
-        "The video first holds the five markers alone, then draws a black 5 px triangle outline connecting the three special points in the order that closes one triangle. "
-        "In the final state, only the marker at the 90 degree corner changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers stay white. In portrait. Static camera."
+        "A square white canvas initially shows only five candidate markers A-E and no connecting geometry at all. "
+        "Each candidate marker is a small white circle with a thin dark gray outline and a black uppercase letter, and exactly three of these five points form one right triangle. "
+        "The video first holds the five markers alone, then draws a black triangle outline of medium thickness connecting the three special points in the order that closes one triangle. "
+        "In the final state, only the marker at the 90 degree corner changes to pale red fill with a dark red outline, while the other four markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT = (
         "A white canvas shows five labeled candidate circles A-E and no initial connecting lines. Exactly three of the five "

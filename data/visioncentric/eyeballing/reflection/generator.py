@@ -11,10 +11,10 @@ class ReflectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the reflection of a point across a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/reflection"
     DEFAULT_TI2V_PROMPT=(
-        "A 512x512 white canvas shows one black 5 px reflection-axis segment and one small 7 px outlined black source point on one side of that axis. "
-        "Five candidate markers A-E are clustered near the hidden reflected location; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
-        "The video first holds the reflection-axis segment, the source point, and the candidate markers, then draws one black 5 px connector segment from the source point straight across the axis to its reflected position. "
-        "In the final state, only the reflected-position candidate changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers remain white. In portrait. Static camera."
+        "A square white canvas shows one black reflection-axis segment of medium thickness and one small black source point with a thick outline on one side of that axis. "
+        "Five candidate markers A-E are clustered near the hidden reflected location; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
+        "The video first holds the reflection-axis segment, the source point, and the candidate markers, then draws one black connector segment of medium thickness from the source point straight across the axis to its reflected position. "
+        "In the final state, only the reflected-position candidate changes to pale red fill with a dark red outline, while the other four markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows one black line, one small black source point, and five labeled candidate circles A-E on the "

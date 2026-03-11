@@ -1388,63 +1388,63 @@ VIDEOGEN_INSTRUCTION_COMMON = (
 
 pattern_instructions = {
     "color_grid": (
-        "A centered visual puzzle sits on a 512x512 clean white canvas. It shows nine evenly spaced pastel circles with "
+        "A centered visual puzzle sits on a clean white square canvas. It shows nine evenly spaced pastel circles with "
         "thin black outlines arranged in a 3x3 grid, where the four corner circles share one color, the four edge-middle "
         "circles share a second color, and the center circle is a third color. One non-center position contains only a "
         "black question mark, which represents the missing circle color that should appear at that exact grid cell."
     ),
     "color_hexagon": (
-        "A centered regular hexagon appears on a 512x512 clean white canvas. The hexagon is divided from the center into "
+        "A centered regular hexagon appears on a clean white square canvas. The hexagon is divided from the center into "
         "six triangular wedges with thin black edges, and opposite wedges share the same pastel color chosen from blue, "
         "green, yellow, red, purple, or orange. One wedge is filled light gray and marked with a black question mark, "
         "indicating the missing wedge color."
     ),
     "color_overlap_squares": (
-        "A centered composition on a 512x512 clean white canvas shows three overlapping rotated squares with thin black "
+        "A centered composition on a clean white square canvas shows three overlapping rotated squares with thin black "
         "outlines, and the whole cluster is slightly rotated. The three main squares use primary colors while the overlap "
         "regions show the corresponding mixed secondary colors, forming a compact layered arrangement of square and "
         "triangular regions. One side square is replaced by a light gray shape with a black question mark, indicating the "
         "missing square color."
     ),
     "color_size": (
-        "A large centered stack of four nested shapes sits on a 512x512 clean white canvas. All four shapes share the same "
+        "A large centered stack of four nested shapes sits on a clean white square canvas. All four shapes share the same "
         "geometry, either circles or regular polygons with black outlines, and they use four shades of one hue so the color "
         "changes steadily lighter or darker as the shapes shrink inward. The smallest inner shape is replaced by a light "
         "gray shape carrying a black question mark, indicating the missing final shade."
     ),
     "polygon_sides_color": (
-        "A centered triangular arrangement on a 512x512 clean white canvas contains six filled regular polygons with thin "
+        "A centered triangular arrangement on a clean white square canvas contains six filled regular polygons with thin "
         "black outlines, laid out as one on the top row, two on the middle row, and three on the bottom row. The polygons "
         "use a pastel palette, and every polygon with the same number of sides shares the same color even though triangles, "
         "quadrilaterals, pentagons, hexagons, heptagons, octagons, or nonagons may appear. One polygon is replaced by a "
         "light gray version with a black question mark, meaning its color is missing."
     ),
     "rectangle_height_color": (
-        "A centered row of seven tall rounded rectangles appears on a 512x512 clean white canvas. The bars are solid pastel "
+        "A centered row of seven tall rounded rectangles appears on a clean white square canvas. The bars are solid pastel "
         "colors with black outlines, equally spaced left to right, vertically centered, and they repeat three distinct "
         "heights so rectangles of the same height share the same color. The rightmost bar is shown as a light gray rounded "
         "rectangle with a black question mark, indicating the missing color for that height."
     ),
     "shape_reflect": (
-        "A 512x512 clean white canvas shows a horizontal black line across the middle dividing a top row and a bottom row "
+        "A clean white square canvas shows a horizontal black line across the middle dividing a top row and a bottom row "
         "of three pale green polygons. Matching shapes above and below the line are vertically mirrored versions of the same "
         "outlined triangle, square, pentagon, or hexagon. One position is replaced by a dotted outline circle with a black "
         "question mark, indicating the missing reflected shape that should appear there."
     ),
     "shape_size_grid": (
-        "A centered 3x3 arrangement on a 512x512 clean white canvas shows pale green outlined polygons with black borders. "
+        "A centered 3x3 arrangement on a clean white square canvas shows pale green outlined polygons with black borders. "
         "Across one axis the shape family stays constant and across the other axis the size steps from small to medium to "
         "large, using three of triangle, square, pentagon, and hexagon. One cell is empty except for a black question mark "
         "at its center, meaning the missing polygon of the correct shape and size must be inserted there."
     ),
     "size_cycle": (
-        "A 512x512 clean white canvas shows nine pale yellow circles with thin black outlines arranged in three spiral-like "
+        "A clean white square canvas shows nine pale yellow circles with thin black outlines arranged in three spiral-like "
         "arms around the center. Along each arm the circles grow from small near the center to medium and large farther "
         "out, and the three arms are evenly spaced around the middle with a slight rotation. One circle position is "
         "replaced by a black question mark, indicating the missing circle size that belongs at that location."
     ),
     "size_grid": (
-        "A centered 3x3 grid of pale yellow circles with thin black outlines appears on a 512x512 clean white canvas. The "
+        "A centered 3x3 grid of pale yellow circles with thin black outlines appears on a clean white square canvas. The "
         "four corner circles share one size, the four edge-middle circles share another size, and the center circle is a "
         "third size. One non-center position contains only a black question mark instead of a circle, indicating the missing "
         "circle size that must be filled in."

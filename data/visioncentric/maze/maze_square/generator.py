@@ -30,7 +30,7 @@ class MazeGenerator(MazePuzzleGenerator):
     DEFAULT_COLS = 17
     DEFAULT_CELL_SIZE = 32
     DEFAULT_TI2V_PROMPT = (
-        "A 512x512 portrait video shows a square maze on a pure black background. The maze is a centered regular grid of "
+        "A square-format video shows a square maze on a pure black background. The maze is a centered regular grid of "
         "square cells where walkable corridor cells are solid white, wall cells are solid black, and the start cell and "
         "goal cell are two solid red squares placed at opposite corners of the grid. The animation begins with the static "
         "maze, then a thick bright red path is progressively drawn through the centers of side-adjacent white cells without "
