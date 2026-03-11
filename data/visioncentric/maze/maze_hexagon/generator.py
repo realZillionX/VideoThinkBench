@@ -250,7 +250,7 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
         if self.video:
             path_points = [self._cell_center_from_cell(cell) for cell in solution]
             thickness = max(4, int(self.cell_radius * 0.35))
-            video_path = self.save_video(record_id, puzzle_image, path_points, thickness=thickness)
+            video_path = self.save_video(record_id, puzzle_image, path_points, thickness=thickness, duration=5.0)
 
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)

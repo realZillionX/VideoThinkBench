@@ -218,7 +218,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         if self.video:
             path_points = [self._cell_center_from_cell(cell) for cell in path_cells]
             thickness = max(3, self.ring_width // 4)
-            video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=thickness)
+            video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=thickness, duration=5.0)
 
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)
