@@ -11,12 +11,10 @@ class ParallelogramGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the parallelogram of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallelogram"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw three known vertices of a parallelogram as a black broken line with two adjacent "
-        "sides already visible. Place five small labeled candidate circles A-E near the missing corner, each with white "
-        "fill, dark gray outline, and a black letter. Animate the solution by first holding the two given sides, then "
-        "drawing the two missing black edges that close the parallelogram, and finally changing the correct missing vertex "
-        "marker to pale red with a dark red outline while the other candidates stay white. In portrait, static camera, no "
-        "zoom, no pan."
+        "A 512x512 white canvas shows three known vertices of a parallelogram as an open black 5 px broken line shaped like a V, with two adjacent sides already visible and one opposite corner missing. "
+        "Five candidate markers A-E are placed near the missing corner; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the open broken line and the candidate markers, then draws two black 5 px closing segments from one visible endpoint to the correct candidate and from that candidate to the other visible endpoint so the full quadrilateral becomes a parallelogram. "
+        "In the final state, only the correct missing-vertex marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four candidates remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows three black vertices connected as two adjacent sides of a parallelogram, plus five labeled "

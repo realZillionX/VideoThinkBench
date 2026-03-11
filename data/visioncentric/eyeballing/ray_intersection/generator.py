@@ -89,12 +89,10 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles with partially hidden ray intersections."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_intersection"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw three thick dark gray line fragments near the outer area of the image so that each "
-        "fragment points inward toward one hidden common intersection. Around that hidden center, place five small labeled "
-        "candidate circles A-E with white fill, dark gray outlines, and black letters. Animate the solution by first "
-        "holding the three partial line fragments, then extending each fragment inward with matching dark gray strokes until "
-        "all three lines meet at one point, and finally changing the correct candidate at the shared intersection to pale "
-        "red with a dark red outline while the other candidates remain white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows three thick dark gray line fragments in RGB(40,40,40), each about 8 px wide and placed near the outer part of the image so that only the edge-side portions of three rays are visible. "
+        "Near the hidden common intersection, five candidate markers A-E are clustered as 10 px white circles with 4 px dark gray outlines RGB(32,32,32) and black uppercase letters. "
+        "The video first holds the three partial ray fragments and the candidate cluster, then extends each fragment inward with matching dark gray thickness until all three rays meet at one exact point. "
+        "In the final state, only the candidate at that shared intersection changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows three dark gray line fragments that should be mentally extended inward and five labeled "

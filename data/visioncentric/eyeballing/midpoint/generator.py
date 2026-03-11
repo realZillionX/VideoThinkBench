@@ -84,12 +84,10 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that hide the midpoint of a segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/midpoint"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, place two larger anchor circles with very light fill and dark outlines at the two ends of "
-        "an invisible segment. Near the hidden midpoint, show five small labeled candidate circles A-E with white fill, dark "
-        "gray outlines, and black letters. Animate the solution by first holding the two large endpoint circles and the "
-        "candidate markers, then drawing one solid black segment between the two anchors behind them, and finally changing "
-        "the candidate exactly halfway between the anchor centers to pale red with a dark red outline while the other four "
-        "candidates stay white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows two larger anchor circles at the endpoints of an invisible segment; each anchor is about 16 px in radius, filled near-white RGB(250,250,250), and outlined in dark gray RGB(30,30,30) with a thick stroke. "
+        "Near the hidden midpoint, five candidate markers A-E are shown as 10 px white circles with 4 px dark gray outlines RGB(32,32,32) and black uppercase letters. "
+        "The video first holds the two anchor circles and the five candidate markers, then draws one dark line segment about 5 px thick directly between the two anchor centers while the anchor circles remain visibly on top of that segment. "
+        "In the final state, only the exact midpoint marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other candidates stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows two large outlined endpoint circles and five labeled candidate circles A-E near the middle. "

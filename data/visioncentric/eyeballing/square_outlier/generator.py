@@ -11,12 +11,10 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where four of five points form a square."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/square_outlier"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, show five labeled candidate circles A-E with white fill, dark gray outlines, and black "
-        "letters, without any connecting lines in the initial puzzle view. Four of the five points should be vertices of one "
-        "square and the remaining point should be the outlier. Animate the solution by first holding the five markers, then "
-        "drawing a black square outline through the four matching vertices, and finally changing the single outlier "
-        "candidate to pale red with a dark red outline while the square's four vertices remain white. In portrait, static "
-        "camera, no zoom, no pan."
+        "A 512x512 white canvas initially shows only five candidate markers A-E and no lines or helper shapes. "
+        "Each candidate marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter, and exactly four of the five points are the vertices of one square while the fifth point is the outlier. "
+        "The video first holds the five markers alone, then draws a black 5 px square outline through the four matching vertices, including rotation if the square is tilted. "
+        "In the final state, only the single outlier marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the four square-vertex markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows five labeled candidate circles A-E. Four of them can be connected to form a square. Determine "

@@ -25,12 +25,10 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallel"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one existing black reference line and one separate small black outlined circle that "
-        "marks the point a new line must pass through. Place five labeled candidate circles A-E near the hidden parallel "
-        "line, each with white fill, dark gray outline, and a black letter. Animate the solution by first holding the "
-        "reference line and the through-point circle, then drawing a solid black line through the small circle that stays "
-        "parallel to the reference line, and finally changing the candidate lying on that new parallel line to pale red "
-        "with a dark red outline while the remaining candidates stay white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows one black 5 px reference segment and one separate small 7 px outlined black circle marking the point that a new segment must pass through. "
+        "Five candidate markers A-E sit near the hidden parallel direction on a short straight row; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the reference segment, the through-point circle, and the candidate row, then draws a single black 5 px segment starting at the small marked point and extending toward the correct candidate in a direction parallel to the reference segment. "
+        "In the final frame, only the candidate on that new parallel segment changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows one black reference line, one separate small black circle indicating a required through-point, "

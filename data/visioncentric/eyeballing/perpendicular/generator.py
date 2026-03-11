@@ -11,12 +11,10 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one black reference line and mark a separate through-point with a small black "
-        "outlined circle. Place five labeled candidate circles A-E near the hidden perpendicular line, each drawn with "
-        "white fill, a dark gray outline, and a black letter. Animate the solution by first holding the reference line and "
-        "the through-point circle, then drawing a solid black line through that small circle at a right angle to the "
-        "reference line, and finally changing the candidate that lies on the perpendicular line to pale red with a dark red "
-        "outline while the others remain white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows one black 5 px reference segment and one small 7 px outlined black circle centered on the marked through-point. "
+        "Five candidate markers A-E sit near the hidden perpendicular direction on a short straight row; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the reference segment, the marked through-point circle, and the candidate row, then draws one black 5 px segment starting at that marked point and extending toward the correct candidate at a right angle to the reference segment. "
+        "In the final state, only the candidate on this perpendicular segment changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows one black reference line, one small black circle marking a through-point, and five labeled "

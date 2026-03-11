@@ -11,12 +11,10 @@ class IsoscelesTrapezoidGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the fourth vertex of an isosceles trapezoid."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/isosceles_trapezoid"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw three given vertices of a trapezoid as a black polyline so one non-parallel side, "
-        "the long base, and part of the top structure are already visible. Place five small labeled candidate circles A-E "
-        "near the missing fourth vertex, each with white fill, dark gray outline, and a black letter. Animate the solution "
-        "by first holding the three given sides, then drawing the two missing black edges that complete an isosceles "
-        "trapezoid with parallel bases and equal legs, and finally changing the correct missing vertex marker to pale red "
-        "with a dark red outline while the other candidates stay white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows three known vertices of an almost-complete isosceles trapezoid as an open black 5 px polyline with two connected segments already visible and one corner missing. "
+        "Five candidate markers A-E are placed near that missing fourth vertex; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the open three-vertex polyline and the candidate markers, then draws two black 5 px segments from the visible right endpoint to the correct candidate and from that candidate to the upper-left visible vertex, completing a trapezoid whose two bases are parallel and whose two legs are equal. "
+        "In the final frame, only the correct missing-corner marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows three connected black vertices that almost form an isosceles trapezoid, plus five labeled "

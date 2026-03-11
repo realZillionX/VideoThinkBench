@@ -1380,28 +1380,75 @@ def select_pattern(name: str, **kwargs):
     raise KeyError(name)
 
 
-VIDEOGEN_INSTRUCTION_COLOR_1 = "This part should be completely filled with the correct color while the other parts should be unchanged."
-VIDEOGEN_INSTRUCTION_COLOR_2 = "This part should be completely filled with the correct color (not white or the original grey) to match the pattern in the image while the other parts should be unchanged."
-VIDEOGEN_INSTRUCTION_CIRCLE_1 = "The question mark part should be replaced with the correct circle while the other circles should be unchanged."
-VIDEOGEN_INSTRUCTION_CIRCLE_2 = "This part should be replaced with the correct circle while the other circles should be unchanged."
-VIDEOGEN_INSTRUCTION_SHAPE_1 = "This part should be replaced with the correct shape while the other shapes should be unchanged."
-VIDEOGEN_INSTRUCTION_SHAPE_2 = "The question mark area should be replaced with the correct shape while the other shapes should be unchanged."
-
-VIDEOGEN_INSTRUCTION_COMMON = "The question mark disappears. Then nothing happens and the scene remains static. Do not zoom in or out, or change the positions of the shapes."
+VIDEOGEN_INSTRUCTION_COMMON = (
+    "The video holds on the puzzle frame, then smoothly crossfades to the solution so that only the question-mark region "
+    "changes into the correct answer while every other shape stays fixed, and finally remains still on the solved image "
+    "with a static camera and no zoom or pan."
+)
 
 pattern_instructions = {
-    "color_grid": VIDEOGEN_INSTRUCTION_COLOR_1,
-    "color_hexagon": VIDEOGEN_INSTRUCTION_COLOR_1,
-    "color_overlap_squares": VIDEOGEN_INSTRUCTION_COLOR_1,
-    "color_size": VIDEOGEN_INSTRUCTION_COLOR_2,
-    "polygon_sides_color": VIDEOGEN_INSTRUCTION_COLOR_1,
-    "rectangle_height_color": VIDEOGEN_INSTRUCTION_COLOR_1,
-
-    "shape_reflect": VIDEOGEN_INSTRUCTION_SHAPE_2,
-    "shape_size_grid": VIDEOGEN_INSTRUCTION_SHAPE_1,
-
-    "size_cycle": VIDEOGEN_INSTRUCTION_CIRCLE_1,
-    "size_grid": VIDEOGEN_INSTRUCTION_CIRCLE_2,
+    "color_grid": (
+        "A centered visual puzzle sits on a 512x512 clean white canvas. It shows nine evenly spaced pastel circles with "
+        "thin black outlines arranged in a 3x3 grid, where the four corner circles share one color, the four edge-middle "
+        "circles share a second color, and the center circle is a third color. One non-center position contains only a "
+        "black question mark, which represents the missing circle color that should appear at that exact grid cell."
+    ),
+    "color_hexagon": (
+        "A centered regular hexagon appears on a 512x512 clean white canvas. The hexagon is divided from the center into "
+        "six triangular wedges with thin black edges, and opposite wedges share the same pastel color chosen from blue, "
+        "green, yellow, red, purple, or orange. One wedge is filled light gray and marked with a black question mark, "
+        "indicating the missing wedge color."
+    ),
+    "color_overlap_squares": (
+        "A centered composition on a 512x512 clean white canvas shows three overlapping rotated squares with thin black "
+        "outlines, and the whole cluster is slightly rotated. The three main squares use primary colors while the overlap "
+        "regions show the corresponding mixed secondary colors, forming a compact layered arrangement of square and "
+        "triangular regions. One side square is replaced by a light gray shape with a black question mark, indicating the "
+        "missing square color."
+    ),
+    "color_size": (
+        "A large centered stack of four nested shapes sits on a 512x512 clean white canvas. All four shapes share the same "
+        "geometry, either circles or regular polygons with black outlines, and they use four shades of one hue so the color "
+        "changes steadily lighter or darker as the shapes shrink inward. The smallest inner shape is replaced by a light "
+        "gray shape carrying a black question mark, indicating the missing final shade."
+    ),
+    "polygon_sides_color": (
+        "A centered triangular arrangement on a 512x512 clean white canvas contains six filled regular polygons with thin "
+        "black outlines, laid out as one on the top row, two on the middle row, and three on the bottom row. The polygons "
+        "use a pastel palette, and every polygon with the same number of sides shares the same color even though triangles, "
+        "quadrilaterals, pentagons, hexagons, heptagons, octagons, or nonagons may appear. One polygon is replaced by a "
+        "light gray version with a black question mark, meaning its color is missing."
+    ),
+    "rectangle_height_color": (
+        "A centered row of seven tall rounded rectangles appears on a 512x512 clean white canvas. The bars are solid pastel "
+        "colors with black outlines, equally spaced left to right, vertically centered, and they repeat three distinct "
+        "heights so rectangles of the same height share the same color. The rightmost bar is shown as a light gray rounded "
+        "rectangle with a black question mark, indicating the missing color for that height."
+    ),
+    "shape_reflect": (
+        "A 512x512 clean white canvas shows a horizontal black line across the middle dividing a top row and a bottom row "
+        "of three pale green polygons. Matching shapes above and below the line are vertically mirrored versions of the same "
+        "outlined triangle, square, pentagon, or hexagon. One position is replaced by a dotted outline circle with a black "
+        "question mark, indicating the missing reflected shape that should appear there."
+    ),
+    "shape_size_grid": (
+        "A centered 3x3 arrangement on a 512x512 clean white canvas shows pale green outlined polygons with black borders. "
+        "Across one axis the shape family stays constant and across the other axis the size steps from small to medium to "
+        "large, using three of triangle, square, pentagon, and hexagon. One cell is empty except for a black question mark "
+        "at its center, meaning the missing polygon of the correct shape and size must be inserted there."
+    ),
+    "size_cycle": (
+        "A 512x512 clean white canvas shows nine pale yellow circles with thin black outlines arranged in three spiral-like "
+        "arms around the center. Along each arm the circles grow from small near the center to medium and large farther "
+        "out, and the three arms are evenly spaced around the middle with a slight rotation. One circle position is "
+        "replaced by a black question mark, indicating the missing circle size that belongs at that location."
+    ),
+    "size_grid": (
+        "A centered 3x3 grid of pale yellow circles with thin black outlines appears on a 512x512 clean white canvas. The "
+        "four corner circles share one size, the four edge-middle circles share another size, and the center circle is a "
+        "third size. One non-center position contains only a black question mark instead of a circle, indicating the missing "
+        "circle size that must be filled in."
+    ),
 }
 
 def create_data(

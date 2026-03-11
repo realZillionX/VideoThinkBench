@@ -11,12 +11,10 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that require identifying a line tangent to a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_line"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one large black circle and mark one specific contact point on its circumference with "
-        "a smaller black outlined circle. Place five small labeled candidate circles A-E with white fill, dark gray outlines, "
-        "and black letters along the nearby region where the tangent line would pass. Animate the solution by first holding "
-        "the circle and the marked contact point, then drawing a solid black tangent line through that contact point, and "
-        "finally changing the candidate that lies on the tangent line into a pale red circle with a dark red outline while "
-        "the others stay white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows one large unfilled circle drawn with a black 5 px outline, plus one small 7 px outlined black circle sitting exactly on the circumference to mark the tangency point. "
+        "Five candidate markers A-E form a short straight row near the hidden tangent direction; each is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the circle, the marked contact point, and the candidate row, then draws a single black 5 px tangent segment starting at the contact point and extending in one direction toward the correct candidate. "
+        "In the final frame, only the candidate on that tangent segment changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the others remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A large black circle is shown on a white canvas with one marked point on the circumference and five labeled "

@@ -8,13 +8,10 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the point on a circle where the tangent line from an external point touches."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_point"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one large black circle and one smaller black point outside the circle as the external "
-        "point. Place five labeled candidate circles A-E directly on the circumference, each drawn as a white marker with a "
-        "dark gray outline and black letter. Animate the solution by first holding the circle and external point, then "
-        "drawing a solid black tangent segment from the external point to the correct point on the circle together with the "
-        "black radius from the center to that same contact point, and finally changing that correct candidate to pale red "
-        "with a dark red outline while the other circumference candidates remain white. In portrait, static camera, no zoom, "
-        "no pan."
+        "A 512x512 white canvas shows one large unfilled circle drawn with a black 5 px outline and one small 7 px outlined black external point outside the circle. "
+        "Exactly five candidate markers A-E lie directly on the circumference itself; each candidate is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the circle, the external point, and the five circumference markers, then draws a black 5 px tangent segment from the external point to the correct candidate and also draws a black 5 px radius from the otherwise unmarked center of the circle to that same candidate. "
+        "In the final state, that tangency candidate alone changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four circumference markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A large black circle and one black external point are shown on a white canvas, with five labeled candidate circles "

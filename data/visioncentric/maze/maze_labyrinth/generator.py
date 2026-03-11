@@ -29,11 +29,12 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_labyrinth"
     DEFAULT_TI2V_PROMPT = (
-        "On a dark canvas, draw a circular labyrinth made of concentric light gray ring corridors separated by thick black "
-        "circular walls and black radial walls. Place one solid red start dot on the outer ring and one solid red goal dot "
-        "at the center. Animate the solution by first showing the full labyrinth, then drawing one thick red path that winds "
-        "through the open passages from the outer start dot toward the center goal dot without crossing any black wall, and "
-        "finally holding on the completed route. In portrait. Static camera."
+        "A 512x512 portrait video shows a circular labyrinth on a very dark charcoal background. The maze is made of pale "
+        "gray concentric ring corridors and a pale gray central disk, separated by thick black circular walls and black "
+        "radial spokes, with a solid red start dot on the outer ring and a solid red goal dot at the center. The animation "
+        "begins with the static labyrinth, then a thick bright red path is progressively drawn through the centers of "
+        "connected ring segments and radial passages without crossing any black wall. After the line reaches the center, the "
+        "completed route holds for one second. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT = (
         "A circular labyrinth is shown on a dark background with light gray ring-shaped cells, black radial and circular "

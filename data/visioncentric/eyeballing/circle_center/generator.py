@@ -10,11 +10,10 @@ class CircleCenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_center"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one large black circle with no fill. Around its hidden center, place five small "
-        "labeled candidate circles A-E with white fill, dark gray outlines, and black letters inside. Animate the solution "
-        "by keeping the large circle fixed and then turning the candidate exactly at the center of the black circle into a "
-        "pale red marker with a dark red outline while the other candidates remain white. In portrait, static camera, no "
-        "zoom, no pan."
+        "A 512x512 white canvas shows one large unfilled circle centered somewhere on the page, drawn with a black 3 px outline and no other geometry. "
+        "Five candidate markers A-E are clustered around the hidden center of that circle; each marker is a 10 px circle with white fill, a 4 px dark gray outline RGB(32,32,32), and a black uppercase letter. "
+        "The video begins with a short hold on the static circle and the five markers, and there is no construction line or extra shape added during the middle phase. "
+        "The final state simply changes the exact center marker to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other four markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A single large black circle is drawn on a white canvas, and five labeled candidate circles A-E are placed near its "

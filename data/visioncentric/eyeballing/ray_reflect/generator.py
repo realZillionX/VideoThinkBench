@@ -11,13 +11,10 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where a ray reflects off a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_reflect"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw one black mirror line segment and one small black source point away from the mirror. "
-        "Show only a short black incoming ray stub from the source toward the mirror in the puzzle state, and place five "
-        "small labeled candidate circles A-E with white fill, dark gray outlines, and black letters near the outgoing "
-        "direction. Animate the solution by first holding the mirror and source point, then extending the incoming black ray "
-        "to the reflection point and continuing it as a black reflected segment away from the mirror, and finally changing "
-        "the candidate that lies on the reflected ray to pale red with a dark red outline while the other candidates stay "
-        "white. In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows one black 5 px mirror segment, one small 7 px outlined black source point away from the mirror, and only a short incoming black ray stub about 3 px thick extending from the source toward the mirror. "
+        "Five candidate markers A-E are placed near the hidden outgoing direction on a short row; each marker is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter. "
+        "The video first holds the mirror, the source point, the short incoming stub, and the candidate markers, then extends that incoming ray to the reflection point on the mirror and continues it away from the mirror as a matching 3 px reflected segment toward the correct candidate. "
+        "In the final frame, only the candidate on the reflected ray changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A white canvas shows a black mirror line, a small black source point, a short incoming ray segment, and five "

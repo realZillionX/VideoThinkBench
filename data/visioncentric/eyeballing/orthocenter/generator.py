@@ -10,12 +10,10 @@ class OrthocenterGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the orthocenter of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/orthocenter"
     DEFAULT_TI2V_PROMPT=(
-        "On a white square canvas, draw a black triangle outline and place five small labeled candidate circles A-E near the "
-        "hidden orthocenter. Each candidate is a white circle with a dark gray outline and a black letter. Animate the "
-        "solution by first holding the triangle, then drawing the three black altitudes from the vertices toward the "
-        "opposite sides so they meet at one point, extending beyond the triangle when necessary, and finally changing the "
-        "candidate at that shared orthocenter to pale red with a dark red outline while the other candidates remain white. "
-        "In portrait, static camera, no zoom, no pan."
+        "A 512x512 white canvas shows a triangle drawn only as a black 5 px outline, with no helper lines and no interior labels. "
+        "Five candidate markers A-E are placed near the hidden orthocenter; each is a 10 px white circle with a 4 px dark gray outline RGB(32,32,32) and a black uppercase letter, and the cluster may lie inside or just outside the triangle. "
+        "The video first holds the bare triangle and the candidate markers, then draws three black 5 px altitude segments that meet at one common point, using interior vertex-to-side drops for acute cases and extending the construction outside the triangle when the orthocenter lies outside. "
+        "In the final state, only the orthocenter marker changes to pale red fill RGB(255,220,220) with a dark red outline RGB(198,24,24), while the other candidates remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
         "A black triangle outline is shown on a white canvas with five labeled candidate circles A-E near its interior or "

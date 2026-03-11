@@ -50,11 +50,12 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
 
     DEFAULT_OUTPUT_DIR = "data/visioncentric/maze/maze_hexagon"
     DEFAULT_TI2V_PROMPT = (
-        "On a dark charcoal canvas, draw a finite honeycomb maze made of light gray hexagonal walkable cells bounded by thick "
-        "black wall segments. Mark the start cell and goal cell with solid red circular dots at their centers. Animate the "
-        "solution by first showing the full hexagonal maze layout, then drawing one thick red path through the centers of "
-        "edge-adjacent hex cells from the outer start dot to the goal dot without crossing any black wall, and finally "
-        "holding on the finished red route. In portrait. Static camera."
+        "A 512x512 portrait video shows a hexagonal maze on a dark charcoal background. The maze is a centered honeycomb "
+        "of light gray hexagonal walkable cells with thick black wall segments and rounded black wall caps, and the start "
+        "and goal are solid red dots centered inside two different hexagons. The animation begins with the static maze, "
+        "then a thick bright red path is progressively traced through the centers of edge-sharing hex cells without crossing "
+        "any black wall edge. When the route is complete, the frame holds for one second on the finished path. In portrait. "
+        "Static camera."
     )
     DEFAULT_VLM_PROMPT = (
         "A hexagonal maze is shown on a dark background with light gray hex cells, black wall edges, two red endpoint dots, "

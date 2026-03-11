@@ -30,11 +30,12 @@ class MazeGenerator(MazePuzzleGenerator):
     DEFAULT_COLS = 17
     DEFAULT_CELL_SIZE = 32
     DEFAULT_TI2V_PROMPT = (
-        "On a dark square canvas, draw a maze as a regular grid of square cells where open corridors are white, blocked "
-        "walls are black, and the start cell and goal cell are both filled solid red. Animate the solution by first showing "
-        "the full maze layout, then drawing one thick red path through the centers of adjacent open cells from the start to "
-        "the goal without crossing any black wall cells, and finally holding on the completed path with the red start and "
-        "goal cells still clearly visible above the line. In portrait. Static camera."
+        "A 512x512 portrait video shows a square maze on a pure black background. The maze is a centered regular grid of "
+        "square cells where walkable corridor cells are solid white, wall cells are solid black, and the start cell and "
+        "goal cell are two solid red squares placed at opposite corners of the grid. The animation begins with the static "
+        "maze, then a thick bright red path is progressively drawn through the centers of side-adjacent white cells without "
+        "entering any black wall cell. After the route reaches the goal, the completed red line holds for one second with "
+        "the red endpoint cells still visible. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT = (
         "A square grid maze is shown with black wall cells, white traversable cells, two red endpoint cells, and blue cell "
