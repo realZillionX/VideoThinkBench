@@ -397,6 +397,18 @@ def run_generation(args: argparse.Namespace) -> Dict[str, Any]:
             if sample is not None:
                 task_samples.append(sample)
 
+        expected_records = args.count
+        if len(merged_records) != expected_records:
+            raise RuntimeError(
+                f"Task '{task}' generated {len(merged_records)} records, expected {expected_records}. "
+                "This usually indicates worker failure or premature termination.",
+            )
+        if len(task_samples) != expected_records:
+            raise RuntimeError(
+                f"Task '{task}' canonicalized {len(task_samples)} samples, expected {expected_records}. "
+                "Check task metadata and generated assets for dropped records.",
+            )
+
         manifest_samples.extend(task_samples)
         report["tasks"][task] = {
             "status": "ok",
