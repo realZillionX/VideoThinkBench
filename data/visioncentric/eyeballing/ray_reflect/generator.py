@@ -141,6 +141,13 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
             "reflection_point": p_mirror.to_list(),
         }
 
+    def _draw_source_point(self, draw) -> None:
+        source, _, _, _ = self.points
+        self.draw_anchor_marker(draw, source, 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_source_point(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
@@ -148,20 +155,30 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
         
         # Draw the mirror line
         self.draw_line(draw, [m1, m2])
-        
-        # Draw the source point and the incoming ray
-        self.draw_circle(draw, source, 7)
 
         # If rendering the solution, draw the reflected ray
         if highlight_label:
-            self.draw_line(draw, [source, p_mirror],0.6)
+            incoming_start, incoming_end = self.trim_segment(
+                source,
+                p_mirror,
+                start_offset=9.0,
+                end_offset=0.0,
+            )
+            self.draw_line(draw, [incoming_start, incoming_end],0.6)
             self.draw_line(draw, [p_mirror, self.target_point],0.6)
         else:
             half=Point(
                 x=(source.x + p_mirror.x)/2,
                 y=(source.y + p_mirror.y)/2,
             )
-            self.draw_line(draw, [source, half],0.6)
+            stub_start, stub_end = self.trim_segment(
+                source,
+                half,
+                start_offset=9.0,
+                end_offset=0.0,
+            )
+            self.draw_line(draw, [stub_start, stub_end],0.6)
+        self._draw_source_point(draw)
             
 
         self.draw_candidates(

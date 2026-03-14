@@ -86,15 +86,28 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
         record.points = self.points
         return record
 
+    def _draw_endpoints(self, draw) -> None:
+        p1, p2 = self.points
+        self.draw_anchor_marker(draw, p1, 7)
+        self.draw_anchor_marker(draw, p2, 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_endpoints(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
         p1, p2 = self.points
-        self.draw_circle(draw, p1, 7)
-        self.draw_circle(draw, p2, 7)
 
         # Draw the original segment
-        self.draw_line(draw, [p1, p2])
+        seg_start, seg_end = self.trim_segment(
+            p1,
+            p2,
+            start_offset=9.0,
+            end_offset=9.0,
+        )
+        self.draw_line(draw, [seg_start, seg_end])
+        self._draw_endpoints(draw)
         if highlight_label:
 
             # Draw the perpendicular bisector line

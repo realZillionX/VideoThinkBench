@@ -100,6 +100,12 @@ class ReflectionGenerator(PointTargetPuzzleGenerator):
             "source_point": self.source_point.to_list(),
         }
 
+    def _draw_source_point(self, draw) -> None:
+        self.draw_anchor_marker(draw, self.source_point, 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_source_point(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         """Renders the reflection puzzle on an image canvas."""
         draw, base = self.get_draw_base()
@@ -107,12 +113,17 @@ class ReflectionGenerator(PointTargetPuzzleGenerator):
         # Draw the line of reflection.
         self.draw_line(draw, self.line_points)
         
-        # Draw the source point to be reflected.
-        self.draw_circle(draw, self.source_point, 7)
-        
         # If rendering the solution, draw the line connecting the source to its reflection.
         if highlight_label:
-            self.draw_line(draw, [self.source_point, self.target_point])
+            line_start, line_end = self.trim_segment(
+                self.source_point,
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw, [line_start, line_end])
+
+        self._draw_source_point(draw)
 
         # Draw the multiple-choice candidate points.
         self.draw_candidates(
