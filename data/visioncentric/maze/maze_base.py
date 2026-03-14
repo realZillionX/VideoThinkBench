@@ -210,9 +210,12 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
     DEFAULT_TI2V_PROMPT: Optional[str] = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
     DEFAULT_VLM_PROMPT: Optional[str] = "Find a path connecting the two red dots without touching the black walls in the maze. Each traversable region has its ID printed on it. Present your answer as a list of IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
     DEFAULT_TI2I_PROMPT: Optional[str] = _strip_video_instruction(DEFAULT_TI2V_PROMPT)
-    DEFAULT_TI2T_PROMPT: Optional[str] = DEFAULT_VLM_PROMPT
+    DEFAULT_TI2T_PROMPT: Optional[str] = (
+        "Use the provided reasoning image to solve the task. Find a path connecting the two red dots without touching the black walls in the maze. "
+        "Each traversable region has its ID printed on it. Present your answer as a list of IDs. Example: [1, 4, 3, 2]."
+    )
     DEFAULT_TI2TI_PROMPT: Optional[str] = (
-        "Use the provided reasoning image as input. Find a path connecting the two red dots without touching the black walls in the maze. "
+        "Find a path connecting the two red dots without touching the black walls in the maze. "
         "Each traversable region has its ID printed on it. Determine the correct path, then generate the solved maze image by drawing the red path and removing the cell ID numbers from the final image."
     )
 

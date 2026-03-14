@@ -37,7 +37,12 @@ def ensure_image_conditioned_prompt(prompt: Optional[str], *, mode: str) -> str:
     if not normalized:
         return ""
     lowered = normalized.lower()
-    if "provided puzzle image" in lowered or "provided maze image" in lowered or "provided input image" in lowered:
+    if (
+        "provided puzzle image" in lowered
+        or "provided maze image" in lowered
+        or "provided input image" in lowered
+        or "provided reasoning image" in lowered
+    ):
         return normalized
     if mode == "ti2v":
         return f"Use the provided puzzle image as the starting frame. {normalized}".strip()
