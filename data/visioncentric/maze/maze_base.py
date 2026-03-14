@@ -115,21 +115,39 @@ def _draw_path_joint(
     draw.ellipse((px - half, py - half, px + half, py + half), fill=color)
 
 
+def _draw_path_square_cap(
+    draw: ImageDraw.ImageDraw,
+    point: Tuple[float, float],
+    color: Any,
+    thickness: int,
+) -> None:
+    """Draw a square cap for square-grid maze paths."""
+    half = thickness / 2
+    px, py = point
+    draw.rectangle((px - half, py - half, px + half, py + half), fill=color)
+
+
 def draw_path_line(
     image: Image.Image,
     points: List[Tuple[float, float]],
     color: Tuple[int, int, int],
     thickness: int,
+    *,
+    joint_style: str = "round",
 ) -> None:
     """Draws a path (solution line) on the given image."""
     draw = ImageDraw.Draw(image)
     if len(points) >= 2:
         for i in range(len(points) - 1):
             _draw_path_segment_rect(draw, points[i], points[i + 1], color, thickness)
-        for point in points:
-            _draw_path_joint(draw, point, color, thickness)
+        if joint_style == "round":
+            for point in points:
+                _draw_path_joint(draw, point, color, thickness)
     elif len(points) == 1:
-        _draw_path_joint(draw, points[0], color, thickness)
+        if joint_style == "round":
+            _draw_path_joint(draw, points[0], color, thickness)
+        else:
+            _draw_path_square_cap(draw, points[0], color, thickness)
 
 @dataclass
 class MazePuzzleRecord:
@@ -277,6 +295,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         color: Tuple[int, int, int] = (220, 30, 30),
         fps: int = 16,
         duration: float = 6.4,
+        joint_style: str = "round",
     ) -> Optional[Path]:
         """Generates a solution video if video output is enabled."""
         self._last_video_fps = None
@@ -316,11 +335,15 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         full_draw = ImageDraw.Draw(full_frame)
         for i in range(len(points) - 1):
             _draw_path_segment_rect(full_draw, points[i], points[i + 1], color, thickness)
-        for point in points:
-            _draw_path_joint(full_draw, point, color, thickness)
+        if joint_style == "round":
+            for point in points:
+                _draw_path_joint(full_draw, point, color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
-        _draw_path_joint(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
+        if joint_style == "round":
+            _draw_path_joint(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
+        else:
+            _draw_path_square_cap(ImageDraw.Draw(revealed_mask), points[0], 255, thickness)
         prev_segment = 0
         prev_tip: Tuple[float, float] = points[0]
         prev_full_segments = 0
@@ -368,12 +391,16 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 if visible_tip != current_start:
                     _draw_path_segment_rect(revealed_draw, current_start, visible_tip, 255, thickness)
 
-            for point_idx in range(prev_full_segments + 1, min(full_segments, len(points) - 1) + 1):
-                _draw_path_joint(revealed_draw, points[point_idx], 255, thickness)
+            if joint_style == "round":
+                for point_idx in range(prev_full_segments + 1, min(full_segments, len(points) - 1) + 1):
+                    _draw_path_joint(revealed_draw, points[point_idx], 255, thickness)
 
             frame_mask = revealed_mask.copy()
             mask_draw = ImageDraw.Draw(frame_mask)
-            _draw_path_joint(mask_draw, visible_tip, 255, thickness)
+            if joint_style == "round":
+                _draw_path_joint(mask_draw, visible_tip, 255, thickness)
+            else:
+                _draw_path_square_cap(mask_draw, visible_tip, 255, thickness)
 
             frame_img = Image.composite(full_frame, puzzle_image, frame_mask)
             frames.append(frame_img.copy())
@@ -660,7 +687,13 @@ class MazePuzzleEvaluator(AbstractPuzzleEvaluator):
             elif "ring_width" in record:
                 thickness = max(3, int(record["ring_width"]) // 4)
             
-            draw_path_line(canvas, points, (220, 30, 30), thickness)
+            draw_path_line(
+                canvas,
+                points,
+                (220, 30, 30),
+                thickness,
+                joint_style=str(record.get("path_joint_style", "round")),
+            )
             # Save the reconstructed image
             try:
                 canvas.save(candidate_path)

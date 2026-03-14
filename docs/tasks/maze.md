@@ -88,6 +88,12 @@ All three maze families share the following base parameters, although some of th
 
 The current default pipeline carves the maze with DFS and then finds the canonical path from `(1, 1)` to the lower-right corner with BFS.
 
+Rendering quality guardrails also differ slightly by maze type now:
+
+- `maze_square` uses square-cornered red path rendering, so right-angle turns and the animated path head stay blocky instead of rounding off.
+- `maze_hexagon` draws blocked edges as short wall polygons, which removes the small outward corner bumps that used to appear at some obstacle turns.
+- `maze_labyrinth` tightens the red marker radius so the outer-ring start dot stays inside the traversable band instead of bleeding into adjacent black walls.
+
 ## `maze_hexagon`
 
 The hexagon renderer now draws blocked edges as short filled wall polygons instead of line segments plus oversized corner caps. This keeps wall joins smoother and avoids the small outward corner bumps that could otherwise appear at obstacle turns.

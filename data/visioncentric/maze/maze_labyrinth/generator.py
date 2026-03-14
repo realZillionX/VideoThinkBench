@@ -448,7 +448,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     def _draw_markers(self, draw: ImageDraw.ImageDraw, start_cell: Cell, goal_cell: Cell) -> None:
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)
-        radius = max(6, self.ring_width // 3)
+        radius = max(4, int((self.ring_width - self.wall_thickness * 1.5) / 2))
         self._draw_marker(draw, start_point, START_COLOR, radius)
         self._draw_marker(draw, goal_point, GOAL_COLOR, radius)
 

@@ -148,7 +148,13 @@ class MazeGenerator(MazePuzzleGenerator):
         video_path = None
         if self.video:
             path_points = [self._cell_center(self._get_cell_id(*cell)) for cell in path]
-            video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=max(3, self.cell_size // 3))
+            video_path = self.save_video(
+                puzzle_uuid,
+                puzzle_image,
+                path_points,
+                thickness=max(3, self.cell_size // 3),
+                joint_style="square",
+            )
 
         start_point = self._cell_center(self._get_cell_id(*start))
         goal_point = self._cell_center(self._get_cell_id(*goal))
@@ -161,6 +167,7 @@ class MazeGenerator(MazePuzzleGenerator):
             "cell_bboxes": cell_bboxes,
             "padding": [pad_left, pad_top, pad_right, pad_bottom],
             "solution_path_cell_ids": [self._get_cell_id(*cell) for cell in path],
+            "path_joint_style": "square",
         }
         return self.build_record(
             puzzle_uuid,
@@ -313,7 +320,7 @@ class MazeGenerator(MazePuzzleGenerator):
                 )
                 for r, c in path
             ]
-            draw_path_line(canvas, points, LINE_COLOR, thickness)
+            draw_path_line(canvas, points, LINE_COLOR, thickness, joint_style="square")
 
             # Reinforce start/goal colors on top of the line for clarity
             self._draw_cell(draw, start, pad_left, pad_top, START_COLOR)
