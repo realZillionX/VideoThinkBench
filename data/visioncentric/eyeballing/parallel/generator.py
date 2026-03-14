@@ -89,13 +89,25 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
             "through_point": self.points[0].to_list(),
         }
 
+    def _draw_through_point(self, draw) -> None:
+        self.draw_anchor_marker(draw, self.points[0], 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_through_point(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
         self.draw_line(draw,self.points[1:])
-        self.draw_circle(draw,self.points[0],7)
         if highlight_label:
-            self.draw_line(draw,[self.points[0],self.target_point])
+            line_start, line_end = self.trim_segment(
+                self.points[0],
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw,[line_start, line_end])
+        self._draw_through_point(draw)
 
         self.draw_candidates(
             draw,
