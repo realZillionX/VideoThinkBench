@@ -143,6 +143,9 @@ def draw_path_line(
         if joint_style == "round":
             for point in points:
                 _draw_path_joint(draw, point, color, thickness)
+        else:
+            for point in points:
+                _draw_path_square_cap(draw, point, color, thickness)
     elif len(points) == 1:
         if joint_style == "round":
             _draw_path_joint(draw, points[0], color, thickness)
@@ -338,6 +341,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         if joint_style == "round":
             for point in points:
                 _draw_path_joint(full_draw, point, color, thickness)
+        else:
+            for point in points:
+                _draw_path_square_cap(full_draw, point, color, thickness)
 
         revealed_mask = Image.new("L", (width, height), 0)
         if joint_style == "round":
@@ -394,6 +400,9 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             if joint_style == "round":
                 for point_idx in range(prev_full_segments + 1, min(full_segments, len(points) - 1) + 1):
                     _draw_path_joint(revealed_draw, points[point_idx], 255, thickness)
+            else:
+                for point_idx in range(prev_full_segments + 1, min(full_segments, len(points) - 1) + 1):
+                    _draw_path_square_cap(revealed_draw, points[point_idx], 255, thickness)
 
             frame_mask = revealed_mask.copy()
             mask_draw = ImageDraw.Draw(frame_mask)

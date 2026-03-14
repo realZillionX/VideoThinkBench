@@ -448,9 +448,8 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     def _draw_markers(self, draw: ImageDraw.ImageDraw, start_cell: Cell, goal_cell: Cell) -> None:
         start_point = self._cell_center_from_cell(start_cell)
         goal_point = self._cell_center_from_cell(goal_cell)
-        radius = max(4, int((self.ring_width - self.wall_thickness * 1.5) / 2))
-        self._draw_marker(draw, start_point, START_COLOR, radius)
-        self._draw_marker(draw, goal_point, GOAL_COLOR, radius)
+        self._draw_marker(draw, start_point, START_COLOR, self._marker_radius_for_cell(start_cell))
+        self._draw_marker(draw, goal_point, GOAL_COLOR, self._marker_radius_for_cell(goal_cell))
 
     def _draw_marker(
         self,
@@ -469,6 +468,20 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         thickness = max(3, self.ring_width // 4)
         points = [self._cell_center_from_cell(cell) for cell in path]
         draw_path_line(image, points, LINE_COLOR, thickness)
+
+    def _marker_radius_for_cell(self, cell: Cell) -> int:
+        ring, _ = cell
+        if ring == 0:
+            safe = (self.ring_width - self.wall_thickness * 1.8) / 2.0
+            return max(4, int(safe))
+
+        inner, outer = self._ring_bounds(ring)
+        radius_mid = self._radius_to_pixel((inner + outer) * 0.5)
+        radial_clearance = (outer - inner) * 0.5 - self.wall_thickness * 0.9
+        angle_span = (2.0 * math.pi) / self.cells_per_ring[ring]
+        angular_clearance = radius_mid * math.sin(angle_span * 0.5) - self.wall_thickness * 0.9
+        safe = min(radial_clearance, angular_clearance) - 1.0
+        return max(4, int(safe))
 
     def _draw_cell_ids(self, draw: ImageDraw.ImageDraw) -> None:
         font_size = max(8, int(self.ring_width * 0.4))
