@@ -217,8 +217,8 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
 
         video_path = None
         if self.video:
-            path_points = [self._cell_center_from_cell(cell) for cell in path_cells]
-            thickness = max(3, self.ring_width // 4)
+            path_points = self._build_path_points(path_cells)
+            thickness = max(3, self.ring_width // 5)
             video_path = self.save_video(puzzle_uuid, puzzle_image, path_points, thickness=thickness, duration=5.0)
 
         start_point = self._cell_center_from_cell(start_cell)
@@ -465,9 +465,69 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     def _draw_solution(self, image: Image.Image, path: Sequence[Cell]) -> None:
         if len(path) < 2:
             return
-        thickness = max(3, self.ring_width // 4)
-        points = [self._cell_center_from_cell(cell) for cell in path]
+        thickness = max(3, self.ring_width // 5)
+        points = self._build_path_points(path)
         draw_path_line(image, points, LINE_COLOR, thickness)
+
+    def _build_path_points(self, path: Sequence[Cell]) -> List[Tuple[float, float]]:
+        if not path:
+            return []
+        points: List[Tuple[float, float]] = [self._cell_center_from_cell(path[0])]
+        for current, nxt in zip(path, path[1:]):
+            if current[0] == nxt[0]:
+                points.extend(self._arc_points_between_cells(current, nxt)[1:])
+                continue
+
+            overlap_angle_deg = self._overlap_mid_angle(current[0], current[1], nxt)
+            current_anchor = self._cell_anchor_at_angle(current, overlap_angle_deg)
+            next_anchor = self._cell_anchor_at_angle(nxt, overlap_angle_deg)
+            if points[-1] != current_anchor:
+                points.append(current_anchor)
+            for point in self._radial_points_between(current_anchor, next_anchor)[1:]:
+                if point != points[-1]:
+                    points.append(point)
+            next_center = self._cell_center_from_cell(nxt)
+            if points[-1] != next_center:
+                points.append(next_center)
+        return points
+
+    def _cell_anchor_at_angle(self, cell: Cell, angle_deg: float) -> Tuple[float, float]:
+        ring, _ = cell
+        if ring == 0:
+            return self.center
+        return self._polar_to_cartesian(self._cell_path_radius(ring), math.radians(angle_deg))
+
+    def _arc_points_between_cells(self, current: Cell, nxt: Cell) -> List[Tuple[float, float]]:
+        ring, idx = current
+        radius = self._cell_path_radius(ring)
+        start_deg = sum(self._segment_angles_deg(ring, idx)) * 0.5
+        end_deg = sum(self._segment_angles_deg(nxt[0], nxt[1])) * 0.5
+        delta = (end_deg - start_deg + 180.0) % 360.0 - 180.0
+        steps = max(4, int(abs(delta) / 8.0))
+        arc_points: List[Tuple[float, float]] = []
+        for step in range(steps + 1):
+            ratio = step / steps
+            angle_deg = start_deg + delta * ratio
+            arc_points.append(self._polar_to_cartesian(radius, math.radians(angle_deg)))
+        return arc_points
+
+    def _radial_points_between(
+        self,
+        start: Tuple[float, float],
+        end: Tuple[float, float],
+    ) -> List[Tuple[float, float]]:
+        distance = math.hypot(end[0] - start[0], end[1] - start[1])
+        steps = max(2, int(distance / max(6.0, self.ring_width * 0.25)))
+        radial_points: List[Tuple[float, float]] = []
+        for step in range(steps + 1):
+            ratio = step / steps
+            radial_points.append(
+                (
+                    start[0] + (end[0] - start[0]) * ratio,
+                    start[1] + (end[1] - start[1]) * ratio,
+                )
+            )
+        return radial_points
 
     def _marker_radius_for_cell(self, cell: Cell) -> int:
         ring, _ = cell
@@ -558,11 +618,14 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         ring, idx = cell
         if ring == 0:
             return self.center
-        inner, outer = self._ring_bounds(ring)
-        radius = self._radius_to_pixel((inner + outer - self.wall_thickness) * 0.5)
+        radius = self._cell_path_radius(ring)
         start_deg, end_deg = self._segment_angles_deg(ring, idx)
         angle_rad = math.radians((start_deg + end_deg) * 0.5)
         return self._polar_to_cartesian(radius, angle_rad)
+
+    def _cell_path_radius(self, ring: int) -> float:
+        inner, outer = self._ring_bounds(ring)
+        return self._radius_to_pixel((inner + outer - self.wall_thickness) * 0.5)
 
     # ------------------------------------------------------------------
     # CLI helpers
