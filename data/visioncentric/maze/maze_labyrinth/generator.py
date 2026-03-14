@@ -559,7 +559,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         if ring == 0:
             return self.center
         inner, outer = self._ring_bounds(ring)
-        radius = self._radius_to_pixel((inner + outer) * 0.5)
+        radius = self._radius_to_pixel((inner + outer - self.wall_thickness) * 0.5)
         start_deg, end_deg = self._segment_angles_deg(ring, idx)
         angle_rad = math.radians((start_deg + end_deg) * 0.5)
         return self._polar_to_cartesian(radius, angle_rad)
