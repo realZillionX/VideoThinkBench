@@ -10,7 +10,8 @@ from typing import Deque, Dict, List, Optional, Sequence, Set, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from data.visioncentric.maze.maze_base import MazePuzzleGenerator, MazePuzzleRecord, draw_path_line
+from data.video_encoding import encode_rgb_frames_to_mp4
+from data.visioncentric.maze.maze_base import MazePuzzleGenerator, MazePuzzleRecord
 
 # Colors used for rendering.
 PATH_COLOR = (240, 240, 240)
@@ -467,7 +468,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             return
         thickness = max(3, self.ring_width // 5)
         points = self._build_path_points(path)
-        draw_path_line(image, points, LINE_COLOR, thickness)
+        ImageDraw.Draw(image).line(points, fill=LINE_COLOR, width=thickness, joint="curve")
 
     def _build_path_points(self, path: Sequence[Cell]) -> List[Tuple[float, float]]:
         if not path:
@@ -503,7 +504,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         start_deg = sum(self._segment_angles_deg(ring, idx)) * 0.5
         end_deg = sum(self._segment_angles_deg(nxt[0], nxt[1])) * 0.5
         delta = (end_deg - start_deg + 180.0) % 360.0 - 180.0
-        steps = max(4, int(abs(delta) / 8.0))
+        steps = max(8, int(abs(delta) / 2.0))
         arc_points: List[Tuple[float, float]] = []
         for step in range(steps + 1):
             ratio = step / steps
@@ -517,7 +518,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
         end: Tuple[float, float],
     ) -> List[Tuple[float, float]]:
         distance = math.hypot(end[0] - start[0], end[1] - start[1])
-        steps = max(2, int(distance / max(6.0, self.ring_width * 0.25)))
+        steps = max(4, int(distance / max(3.0, self.ring_width * 0.15)))
         radial_points: List[Tuple[float, float]] = []
         for step in range(steps + 1):
             ratio = step / steps
@@ -626,6 +627,76 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     def _cell_path_radius(self, ring: int) -> float:
         inner, outer = self._ring_bounds(ring)
         return self._radius_to_pixel((inner + outer - self.wall_thickness) * 0.5)
+
+    def save_video(
+        self,
+        record_id: str,
+        puzzle_image: Image.Image,
+        points: List[Tuple[float, float]],
+        thickness: int = 5,
+        color: Tuple[int, int, int] = (220, 30, 30),
+        fps: int = 16,
+        duration: float = 6.4,
+        joint_style: str = "round",
+    ) -> Optional[Path]:
+        self._last_video_fps = None
+        self._last_video_num_frames = None
+        if not self.video:
+            return None
+
+        video_path = self.solution_dir / f"{record_id}_solution.mp4"
+        if len(points) < 2:
+            frames = [puzzle_image.copy() for _ in range(fps)]
+            if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
+                return None
+            self._last_video_fps = fps
+            self._last_video_num_frames = fps
+            return video_path
+
+        eff_duration = min(duration, 10.0)
+        total_frames = int(fps * eff_duration)
+        cumulative = [0.0]
+        for p1, p2 in zip(points, points[1:]):
+            cumulative.append(cumulative[-1] + math.hypot(p2[0] - p1[0], p2[1] - p1[1]))
+        total_len = cumulative[-1]
+
+        frames: List[Image.Image] = []
+        for frame_idx in range(total_frames + 1):
+            progress = frame_idx / total_frames if total_frames > 0 else 1.0
+            target_len = total_len * progress
+            visible: List[Tuple[float, float]] = [points[0]]
+            for seg_idx, (p1, p2) in enumerate(zip(points, points[1:]), start=1):
+                seg_start = cumulative[seg_idx - 1]
+                seg_end = cumulative[seg_idx]
+                if target_len >= seg_end - 1e-6:
+                    visible.append(p2)
+                    continue
+                if target_len > seg_start:
+                    ratio = (target_len - seg_start) / max(1e-6, seg_end - seg_start)
+                    visible.append(
+                        (
+                            p1[0] + (p2[0] - p1[0]) * ratio,
+                            p1[1] + (p2[1] - p1[1]) * ratio,
+                        )
+                    )
+                break
+
+            frame = puzzle_image.copy()
+            if len(visible) >= 2:
+                ImageDraw.Draw(frame).line(visible, fill=color, width=thickness, joint="curve")
+            frames.append(frame)
+
+        end_hold_frames = int(fps * 1.0)
+        final_frame = puzzle_image.copy()
+        ImageDraw.Draw(final_frame).line(points, fill=color, width=thickness, joint="curve")
+        for _ in range(end_hold_frames):
+            frames.append(final_frame.copy())
+
+        if not encode_rgb_frames_to_mp4(frames, video_path, fps=fps):
+            return None
+        self._last_video_fps = fps
+        self._last_video_num_frames = len(frames)
+        return video_path
 
     # ------------------------------------------------------------------
     # CLI helpers
