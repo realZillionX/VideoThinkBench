@@ -1544,6 +1544,28 @@ def build_visual_puzzle_ti2ti_prompt(sample: dict) -> str:
     )
 
 
+def prune_visual_puzzle_record(sample: dict) -> dict:
+    keep_keys = {
+        "id",
+        "question",
+        "answer",
+        "options",
+        "ti2v_prompt",
+        "ti2i_prompt",
+        "ti2t_prompt",
+        "ti2ti_prompt",
+        "ti2t_answer",
+        "ti2ti_answer",
+        "image",
+        "reasoning_image",
+        "solution_image_path",
+        "solution_video_path",
+        "video_fps",
+        "video_num_frames",
+    }
+    return {key: sample[key] for key in keep_keys if key in sample}
+
+
 def create_data(
     pattern_name: str,
     path: str,
@@ -1590,7 +1612,6 @@ def create_data(
         raw_answer = str(sample.get("answer") or "").strip() or None
         ti2t_answer = format_ti2t_answer(raw_answer) if raw_answer else None
         sample["ti2v_prompt"] = ti2v_prompt
-        sample["prompt"] = ti2v_prompt
         sample["ti2i_prompt"] = ti2i_prompt
         sample["ti2t_prompt"] = ti2t_prompt
         sample["ti2ti_prompt"] = ti2ti_prompt
@@ -1611,7 +1632,7 @@ def create_data(
             "image": sample["solution_image_path"],
         } if ti2t_answer else None
 
-        samples.append(sample)
+        samples.append(prune_visual_puzzle_record(sample))
         progress.update()
         question_idx += 1
 

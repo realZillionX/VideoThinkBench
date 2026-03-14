@@ -38,9 +38,6 @@ Each sample usually contains:
 - `question`.
 - `answer`.
 - `options`.
-- `caption`.
-- `explanation`.
-- `deduction`.
 - the generation / reasoning puzzle image `image` (for this task family, `reasoning_image` is the same file).
 - the solution image.
 - `ti2v_prompt` for image-conditioned video generation.
@@ -49,6 +46,8 @@ Each sample usually contains:
 - `ti2ti_prompt`, which first asks the model to determine the correct option and then render the solved image.
 - `ti2t_answer`, which rewrites `answer` into a normalized sentence such as `Answer: Blue.`.
 - `ti2ti_answer`, which pairs `ti2t_answer` with `solution_image_path`.
+
+The old descriptive helper fields `caption` / `explanation` / `deduction` and the old compatibility fields `prompt` / `vlm_prompt` / `vlm_answer` are no longer written into the mainline `visual_puzzle` `data.json`.
 
 In the unified pipeline, these fields are converted into `CanonicalSample`, with the answer normalized into `correct_option`.
 

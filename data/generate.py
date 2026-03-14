@@ -66,6 +66,28 @@ def _build_visual_puzzle_ti2ti_prompt(sample: Dict[str, Any]) -> str:
     )
 
 
+def _prune_visual_puzzle_record(sample: Dict[str, Any]) -> Dict[str, Any]:
+    keep_keys = {
+        "id",
+        "question",
+        "answer",
+        "options",
+        "ti2v_prompt",
+        "ti2i_prompt",
+        "ti2t_prompt",
+        "ti2ti_prompt",
+        "ti2t_answer",
+        "ti2ti_answer",
+        "image",
+        "reasoning_image",
+        "solution_image_path",
+        "solution_video_path",
+        "video_fps",
+        "video_num_frames",
+    }
+    return {key: sample[key] for key in keep_keys if key in sample}
+
+
 def load_generator_class(spec: TaskSpec):
     module = importlib.import_module(spec.module)
     if spec.class_name and hasattr(module, spec.class_name):
@@ -251,7 +273,7 @@ def _generate_visual_puzzle_worker(
         sample["solution_video_path"] = solution_video_rel
         sample["video_fps"] = video_fps_val
         sample["video_num_frames"] = video_num_frames_val
-        samples.append(sample)
+        samples.append(_prune_visual_puzzle_record(sample))
         question_idx += 1
 
     metadata_path = output_dir / "data.json"
