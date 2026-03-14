@@ -76,7 +76,7 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
         }
 
     def _draw_through_point(self, draw) -> None:
-        self.draw_circle(draw, self.points[0], 7)
+        self.draw_anchor_marker(draw, self.points[0], 7)
 
     def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
         self._draw_through_point(draw)
@@ -86,7 +86,13 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
         
         self.draw_line(draw,self.points[1:])
         if highlight_label:
-            self.draw_line(draw,[self.points[0],self.target_point])
+            line_start, line_end = self.trim_segment(
+                self.points[0],
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw,[line_start, line_end])
         self._draw_through_point(draw)
 
         self.draw_candidates(

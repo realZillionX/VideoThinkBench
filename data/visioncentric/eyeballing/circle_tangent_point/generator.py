@@ -164,10 +164,10 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         return record
 
     def _draw_external_point(self, draw) -> None:
-        self.draw_circle(draw, self.external_point, 7)
+        self.draw_anchor_marker(draw, self.external_point, 7)
 
     def _draw_center_marker(self, draw) -> None:
-        self.draw_circle(draw, self.center, 7)
+        self.draw_anchor_marker(draw, self.center, 7)
 
     def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
         self._draw_external_point(draw)
@@ -180,12 +180,26 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
 
         # Highlight the solution if rendering the answer image
         if highlight_label:
-            # Draw the line segment from P to T (the tangent line fragment)
-            self.draw_line(draw, [self.external_point, self.target_point])
-            
-            # Optionally, draw the radius CT to emphasize the perpendicular relationship
-            self.draw_line(draw, [self.center, self.target_point])
             self._draw_center_marker(draw)
+
+            # Draw the line segment from P to T (the tangent line fragment)
+            tangent_start, tangent_end = self.trim_segment(
+                self.external_point,
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw, [tangent_start, tangent_end])
+            
+            # Draw the radius after introducing the center marker, but keep the
+            # line outside the hollow markers so the interior stays clean.
+            radius_start, radius_end = self.trim_segment(
+                self.center,
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw, [radius_start, radius_end])
 
         # Draw the external point above animated / solution lines.
         self._draw_external_point(draw)

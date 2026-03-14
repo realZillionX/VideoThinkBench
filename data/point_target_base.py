@@ -797,6 +797,58 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
         draw.ellipse(bbox, outline=self.CANDIDATE_OUTLINE_COLOR, width=self.line_width)
 
+    def draw_anchor_marker(
+        self,
+        draw,
+        center: Point,
+        radius: int,
+    ) -> None:
+        if isinstance(draw, DrawingRecorder):
+            cx, cy = round(center.x), round(center.y)
+            bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
+            draw.add_high_level_command(
+                "draw_anchor_marker",
+                bbox=bbox,
+                fill=self.CANDIDATE_BASE_FILL,
+                outline=self.CANDIDATE_OUTLINE_COLOR,
+                width=max(2, self.line_width),
+            )
+            return
+
+        cx, cy = round(center.x), round(center.y)
+        bbox = (cx - radius, cy - radius, cx + radius, cy + radius)
+        draw.ellipse(
+            bbox,
+            fill=self.CANDIDATE_BASE_FILL,
+            outline=self.CANDIDATE_OUTLINE_COLOR,
+            width=max(2, self.line_width),
+        )
+
+    def trim_segment(
+        self,
+        start: Point,
+        end: Point,
+        *,
+        start_offset: float = 0.0,
+        end_offset: float = 0.0,
+    ) -> Tuple[Point, Point]:
+        dx = end.x - start.x
+        dy = end.y - start.y
+        length = math.hypot(dx, dy)
+        if length <= 1e-6:
+            return start, end
+        ux = dx / length
+        uy = dy / length
+        trimmed_start = Point(
+            x=start.x + ux * max(0.0, start_offset),
+            y=start.y + uy * max(0.0, start_offset),
+        )
+        trimmed_end = Point(
+            x=end.x - ux * max(0.0, end_offset),
+            y=end.y - uy * max(0.0, end_offset),
+        )
+        return trimmed_start, trimmed_end
+
     def _get_candidate_font(self) -> Any:
         if self._candidate_font is None:
             self._candidate_font = ImageFont.load_default(15)
@@ -1077,6 +1129,13 @@ class VideoRenderer:
              self.draw.line(flat_list, fill=cmd['fill'], width=cmd['width'])
         elif t == 'draw_circle':
              self.draw.ellipse(cmd['bbox'], outline=cmd['outline'], width=cmd['width'])
+        elif t == 'draw_anchor_marker':
+             self.draw.ellipse(
+                 cmd['bbox'],
+                 fill=cmd.get('fill'),
+                 outline=cmd.get('outline'),
+                 width=cmd.get('width', 1),
+             )
         
         # Native PIL commands
         elif t == 'line':
