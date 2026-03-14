@@ -136,14 +136,21 @@ def _write_edit_dataset(
         task_types = []
         answers = []
         for sample in chunk_rows:
+            prompt = sample.prompt_for("ti2i")
+            if not prompt:
+                continue
             puzzle_bytes = Path(sample.assets.puzzle_image).read_bytes()
             solution_bytes = Path(sample.assets.solution_image).read_bytes()
             image_lists.append([puzzle_bytes, solution_bytes])
-            instruction_lists.append([[sample.prompt_train]])
+            instruction_lists.append([[prompt]])
             sample_ids.append(sample.id)
             task_groups.append(sample.task_group)
             task_types.append(sample.task_type)
             answers.append(_solution_text(sample))
+
+        if not sample_ids:
+            chunk_rows.clear()
+            return
 
         shard_path = parquet_dir / f"{EDIT_DATASET_NAME}-{shard_index:05d}.parquet"
         table = pa.table(
@@ -194,17 +201,20 @@ def _write_vlm_dataset(samples: Sequence[CanonicalSample], *, output_dir: Path) 
 
     rows = []
     for sample in samples:
+        prompt = sample.prompt_for("ti2t")
+        if not prompt:
+            continue
         rows.append(
             {
                 "id": sample.id,
-                "image": sample.assets.puzzle_image,
+                "image": sample.assets.image_for_reasoning(),
                 "task_group": sample.task_group,
                 "task_type": sample.task_type,
                 "solution": _solution_text(sample),
                 "conversations": [
                     {
                         "from": "human",
-                        "value": build_vlm_user_prompt(sample.prompt_train, "sft"),
+                        "value": build_vlm_user_prompt(prompt, "sft"),
                     },
                     {
                         "from": "gpt",
@@ -246,11 +256,13 @@ def export_bagel(
         "num_samples": len(filtered),
     }
     outputs: dict[str, Path] = {}
+    edit_samples = [sample for sample in filtered if sample.prompt_for("ti2i")]
+    vlm_samples = [sample for sample in filtered if sample.prompt_for("ti2t")]
 
     edit_info: dict[str, object] | None = None
     if include_edit:
         edit_info = _write_edit_dataset(
-            filtered,
+            edit_samples,
             output_dir=output_dir,
             rows_per_file=max(1, int(parquet_rows_per_file)),
         )
@@ -268,7 +280,7 @@ def export_bagel(
 
     vlm_info: dict[str, object] | None = None
     if include_vlm:
-        vlm_info = _write_vlm_dataset(filtered, output_dir=output_dir)
+        vlm_info = _write_vlm_dataset(vlm_samples, output_dir=output_dir)
         dataset_info["vlm_sft"] = {
             VLM_DATASET_NAME: {
                 "data_dir": (output_dir / "vlm").as_posix(),

@@ -3,10 +3,31 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-from core.schemas import CanonicalAnswer, CanonicalAssets, CanonicalSample
+from core.schemas import CanonicalAnswer, CanonicalAssets, CanonicalPrompts, CanonicalSample
 from core.io import read_json, read_jsonl, write_jsonl
 from core.paths import to_absolute
 from core.prompts import detect_task_group, normalize_prompt_for_task
+
+
+def _resolve_prompt_value(
+    record: Dict,
+    *,
+    primary_keys: Sequence[str],
+    fallback_keys: Sequence[str] = (),
+) -> Optional[str]:
+    for key in primary_keys:
+        if key in record:
+            raw_value = record.get(key)
+            text = str(raw_value).strip() if raw_value is not None else ""
+            return text or None
+    for key in fallback_keys:
+        raw_value = record.get(key)
+        if raw_value is None:
+            continue
+        text = str(raw_value).strip()
+        if text:
+            return text
+    return None
 
 
 def build_canonical_sample(
@@ -22,21 +43,43 @@ def build_canonical_sample(
 
     task_type = str(record.get("task_type") or source_task_name)
     sample_id = str(record.get("id") or f"{task_type}:{record.get('image', '')}")
+    prompt_ti2v = _resolve_prompt_value(
+        record,
+        primary_keys=("ti2v_prompt",),
+        fallback_keys=("prompt",),
+    )
+    prompt_ti2i = _resolve_prompt_value(
+        record,
+        primary_keys=("ti2i_prompt",),
+        fallback_keys=("ti2v_prompt", "prompt"),
+    )
+    prompt_ti2t = _resolve_prompt_value(
+        record,
+        primary_keys=("ti2t_prompt",),
+        fallback_keys=("vlm_prompt", "gpt5_prompt"),
+    )
+    prompt_ti2ti = _resolve_prompt_value(
+        record,
+        primary_keys=("ti2ti_prompt",),
+        fallback_keys=("ti2t_prompt", "vlm_prompt", "gpt5_prompt"),
+    )
     prompt_raw = str(
-        record.get("ti2v_prompt")
-        or record.get("vlm_prompt")
+        prompt_ti2v
+        or prompt_ti2i
+        or prompt_ti2t
         or record.get("prompt")
-        or record.get("gpt5_prompt")
         or ""
     ).strip()
     prompt_train = normalize_prompt_for_task(task_group, prompt_raw)
 
     image_value = record.get("image")
+    reasoning_image_value = record.get("reasoning_image") or image_value
     solution_image_value = record.get("solution_image_path")
-    if not image_value or not solution_image_value:
+    if not image_value or not reasoning_image_value or not solution_image_value:
         return None
 
     puzzle_image = to_absolute(str(image_value), task_dir).as_posix()
+    reasoning_image = to_absolute(str(reasoning_image_value), task_dir).as_posix()
     solution_image = to_absolute(str(solution_image_value), task_dir).as_posix()
 
     solution_video = None
@@ -64,10 +107,17 @@ def build_canonical_sample(
         id=sample_id,
         task_group=task_group,
         task_type=task_type,
+        prompts=CanonicalPrompts(
+            ti2v=prompt_ti2v,
+            ti2i=prompt_ti2i,
+            ti2t=prompt_ti2t,
+            ti2ti=prompt_ti2ti,
+        ),
         prompt_raw=prompt_raw,
         prompt_train=prompt_train,
         assets=CanonicalAssets(
             puzzle_image=puzzle_image,
+            reasoning_image=reasoning_image,
             solution_image=solution_image,
             solution_video=solution_video,
             video_fps=int(record["video_fps"]) if record.get("video_fps") is not None else None,

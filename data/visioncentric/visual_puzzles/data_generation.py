@@ -1489,6 +1489,30 @@ pattern_instructions = {
     ),
 }
 
+def build_visual_puzzle_ti2v_prompt(sample: dict, pattern_name: str) -> str:
+    question = str(sample.get("question") or "").strip()
+    instruction = pattern_instructions[pattern_name].strip()
+    return " ".join(
+        part
+        for part in (
+            "Use the provided visual puzzle image as the starting frame.",
+            question,
+            instruction,
+            VIDEOGEN_INSTRUCTION_COMMON,
+        )
+        if part
+    ).strip()
+
+
+def build_visual_puzzle_ti2t_prompt(sample: dict) -> str:
+    question = str(sample.get("question") or "").strip()
+    options = sample.get("options") or []
+    option_text = ", ".join(str(option).strip() for option in options if str(option).strip())
+    if option_text:
+        return f"Use the provided visual puzzle image to solve the task. {question} Choose from: {option_text}. Answer with the final option text only."
+    return f"Use the provided visual puzzle image to solve the task. {question} Answer with the final answer only."
+
+
 def create_data(
     pattern_name: str,
     path: str,
@@ -1528,7 +1552,14 @@ def create_data(
         seen.add(image_string)
 
         sample["id"] = f"{pattern_name}-{question_idx:02d}"
-        sample['prompt'] = f"{sample['question']} {pattern_instructions[pattern_name]} {VIDEOGEN_INSTRUCTION_COMMON}"
+        ti2v_prompt = build_visual_puzzle_ti2v_prompt(sample, pattern_name)
+        ti2t_prompt = build_visual_puzzle_ti2t_prompt(sample)
+        sample["ti2v_prompt"] = ti2v_prompt
+        sample["prompt"] = ti2v_prompt
+        sample["ti2i_prompt"] = None
+        sample["ti2t_prompt"] = ti2t_prompt
+        sample["vlm_prompt"] = ti2t_prompt
+        sample["ti2ti_prompt"] = None
 
         puzzle_image = pad_image(puzzle_image, target_size=target_size)
         solution_image = pad_image(solution_image, target_size=target_size)
@@ -1538,6 +1569,7 @@ def create_data(
         puzzle_image.save(image_path)
         solution_image.save(solution_path)
         sample["image"] = str(image_path.relative_to(pattern_dir))
+        sample["reasoning_image"] = sample["image"]
         sample["solution_image_path"] = str(solution_path.relative_to(pattern_dir))
 
         samples.append(sample)

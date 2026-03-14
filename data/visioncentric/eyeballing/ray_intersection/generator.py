@@ -52,8 +52,11 @@ class RayIntersectionPuzzleRecord:
     solution_image_path: str
     vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
+    ti2t_prompt: Optional[str] = None
+    ti2ti_prompt: Optional[str] = None
     vlm_answer: Optional[str] = None
     seed: Optional[int] = None
+    reasoning_image: Optional[str] = None
     solution_video_path: Optional[str] = None
     video_fps: Optional[int] = None
     video_num_frames: Optional[int] = None
@@ -64,6 +67,8 @@ class RayIntersectionPuzzleRecord:
             "ti2v_prompt": self.ti2v_prompt,
             "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
+            "ti2t_prompt": self.ti2t_prompt,
+            "ti2ti_prompt": self.ti2ti_prompt,
             "vlm_answer": self.vlm_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
@@ -73,6 +78,7 @@ class RayIntersectionPuzzleRecord:
             "point_radius": self.point_radius,
             "correct_option": self.correct_option,
             "image": self.image,
+            "reasoning_image": self.reasoning_image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
             "video_fps": self.video_fps,
@@ -154,8 +160,11 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
             solution_image_path=self.relativize_path(solution_path),
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            ti2t_prompt=self.ti2t_prompt,
+            ti2ti_prompt=self.ti2ti_prompt,
             vlm_answer=self.correct_label,
             seed=self.seed,
+            reasoning_image=self.relativize_path(puzzle_path),
             solution_video_path=video_rel_path,
             video_fps=16 if video_rel_path else None,
             video_num_frames=video_num_frames if video_rel_path else None,

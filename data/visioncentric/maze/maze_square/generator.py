@@ -134,6 +134,17 @@ class MazeGenerator(MazePuzzleGenerator):
             padding=(pad_left, pad_top),
             canvas_dims=canvas_dims,
         )
+        show_cell_id_original = self.show_cell_id
+        self.show_cell_id = True
+        reasoning_image = self._render_maze(
+            maze_grid,
+            start=start,
+            goal=goal,
+            path=None,
+            padding=(pad_left, pad_top),
+            canvas_dims=canvas_dims,
+        )
+        self.show_cell_id = show_cell_id_original
         solution_image = self._render_maze(
             maze_grid,
             start=start,
@@ -144,6 +155,7 @@ class MazeGenerator(MazePuzzleGenerator):
         )
 
         puzzle_path, solution_path = self.save_images(puzzle_uuid, puzzle_image, solution_image)
+        reasoning_path = self.save_reasoning_image(puzzle_uuid, reasoning_image)
 
         video_path = None
         if self.video:
@@ -175,6 +187,7 @@ class MazeGenerator(MazePuzzleGenerator):
             goal_point=goal_point,
             puzzle_path=puzzle_path,
             solution_path=solution_path,
+            reasoning_path=reasoning_path,
             ti2v_prompt=self.ti2v_prompt,
             extra=extra_payload,
             video_path=video_path,

@@ -212,8 +212,13 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             raise RuntimeError("Failed to compute solution path for labyrinth maze")
 
         puzzle_image = self._render_maze(passages, start_cell, goal_cell, path=None)
+        show_cell_id_original = self.show_cell_id
+        self.show_cell_id = True
+        reasoning_image = self._render_maze(passages, start_cell, goal_cell, path=None)
+        self.show_cell_id = show_cell_id_original
         solution_image = self._render_maze(passages, start_cell, goal_cell, path=path_cells)
         puzzle_path, solution_path = self.save_images(puzzle_uuid, puzzle_image, solution_image)
+        reasoning_path = self.save_reasoning_image(puzzle_uuid, reasoning_image)
 
         video_path = None
         if self.video:
@@ -230,6 +235,7 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
             goal_point=goal_point,
             puzzle_path=puzzle_path,
             solution_path=solution_path,
+            reasoning_path=reasoning_path,
             ti2v_prompt=self.ti2v_prompt,
             extra={
                 "total_rings": self.total_rings,

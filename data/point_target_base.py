@@ -24,6 +24,7 @@ import cv2
 import numpy as np
 
 from .base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
+from core.prompts import ensure_image_conditioned_prompt
 
 from PIL import Image, ImageFont, ImageDraw
 
@@ -80,9 +81,12 @@ class PointTargetPuzzleRecord:
     line_width: int
     vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
+    ti2t_prompt: Optional[str] = None
+    ti2ti_prompt: Optional[str] = None
     vlm_answer: Optional[str] = None
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    reasoning_image: Optional[str] = None
     solution_video_path: Optional[str] = None
     video_fps: Optional[int] = None
     video_num_frames: Optional[int] = None
@@ -93,6 +97,8 @@ class PointTargetPuzzleRecord:
             "ti2v_prompt": self.ti2v_prompt,
             "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
+            "ti2t_prompt": self.ti2t_prompt,
+            "ti2ti_prompt": self.ti2ti_prompt,
             "vlm_answer": self.vlm_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
@@ -100,6 +106,7 @@ class PointTargetPuzzleRecord:
             "candidates": [c.to_dict() if hasattr(c, "to_dict") else c for c in self.candidates],
             "correct_option": self.correct_option,
             "image": self.image,
+            "reasoning_image": self.reasoning_image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
             "video_fps": self.video_fps,
@@ -131,6 +138,8 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
     DEFAULT_TI2V_PROMPT: str = None
     DEFAULT_VLM_PROMPT: str = None
     DEFAULT_TI2I_PROMPT: str = None
+    DEFAULT_TI2T_PROMPT: str = None
+    DEFAULT_TI2TI_PROMPT: str = None
 
     def __init__(
         self,
@@ -167,13 +176,18 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             raise ValueError("option_labels must contain at least one label")
         self.option_labels = tuple(option_labels)
         self.seed = seed
-        self.ti2v_prompt = resolved_ti2v_prompt or ""
-        self.vlm_prompt = self.DEFAULT_VLM_PROMPT
-        self.ti2i_prompt = (
+        self.ti2v_prompt = ensure_image_conditioned_prompt(resolved_ti2v_prompt or "", mode="ti2v")
+        raw_ti2i_prompt = (
             self.DEFAULT_TI2I_PROMPT
             or _strip_video_instruction(self.ti2v_prompt)
             or self.ti2v_prompt
         )
+        self.ti2i_prompt = ensure_image_conditioned_prompt(raw_ti2i_prompt, mode="ti2i") if raw_ti2i_prompt else None
+        raw_ti2t_prompt = self.DEFAULT_TI2T_PROMPT or self.DEFAULT_VLM_PROMPT
+        self.ti2t_prompt = ensure_image_conditioned_prompt(raw_ti2t_prompt, mode="ti2t") if raw_ti2t_prompt else None
+        raw_ti2ti_prompt = self.DEFAULT_TI2TI_PROMPT or self.DEFAULT_TI2T_PROMPT or self.DEFAULT_VLM_PROMPT
+        self.ti2ti_prompt = ensure_image_conditioned_prompt(raw_ti2ti_prompt, mode="ti2ti") if raw_ti2ti_prompt else None
+        self.vlm_prompt = self.ti2t_prompt
         self.prompt = self.ti2v_prompt
         self._candidate_font: Optional[Any] = None
         self.point_radius = int(point_radius) if point_radius is not None else int(self.POINT_RADIUS)
@@ -922,9 +936,12 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             line_width=self.line_width,
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
+            ti2t_prompt=self.ti2t_prompt,
+            ti2ti_prompt=self.ti2ti_prompt,
             vlm_answer=self.correct_label,
             seed=self.seed,
             extra=self.build_record_extra(),
+            reasoning_image=self.relativize_path(self.puzzle_path),
             solution_video_path=video_rel_path,
             video_fps=video_fps,
             video_num_frames=video_num_frames,

@@ -23,6 +23,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import numpy as np
 from PIL import Image, ImageDraw
 
+from core.prompts import ensure_image_conditioned_prompt
 from data.base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 from data.video_encoding import encode_rgb_frames_to_mp4
 
@@ -165,6 +166,9 @@ class MazePuzzleRecord:
     goal_point: Tuple[float, float]
     image: str
     solution_image_path: str
+    reasoning_image: Optional[str] = None
+    ti2t_prompt: Optional[str] = None
+    ti2ti_prompt: Optional[str] = None
     vlm_answer: Optional[str] = None
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -178,11 +182,14 @@ class MazePuzzleRecord:
             "ti2v_prompt": self.ti2v_prompt,
             "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
+            "ti2t_prompt": self.ti2t_prompt,
+            "ti2ti_prompt": self.ti2ti_prompt,
             "vlm_answer": self.vlm_answer,
             "canvas_dimensions": [int(self.canvas_dimensions[0]), int(self.canvas_dimensions[1])],
             "start_point": [float(self.start_point[0]), float(self.start_point[1])],
             "goal_point": [float(self.goal_point[0]), float(self.goal_point[1])],
             "image": self.image,
+            "reasoning_image": self.reasoning_image,
             "solution_image_path": self.solution_image_path,
             "solution_video_path": self.solution_video_path,
             "video_fps": self.video_fps,
@@ -202,6 +209,8 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
     DEFAULT_TI2V_PROMPT: Optional[str] = "Draw a red path connecting two red dots without touching the black walls. In portrait. Static camera."
     DEFAULT_VLM_PROMPT: Optional[str] = "Find a path connecting the two red dots without touching the black walls in the maze. Each traversable region has its ID printed on it. Present your answer as a list of IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
     DEFAULT_TI2I_PROMPT: Optional[str] = _strip_video_instruction(DEFAULT_TI2V_PROMPT)
+    DEFAULT_TI2T_PROMPT: Optional[str] = DEFAULT_VLM_PROMPT
+    DEFAULT_TI2TI_PROMPT: Optional[str] = DEFAULT_VLM_PROMPT
 
     def __init__(
         self,
@@ -238,13 +247,22 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         self.size = int(size)
         resolved_ti2v_prompt = ti2v_prompt if ti2v_prompt is not None else self.DEFAULT_TI2V_PROMPT
         self.seed = seed
-        self.ti2v_prompt = resolved_ti2v_prompt or ""
-        self.vlm_prompt = self.DEFAULT_VLM_PROMPT or self.ti2v_prompt
-        self.ti2i_prompt = (
+        self.ti2v_prompt = ensure_image_conditioned_prompt(resolved_ti2v_prompt or "", mode="ti2v")
+        self.ti2i_prompt = ensure_image_conditioned_prompt(
             self.DEFAULT_TI2I_PROMPT
             or _strip_video_instruction(self.ti2v_prompt)
-            or self.ti2v_prompt
+            or self.ti2v_prompt,
+            mode="ti2i",
         )
+        self.ti2t_prompt = ensure_image_conditioned_prompt(
+            self.DEFAULT_TI2T_PROMPT or self.DEFAULT_VLM_PROMPT or "",
+            mode="ti2t",
+        )
+        self.ti2ti_prompt = ensure_image_conditioned_prompt(
+            self.DEFAULT_TI2TI_PROMPT or self.DEFAULT_TI2T_PROMPT or self.DEFAULT_VLM_PROMPT or "",
+            mode="ti2ti",
+        )
+        self.vlm_prompt = self.ti2t_prompt
         self.prompt = self.ti2v_prompt
         self.show_cell_id = show_cell_id
         self.video = video
@@ -254,8 +272,10 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
 
         root = Path(self.output_dir)
         self.puzzle_dir = root / "puzzles"
+        self.reasoning_dir = root / "reasoning"
         self.solution_dir = root / "solutions"
         self.puzzle_dir.mkdir(parents=True, exist_ok=True)
+        self.reasoning_dir.mkdir(parents=True, exist_ok=True)
         self.solution_dir.mkdir(parents=True, exist_ok=True)
 
     @property
@@ -288,6 +308,15 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         puzzle_image.save(puzzle_path)
         solution_image.save(solution_path)
         return puzzle_path, solution_path
+
+    def save_reasoning_image(
+        self,
+        record_id: str,
+        reasoning_image: Image.Image,
+    ) -> Path:
+        reasoning_path = self.reasoning_dir / f"{record_id}_reasoning.png"
+        reasoning_image.save(reasoning_path)
+        return reasoning_path
 
     def save_video(
         self,
@@ -441,6 +470,7 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
         goal_point: Tuple[float, float],
         puzzle_path: Path,
         solution_path: Path,
+        reasoning_path: Optional[Path] = None,
         ti2v_prompt: Optional[str] = None,
         extra: Optional[Dict[str, Any]] = None,
         video_path: Optional[Path] = None,
@@ -466,10 +496,13 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             ti2v_prompt=record_ti2v_prompt,
             vlm_prompt=self.vlm_prompt,
             ti2i_prompt=_strip_video_instruction(record_ti2v_prompt) or self.ti2i_prompt,
+            ti2t_prompt=self.ti2t_prompt,
+            ti2ti_prompt=self.ti2ti_prompt,
             canvas_dimensions=self.canvas_dimensions,
             start_point=start_point,
             goal_point=goal_point,
             image=self.relativize_path(puzzle_path),
+            reasoning_image=self.relativize_path(reasoning_path) if reasoning_path is not None else self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
             vlm_answer=vlm_answer,
             seed=self.seed,

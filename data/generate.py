@@ -15,6 +15,26 @@ from data.registry import TASK_SPECS, TaskSpec, resolve_requested_tasks
 from core.io import read_json, write_json
 
 
+def _build_visual_puzzle_ti2v_prompt(sample: Dict[str, Any], instruction: str, common_instruction: str) -> str:
+    question = str(sample.get("question") or "").strip()
+    parts = [
+        "Use the provided visual puzzle image as the starting frame.",
+        question,
+        instruction.strip(),
+        common_instruction.strip(),
+    ]
+    return " ".join(part for part in parts if part).strip()
+
+
+def _build_visual_puzzle_ti2t_prompt(sample: Dict[str, Any]) -> str:
+    question = str(sample.get("question") or "").strip()
+    options = sample.get("options") or []
+    option_text = ", ".join(str(option).strip() for option in options if str(option).strip())
+    if option_text:
+        return f"Use the provided visual puzzle image to solve the task. {question} Choose from: {option_text}. Answer with the final option text only."
+    return f"Use the provided visual puzzle image to solve the task. {question} Answer with the final answer only."
+
+
 def load_generator_class(spec: TaskSpec):
     module = importlib.import_module(spec.module)
     if spec.class_name and hasattr(module, spec.class_name):
@@ -157,7 +177,14 @@ def _generate_visual_puzzle_worker(
         sample = dict(sample)
         sample["id"] = f"{spec.name}-{question_idx:02d}"
         instruction = module.pattern_instructions[spec.name]
-        sample["prompt"] = f"{sample['question']} {instruction} {module.VIDEOGEN_INSTRUCTION_COMMON}"
+        ti2v_prompt = _build_visual_puzzle_ti2v_prompt(sample, instruction, module.VIDEOGEN_INSTRUCTION_COMMON)
+        ti2t_prompt = _build_visual_puzzle_ti2t_prompt(sample)
+        sample["ti2v_prompt"] = ti2v_prompt
+        sample["prompt"] = ti2v_prompt
+        sample["ti2i_prompt"] = None
+        sample["ti2t_prompt"] = ti2t_prompt
+        sample["vlm_prompt"] = ti2t_prompt
+        sample["ti2ti_prompt"] = None
 
         puzzle_image = module.pad_image(puzzle_image, target_size=target_size)
         solution_image = module.pad_image(solution_image, target_size=target_size)
@@ -180,6 +207,7 @@ def _generate_visual_puzzle_worker(
                 video_num_frames_val = num_frames
 
         sample["image"] = image_path.relative_to(output_dir).as_posix()
+        sample["reasoning_image"] = sample["image"]
         sample["solution_image_path"] = solution_path.relative_to(output_dir).as_posix()
         sample["solution_video_path"] = solution_video_rel
         sample["video_fps"] = video_fps_val
@@ -231,6 +259,7 @@ def _merge_worker_records(task_dir: Path, worker_dirs: Sequence[Path]) -> List[D
     merged: List[Dict[str, Any]] = []
     path_keys = [
         "image",
+        "reasoning_image",
         "solution_image_path",
         "solution_video_path",
         "video",
@@ -249,19 +278,38 @@ def _merge_worker_records(task_dir: Path, worker_dirs: Sequence[Path]) -> List[D
             if not isinstance(record, dict):
                 continue
             record = dict(record)
+            remapped_paths: Dict[str, Any] = {}
             for key in path_keys:
                 if key in record:
-                    record[key] = _move_asset_value(
-                        record[key],
+                    raw_value = record[key]
+                    if isinstance(raw_value, str) and raw_value in remapped_paths:
+                        record[key] = remapped_paths[raw_value]
+                    else:
+                        moved_value = _move_asset_value(
+                            raw_value,
+                            worker_dir=worker_dir,
+                            task_dir=task_dir,
+                            worker_name=worker_name,
+                        )
+                        record[key] = moved_value
+                        if isinstance(raw_value, str):
+                            remapped_paths[raw_value] = moved_value
+            if "images" in record and isinstance(record["images"], list):
+                remapped_images: List[Any] = []
+                for item in record["images"]:
+                    if isinstance(item, str) and item in remapped_paths:
+                        remapped_images.append(remapped_paths[item])
+                        continue
+                    moved_item = _move_asset_value(
+                        item,
                         worker_dir=worker_dir,
                         task_dir=task_dir,
                         worker_name=worker_name,
                     )
-            if "images" in record and isinstance(record["images"], list):
-                record["images"] = [
-                    _move_asset_value(item, worker_dir=worker_dir, task_dir=task_dir, worker_name=worker_name)
-                    for item in record["images"]
-                ]
+                    remapped_images.append(moved_item)
+                    if isinstance(item, str):
+                        remapped_paths[item] = moved_item
+                record["images"] = remapped_images
             merged.append(record)
     return merged
 

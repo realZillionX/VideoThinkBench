@@ -18,9 +18,11 @@ The unified mainline currently includes `3` tasks:
 
 Each record typically contains:
 
-- the puzzle image `image`.
+- the generation-side puzzle image `image`, used by `TI2V` / `TI2I`.
+- the reasoning-side puzzle image `reasoning_image`, used by `TI2T` / `TI2TI`. For maze tasks this image always includes cell IDs.
 - the solution image `solution_image_path`.
 - an optional solution video.
+- the modality-specific prompts `ti2v_prompt`, `ti2i_prompt`, `ti2t_prompt`, and `ti2ti_prompt`.
 - the start point and end point.
 - the path cells in `solution_path_cell_ids`.
 - bounding-box, grid, or ring metadata required for evaluation.
@@ -69,7 +71,7 @@ All three maze families share the following base parameters, although some of th
 | `aspect`       | `None`               | Canvas aspect ratio.                    |
 | `seed`         | `None`               | Random seed.                            |
 | `prompt`       | `None`               | Override the default prompt.            |
-| `show_cell_id` | `False`              | Whether to print cell IDs on the image. |
+| `show_cell_id` | `False`              | Whether the generation-side `image` should also print cell IDs. The separate `reasoning_image` is always saved. |
 | `video`        | `False`              | Whether to generate a solution video.   |
 
 ## `maze_square`

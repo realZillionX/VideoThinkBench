@@ -287,6 +287,15 @@ python3 cli.py eval offline \
   --output-dir /path/to/eval/maze
 ```
 
+### Modal-Aware Assets
+
+The generated `Vision-Centric` records now distinguish prompt / image routing by target modality:
+
+- `ti2v_prompt` and `ti2i_prompt` use the generation-side `image`.
+- `ti2t_prompt` and `ti2ti_prompt` use the reasoning-side `reasoning_image`.
+- `maze` always saves both images, with `reasoning_image` carrying cell IDs.
+- `visual_puzzle` only defines `ti2v_prompt` and `ti2t_prompt`, so it is excluded from `diffsynth-image` and `BAGEL` `edit` exports.
+
 ### Repository Structure
 
 ```text

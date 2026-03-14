@@ -20,11 +20,14 @@ def _solution_text(sample: CanonicalSample) -> str:
 
 
 def _build_entry(sample: CanonicalSample, mode: str) -> dict:
+    prompt = sample.prompt_for("ti2t")
+    if not prompt:
+        raise ValueError(f"Sample {sample.id} does not define a TI2T prompt")
     solution = _solution_text(sample)
     entry = {
         "id": sample.id,
-        "messages": [{"role": "user", "content": build_vlm_user_prompt(sample.prompt_train, mode)}],
-        "images": [sample.assets.puzzle_image],
+        "messages": [{"role": "user", "content": build_vlm_user_prompt(prompt, mode)}],
+        "images": [sample.assets.image_for_reasoning()],
         "solution": solution,
         "task_type": sample.task_type,
         "task_group": sample.task_group,
@@ -49,7 +52,7 @@ def export_ms_swift(
         mode_clean = mode.strip().lower()
         if mode_clean not in {"sft", "grpo"}:
             continue
-        rows = [_build_entry(sample, mode_clean) for sample in filtered]
+        rows = [_build_entry(sample, mode_clean) for sample in filtered if sample.prompt_for("ti2t")]
         out_path = output_dir / ("train_sft.jsonl" if mode_clean == "sft" else "train_grpo.jsonl")
         write_jsonl(out_path, rows)
         outputs.append(out_path)

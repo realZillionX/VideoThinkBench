@@ -41,8 +41,11 @@ Each sample usually contains:
 - `caption`.
 - `explanation`.
 - `deduction`.
-- the puzzle image.
+- the generation / reasoning puzzle image `image` (for this task family, `reasoning_image` is the same file).
 - the solution image.
+- `ti2v_prompt` for image-conditioned video generation.
+- `ti2t_prompt` for image-conditioned reasoning / VLM training.
+- `ti2i_prompt = null` and `ti2ti_prompt = null`, because `visual_puzzle` does not enter the `TI2I` / `TI2TI` export branches.
 
 In the unified pipeline, these fields are converted into `CanonicalSample`, with the answer normalized into `correct_option`.
 
@@ -198,6 +201,8 @@ python3 cli.py data generate \
 
 ## Current Training Boundary
 
-`visual_puzzle` can already be exported into `ms-swift` `SFT` and `GRPO` data.
+`visual_puzzle` can be exported into `ms-swift` / `BAGEL` `vlm` data and into `diffsynth-video` as pure `TI2V` samples.
+
+It is intentionally excluded from `diffsynth-image` and `BAGEL` `edit` exports, and its `diffsynth-video` rows leave `ti2ti_*` blank.
 
 The current `GRPO` reward uses normalized exact text matching, which is a good fit for answers that are usually single color words, shape words, or size words.

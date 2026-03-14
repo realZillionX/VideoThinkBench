@@ -17,10 +17,13 @@ def export_diffsynth_image(
     filtered = filter_by_task_group(samples, task_groups)
     rows = []
     for sample in filtered:
+        prompt = sample.prompt_for("ti2i")
+        if not prompt:
+            continue
         rows.append(
             {
                 "id": sample.id,
-                "prompt": sample.prompt_train,
+                "prompt": prompt,
                 "image": sample.assets.solution_image,
                 "edit_image": sample.assets.puzzle_image,
                 "task_type": sample.task_type,

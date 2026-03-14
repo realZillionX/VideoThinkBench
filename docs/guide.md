@@ -15,27 +15,25 @@ The benchmark combines two complementary evaluation tracks:
 
 ## Task Registry
 
-The unified registry ([data/registry.py](../data/registry.py)) currently includes **36** mainline Vision-Centric tasks.
+The unified registry ([data/registry.py](../data/registry.py)) currently includes **33** mainline Vision-Centric tasks.
 
 | Group           | Count | Code Location                        | Description                                    |
 | --------------- | ----- | ------------------------------------ | ---------------------------------------------- |
-| `eyeballing`    | 23    | `data/visioncentric/eyeballing/`     | Geometric point, line, and shape construction  |
+| `eyeballing`    | 20    | `data/visioncentric/eyeballing/`     | Geometric point, line, and shape construction  |
 | `maze`          | 3     | `data/visioncentric/maze/`           | Square, hexagon, and labyrinth path-finding    |
 | `visual_puzzle` | 10    | `data/visioncentric/visual_puzzles/` | Color, shape, size, and compositional patterns |
 
 <details>
-<summary>Full 36-task listing</summary>
+<summary>Full 33-task listing</summary>
 
 | Group           | Task                     | Code Location                                           |
 | --------------- | ------------------------ | ------------------------------------------------------- |
 | `eyeballing`    | `angle_bisector`         | `data/visioncentric/eyeballing/angle_bisector/`         |
 | `eyeballing`    | `arc_connect`            | `data/visioncentric/eyeballing/arc_connect/`            |
-| `eyeballing`    | `arc_connect_point_ver`  | `data/visioncentric/eyeballing/arc_connect_point_ver/`  |
 | `eyeballing`    | `circle_center`          | `data/visioncentric/eyeballing/circle_center/`          |
 | `eyeballing`    | `circle_tangent_line`    | `data/visioncentric/eyeballing/circle_tangent_line/`    |
 | `eyeballing`    | `circle_tangent_point`   | `data/visioncentric/eyeballing/circle_tangent_point/`   |
 | `eyeballing`    | `circumcenter`           | `data/visioncentric/eyeballing/circumcenter/`           |
-| `eyeballing`    | `fermat_point`           | `data/visioncentric/eyeballing/fermat_point/`           |
 | `eyeballing`    | `incenter`               | `data/visioncentric/eyeballing/incenter/`               |
 | `eyeballing`    | `isosceles_trapezoid`    | `data/visioncentric/eyeballing/isosceles_trapezoid/`    |
 | `eyeballing`    | `midpoint`               | `data/visioncentric/eyeballing/midpoint/`               |
@@ -44,7 +42,6 @@ The unified registry ([data/registry.py](../data/registry.py)) currently include
 | `eyeballing`    | `parallelogram`          | `data/visioncentric/eyeballing/parallelogram/`          |
 | `eyeballing`    | `perpendicular`          | `data/visioncentric/eyeballing/perpendicular/`          |
 | `eyeballing`    | `perpendicular_bisector` | `data/visioncentric/eyeballing/perpendicular_bisector/` |
-| `eyeballing`    | `ray`                    | `data/visioncentric/eyeballing/ray/`                    |
 | `eyeballing`    | `ray_intersection`       | `data/visioncentric/eyeballing/ray_intersection/`       |
 | `eyeballing`    | `ray_reflect`            | `data/visioncentric/eyeballing/ray_reflect/`            |
 | `eyeballing`    | `reflection`             | `data/visioncentric/eyeballing/reflection/`             |
@@ -87,6 +84,13 @@ The maintained workflow has 4 layers:
 4. **`data/evaluation/`** handles inference, offline evaluation, frame matching, and result aggregation.
 
 `CanonicalSample`, defined in [core/schemas.py](../core/schemas.py), is the key interface connecting generation, export, evaluation, and training.
+
+The current `CanonicalSample` schema is modality-aware:
+
+- `prompts.ti2v` / `prompts.ti2i` feed generation-style exports.
+- `prompts.ti2t` / `prompts.ti2ti` feed reasoning-style exports.
+- `assets.puzzle_image` is the generation-side input image.
+- `assets.reasoning_image` is the reasoning-side input image. For `maze`, this is the cell-ID version; for `eyeballing` and `visual_puzzle`, it usually matches `puzzle_image`.
 
 ### Parameter Tuning
 
@@ -148,8 +152,8 @@ Each model directory now owns its own `prepare_data.py` wrapper. The canonical e
 
 - **`wan2.2-ti2v-5b`** — single-branch `LoRA` training with automatic resume for `LoRA` weights, optimizer, scheduler, and step counter.
 - **`wan2.2-i2v-a14b`** — two-branch `LoRA` training where `high_noise` and `low_noise` checkpoints are saved and resumed independently.
-- **`qwen-image-edit-2511`** — image-edit training only; supervision comes from `puzzle_image → solution_image`.
-- **`bagel`** — exports both editing parquet shards and VLM-style JSONL, then launches the upstream `BAGEL` `FSDP` trainer through a thin wrapper that injects `dataset_info.json` at runtime and preserves `auto_resume`.
+- **`qwen-image-edit-2511`** — image-edit training only; supervision comes from `puzzle_image → solution_image`, and only samples with `ti2i_prompt` are exported.
+- **`bagel`** — exports both editing parquet shards and VLM-style JSONL, but the two branches now route different inputs: `edit` uses `puzzle_image + ti2i_prompt`, while `vlm` uses `reasoning_image + ti2t_prompt`.
 
 ---
 

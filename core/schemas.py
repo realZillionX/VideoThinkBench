@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 class CanonicalAssets:
     puzzle_image: str
     solution_image: str
+    reasoning_image: Optional[str] = None
     solution_video: Optional[str] = None
     video_fps: Optional[int] = None
     video_num_frames: Optional[int] = None
@@ -15,6 +16,7 @@ class CanonicalAssets:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "puzzle_image": self.puzzle_image,
+            "reasoning_image": self.reasoning_image,
             "solution_image": self.solution_image,
             "solution_video": self.solution_video,
             "video_fps": self.video_fps,
@@ -25,10 +27,39 @@ class CanonicalAssets:
     def from_dict(payload: Dict[str, Any]) -> "CanonicalAssets":
         return CanonicalAssets(
             puzzle_image=str(payload["puzzle_image"]),
+            reasoning_image=(str(payload["reasoning_image"]) if payload.get("reasoning_image") else None),
             solution_image=str(payload["solution_image"]),
             solution_video=(str(payload["solution_video"]) if payload.get("solution_video") else None),
             video_fps=int(payload["video_fps"]) if payload.get("video_fps") is not None else None,
             video_num_frames=int(payload["video_num_frames"]) if payload.get("video_num_frames") is not None else None,
+        )
+
+    def image_for_reasoning(self) -> str:
+        return self.reasoning_image or self.puzzle_image
+
+
+@dataclass
+class CanonicalPrompts:
+    ti2v: Optional[str] = None
+    ti2i: Optional[str] = None
+    ti2t: Optional[str] = None
+    ti2ti: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ti2v": self.ti2v,
+            "ti2i": self.ti2i,
+            "ti2t": self.ti2t,
+            "ti2ti": self.ti2ti,
+        }
+
+    @staticmethod
+    def from_dict(payload: Dict[str, Any]) -> "CanonicalPrompts":
+        return CanonicalPrompts(
+            ti2v=(str(payload["ti2v"]) if payload.get("ti2v") else None),
+            ti2i=(str(payload["ti2i"]) if payload.get("ti2i") else None),
+            ti2t=(str(payload["ti2t"]) if payload.get("ti2t") else None),
+            ti2ti=(str(payload["ti2ti"]) if payload.get("ti2ti") else None),
         )
 
 
@@ -59,6 +90,7 @@ class CanonicalSample:
     id: str
     task_group: str
     task_type: str
+    prompts: CanonicalPrompts
     prompt_raw: str
     prompt_train: str
     assets: CanonicalAssets
@@ -66,11 +98,65 @@ class CanonicalSample:
     source: Dict[str, Any] = field(default_factory=dict)
     extra: Dict[str, Any] = field(default_factory=dict)
 
+    def _legacy_prompt(self, *keys: str) -> Optional[str]:
+        raw_record = self.extra.get("raw_record") or {}
+        if not isinstance(raw_record, dict):
+            return None
+        for key in keys:
+            value = raw_record.get(key)
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                return text
+        return None
+
+    def _legacy_prompt_disabled(self, key: str) -> bool:
+        raw_record = self.extra.get("raw_record") or {}
+        if not isinstance(raw_record, dict) or key not in raw_record:
+            return False
+        value = raw_record.get(key)
+        if value is None:
+            return True
+        return not str(value).strip()
+
+    def prompt_for(self, mode: str) -> Optional[str]:
+        mode_clean = str(mode).strip().lower()
+        if mode_clean == "ti2v":
+            return self.prompts.ti2v or self._legacy_prompt("ti2v_prompt", "prompt") or self.prompt_train or None
+        if mode_clean == "ti2i":
+            if self._legacy_prompt_disabled("ti2i_prompt"):
+                return None
+            return (
+                self.prompts.ti2i
+                or self._legacy_prompt("ti2i_prompt")
+                or self.prompts.ti2v
+                or self._legacy_prompt("ti2v_prompt", "prompt")
+                or self.prompt_train
+                or None
+            )
+        if mode_clean == "ti2t":
+            if self._legacy_prompt_disabled("ti2t_prompt"):
+                return None
+            return self.prompts.ti2t or self._legacy_prompt("ti2t_prompt", "vlm_prompt", "gpt5_prompt") or None
+        if mode_clean == "ti2ti":
+            if self._legacy_prompt_disabled("ti2ti_prompt"):
+                return None
+            return (
+                self.prompts.ti2ti
+                or self._legacy_prompt("ti2ti_prompt")
+                or self.prompts.ti2t
+                or self._legacy_prompt("ti2t_prompt", "vlm_prompt", "gpt5_prompt")
+                or None
+            )
+        return None
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
             "task_group": self.task_group,
             "task_type": self.task_type,
+            "prompts": self.prompts.to_dict(),
             "prompt_raw": self.prompt_raw,
             "prompt_train": self.prompt_train,
             "assets": self.assets.to_dict(),
@@ -85,6 +171,7 @@ class CanonicalSample:
             id=str(payload["id"]),
             task_group=str(payload["task_group"]),
             task_type=str(payload["task_type"]),
+            prompts=CanonicalPrompts.from_dict(dict(payload.get("prompts") or {})),
             prompt_raw=str(payload.get("prompt_raw", "")),
             prompt_train=str(payload.get("prompt_train", "")),
             assets=CanonicalAssets.from_dict(dict(payload.get("assets") or {})),
