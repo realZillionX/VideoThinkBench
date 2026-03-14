@@ -24,7 +24,7 @@ python3 cli.py data export \
     --output ./data/metadata.json
 
 # 兼容：从 cli.py data generate 的 output_root 重新扫描导出
-python3 scripts/prepare_image_data.py \
+python3 training/qwen-image-edit-2511/prepare_data.py \
     --dataset_root /path/to/VideoThinkBench/output_root \
     --output_path ./data/metadata.json
 
@@ -38,7 +38,7 @@ python3 scripts/prepare_image_data.py \
 export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio
 
 # 启动训练
-bash training/image/train_sft.sh --metadata_path ./data/metadata.json
+bash training/qwen-image-edit-2511/train_sft.sh --metadata_path ./data/metadata.json
 
 # 可选参数:
 #   --output_dir ./outputs/train

@@ -131,23 +131,25 @@ Task-local `evaluator.py` files handle single-answer judging; `data/evaluation/`
 
 ## Training
 
-The repository maintains 3 training branches:
+The repository maintains 4 model-specific training branches:
 
-| Branch  | Entry Point       | Target Model      | Framework          | Data Source                              |
-| ------- | ----------------- | ----------------- | ------------------ | ---------------------------------------- |
-| `video` | `training/video/` | `Wan2.2`          | `DiffSynth-Studio` | `CanonicalSample → diffsynth-video CSV`  |
-| `image` | `training/image/` | `Qwen-Image-Edit` | `DiffSynth-Studio` | `CanonicalSample → diffsynth-image JSON` |
-| `vlm`   | `training/vlm/`   | `Qwen3-VL`        | `ms-swift`         | `CanonicalSample → ms-swift JSONL`       |
+| Branch | Entry Point                          | Target Model         | Framework          | Data Source                              |
+| ------ | ------------------------------------ | -------------------- | ------------------ | ---------------------------------------- |
+| `wan2.2-ti2v-5b` | `training/wan2.2-ti2v-5b/` | `Wan2.2-TI2V-5B`     | `DiffSynth-Studio` | `CanonicalSample → diffsynth-video CSV`  |
+| `wan2.2-i2v-a14b` | `training/wan2.2-i2v-a14b/` | `Wan2.2-I2V-A14B`   | `DiffSynth-Studio` | `CanonicalSample → diffsynth-video CSV`  |
+| `qwen-image-edit-2511` | `training/qwen-image-edit-2511/` | `Qwen-Image-Edit-2511` | `DiffSynth-Studio` | `CanonicalSample → diffsynth-image JSON` |
+| `bagel` | `training/bagel/`                | `BAGEL-7B-MoT`       | `BAGEL`            | `CanonicalSample → bagel parquet+JSONL`  |
 
 `training/` does not read task directories directly — it consumes unified exported intermediate data via: generate/scan → export → train.
 
-For backward compatibility, `scripts/prepare_video_data.py`, `scripts/prepare_image_data.py`, and `scripts/prepare_vlm_data.py` wrap the same unified export path for the existing training shell scripts. The canonical interface remains `python3 cli.py data export`.
+Each model directory now owns its own `prepare_data.py` wrapper. The canonical export interface still remains `python3 cli.py data export`.
 
 ### Branch Details
 
-- **`video`** — supports automatic resume for LoRA, optimizer, scheduler, and step counter. Primary path for follow-up maze-focused experiments.
-- **`image`** — evaluates only the final image; shares `CanonicalSample` source with `video` but uses only the solution image as supervision.
-- **`vlm`** — SFT export supports `eyeballing`, `maze`, and `visual_puzzle`. GRPO reward functions support path-list answers (maze), single-letter answers (eyeballing), and normalized exact text matching (visual_puzzle).
+- **`wan2.2-ti2v-5b`** — single-branch `LoRA` training with automatic resume for `LoRA` weights, optimizer, scheduler, and step counter.
+- **`wan2.2-i2v-a14b`** — two-branch `LoRA` training where `high_noise` and `low_noise` checkpoints are saved and resumed independently.
+- **`qwen-image-edit-2511`** — image-edit training only; supervision comes from `puzzle_image → solution_image`.
+- **`bagel`** — exports both editing parquet shards and VLM-style JSONL, then launches the upstream `BAGEL` `FSDP` trainer through a thin wrapper that injects `dataset_info.json` at runtime and preserves `auto_resume`.
 
 ---
 

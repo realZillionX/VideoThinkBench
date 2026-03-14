@@ -200,9 +200,6 @@ Full interactive leaderboard: [HERE](https://thinking-with-video.github.io/#lead
 |   1   | Claude Sonnet 4.5  |  37.3   |        40        |       34        |        60        |       75        |       75        |           83            |    5.7    |     0.0     |     0.0      |      0.0       |
 |   2   |   Gemini 2.5 Pro   |  35.6   |        33        |       23        |        40        |       95        |       95        |           68            |    2.1    |     0.0     |     0.0      |      0.0       |
 |   3   |     GPT5 high      |  35.5   |        39        |       30        |        23        |       98        |       80        |           85            |    0.0    |     0.0     |     0.0      |      0.0       |
-|   4   | Qwen3-VL-235B-A22B |  30.2   |        24        |       17        |        30        |       93        |       55        |           83            |    0.0    |     0.0     |     0.0      |      0.0       |
-|   5   |    Qwen3-VL-32B    |  29.6   |        33        |       21        |        20        |       85        |       55        |           78            |    4.1    |     0.0     |     0.0      |      0.0       |
-|   6   |   Qwen3-VL-Plus    |  29.4   |        32        |       29        |        30        |       90        |       35        |           78            |    0.0    |     0.0     |     0.0      |      0.0       |
 
 **Note:**
 * "Eyeballing Point/Line/Shape" refer to Point Tasks, Line Tasks and Shape Tasks in Eyeballing Puzzles. The results of video generation models are *Major Frame* evaluation results.
@@ -265,17 +262,18 @@ python3 cli.py data generate \
   --output-root /path/to/output \
   --num-workers 8
 
-# Export to ms-swift format
-python3 cli.py data export \
-  --manifest /path/to/canonical_manifest.jsonl \
-  --target ms-swift \
-  --output-dir /path/to/export/vlm
-
 # Export to DiffSynth video CSV
 python3 cli.py data export \
   --manifest /path/to/canonical_manifest.jsonl \
   --target diffsynth-video \
   --output /path/to/export/video.csv
+
+# Export to BAGEL training format
+python3 cli.py data export \
+  --manifest /path/to/canonical_manifest.jsonl \
+  --target bagel \
+  --output-dir /path/to/export/bagel \
+  --mode edit,vlm
 
 # Offline rule-based evaluation
 python3 cli.py eval offline \
@@ -303,12 +301,12 @@ VideoThinkBench/
 │   │   ├── offline/              # Offline rule-based evaluation
 │   │   ├── textcentric/          # Text-centric video evaluation
 │   │   └── frame_matching/       # Video frame extraction & matching
-│   ├── exporters/                # ms-swift / DiffSynth exporters
+│   ├── exporters/                # ms-swift / DiffSynth / BAGEL exporters
 │   ├── registry.py               # Unified task registry
 │   ├── generate.py               # Unified data generation entry
 │   ├── export.py                 # Unified data export entry
 │   └── scan.py                   # Canonical manifest builder
-├── training/                     # Video / Image / VLM training scripts
+├── training/                     # Model-specific training scripts
 ├── core/                         # Shared schemas, paths, I/O & prompt utilities
 ├── cli.py                        # Unified CLI entry point
 ├── pyproject.toml
@@ -340,13 +338,14 @@ If you are migrating from the original [Thinking-with-Video](https://github.com/
 
 ## 🏋️ Training
 
-VideoThinkBench supports three training branches:
+VideoThinkBench currently maintains 4 model-specific training branches:
 
-| Branch | Target Model        | Framework        | Entry Point                                 |
-| ------ | ------------------- | ---------------- | ------------------------------------------- |
-| Video  | Wan2.2 LoRA         | DiffSynth-Studio | [training/video/](training/video/README.md) |
-| Image  | Qwen-Image Edit     | DiffSynth-Studio | [training/image/](training/image/README.md) |
-| VLM    | Qwen3-VL SFT + GRPO | ms-swift         | [training/vlm/](training/vlm/README.md)     |
+| Branch | Target Model         | Framework        | Entry Point                                                           |
+| ------ | -------------------- | ---------------- | --------------------------------------------------------------------- |
+| Video  | Wan2.2-TI2V-5B       | DiffSynth-Studio | [training/wan2.2-ti2v-5b/](training/wan2.2-ti2v-5b/README.md)         |
+| Video  | Wan2.2-I2V-A14B      | DiffSynth-Studio | [training/wan2.2-i2v-a14b/](training/wan2.2-i2v-a14b/README.md)       |
+| Image  | Qwen-Image-Edit-2511 | DiffSynth-Studio | [training/qwen-image-edit-2511/](training/qwen-image-edit-2511/README.md) |
+| BAGEL  | BAGEL-7B-MoT         | BAGEL            | [training/bagel/](training/bagel/README.md)                           |
 
 
 ## ⚖️ License <!-- omit in toc -->

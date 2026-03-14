@@ -21,7 +21,7 @@ def _extract_query_and_images(sample: dict) -> tuple[str, list]:
 
 def _score_prediction(prediction: str, solution: str) -> Optional[float]:
     try:
-        from training.vlm.rewards.vlm_rewards import reward_eyeballing, reward_maze
+        from core.vlm_rewards import reward_eyeballing, reward_maze
     except Exception:
         return None
 

@@ -5,7 +5,7 @@
 # ============================================================
 #
 # Usage:
-#   DIFFSYNTH_PATH=/path/to/DiffSynth-Studio bash train_sft.sh \
+#   DIFFSYNTH_PATH=/path/to/DiffSynth-Studio bash training/qwen-image-edit-2511/train_sft.sh \
 #       --dataset_root /path/to/VideoThinkBench/output_root \
 #       --output_dir ./outputs/train
 #
@@ -123,7 +123,7 @@ if [ -z "${DIFFSYNTH_PATH}" ]; then
     echo ""
     echo "Example:"
     echo "  export DIFFSYNTH_PATH=/path/to/DiffSynth-Studio"
-    echo "  bash train_sft.sh --dataset_root /path/to/VideoThinkBench/output_root"
+    echo "  bash training/qwen-image-edit-2511/train_sft.sh --dataset_root /path/to/VideoThinkBench/output_root"
     exit 1
 fi
 
@@ -141,7 +141,7 @@ if [ ! -f "${METADATA_PATH}" ]; then
     fi
     
     echo "Generating metadata from dataset via VideoThinkBench unified export compatibility wrapper..."
-    python3 "${REPO_ROOT}/scripts/prepare_image_data.py" \
+    python3 "${SCRIPT_DIR}/prepare_data.py" \
         --dataset_root "${DATASET_ROOT}" \
         --output_path "${METADATA_PATH}"
 fi

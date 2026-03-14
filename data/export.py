@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from data.exporters.bagel import export_bagel
 from data.exporters.diffsynth_image import export_diffsynth_image
 from data.exporters.diffsynth_video import export_diffsynth_video
 from data.exporters.ms_swift import export_ms_swift
@@ -16,7 +17,7 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
         "--target",
         type=str,
         required=True,
-        choices=["ms-swift", "diffsynth-image", "diffsynth-video"],
+        choices=["ms-swift", "diffsynth-image", "diffsynth-video", "bagel"],
     )
     parser.add_argument(
         "--task-groups",
@@ -25,9 +26,15 @@ def build_parser(subparsers: argparse._SubParsersAction) -> None:
         choices=["eyeballing", "maze", "visual_puzzle"],
     )
 
-    parser.add_argument("--output-dir", type=str, default=None, help="Output directory for ms-swift target")
-    parser.add_argument("--mode", type=str, default="sft,grpo", help="Modes for ms-swift target")
+    parser.add_argument("--output-dir", type=str, default=None, help="Output directory for ms-swift or bagel target")
+    parser.add_argument("--mode", type=str, default=None, help="Modes for ms-swift or bagel target")
     parser.add_argument("--output", type=str, default=None, help="Output file path for diffsynth targets")
+    parser.add_argument(
+        "--parquet-rows-per-file",
+        type=int,
+        default=1024,
+        help="Rows per parquet shard when --target bagel.",
+    )
 
     parser.set_defaults(func=_cmd_export)
 
@@ -40,7 +47,8 @@ def _cmd_export(args: argparse.Namespace) -> None:
         if not args.output_dir:
             raise ValueError("--output-dir is required when --target ms-swift")
         output_dir = Path(args.output_dir).expanduser().resolve()
-        modes = [part.strip() for part in args.mode.split(",") if part.strip()]
+        raw_mode = args.mode or "sft,grpo"
+        modes = [part.strip() for part in raw_mode.split(",") if part.strip()]
         outputs = export_ms_swift(
             samples,
             output_dir=output_dir,
@@ -51,6 +59,26 @@ def _cmd_export(args: argparse.Namespace) -> None:
         print("VideoThinkBench data export finished")
         for out_path in outputs:
             print(f"Output: {out_path}")
+        print("=" * 60)
+        return
+
+    if args.target == "bagel":
+        if not args.output_dir:
+            raise ValueError("--output-dir is required when --target bagel")
+        output_dir = Path(args.output_dir).expanduser().resolve()
+        raw_mode = args.mode or "edit,vlm"
+        modes = [part.strip() for part in raw_mode.split(",") if part.strip()]
+        outputs = export_bagel(
+            samples,
+            output_dir=output_dir,
+            modes=modes,
+            task_groups=args.task_groups,
+            parquet_rows_per_file=args.parquet_rows_per_file,
+        )
+        print("=" * 60)
+        print("VideoThinkBench data export finished")
+        for name, out_path in sorted(outputs.items()):
+            print(f"{name}: {out_path}")
         print("=" * 60)
         return
 
