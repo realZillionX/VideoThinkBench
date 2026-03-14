@@ -35,6 +35,36 @@ def _build_visual_puzzle_ti2i_prompt(sample: Dict[str, Any]) -> str:
     )
 
 
+def _build_visual_puzzle_ti2t_prompt(sample: Dict[str, Any]) -> str:
+    question = str(sample.get("question") or "").strip()
+    options = sample.get("options") or []
+    option_text = ", ".join(str(option).strip() for option in options if str(option).strip())
+    if option_text:
+        return (
+            "Use the provided visual puzzle image to solve the task. "
+            f"{question} Options: [{option_text}]. Answer with exactly one option."
+        )
+    return f"Use the provided visual puzzle image to solve the task. {question} Answer with the final answer only."
+
+
+def _build_visual_puzzle_ti2ti_prompt(sample: Dict[str, Any]) -> str:
+    question = str(sample.get("question") or "").strip()
+    options = sample.get("options") or []
+    option_text = ", ".join(str(option).strip() for option in options if str(option).strip())
+    if option_text:
+        return (
+            "Use the provided visual puzzle image as input. "
+            f"{question} Options: [{option_text}]. "
+            "First determine the correct option, then replace only the missing question-mark region with that answer while keeping every other shape unchanged. "
+            "Output the solved image."
+        )
+    return (
+        "Use the provided visual puzzle image as input. "
+        f"{question} First determine the missing answer, then replace only the missing question-mark region with that answer while keeping every other shape unchanged. "
+        "Output the solved image."
+    )
+
+
 def load_generator_class(spec: TaskSpec):
     module = importlib.import_module(spec.module)
     if spec.class_name and hasattr(module, spec.class_name):
@@ -179,12 +209,17 @@ def _generate_visual_puzzle_worker(
         instruction = module.pattern_instructions[spec.name]
         ti2v_prompt = _build_visual_puzzle_ti2v_prompt(sample, instruction, module.VIDEOGEN_INSTRUCTION_COMMON)
         ti2i_prompt = _build_visual_puzzle_ti2i_prompt(sample)
+        ti2t_prompt = _build_visual_puzzle_ti2t_prompt(sample)
+        ti2ti_prompt = _build_visual_puzzle_ti2ti_prompt(sample)
+        answer_text = str(sample.get("answer") or "").strip() or None
         sample["ti2v_prompt"] = ti2v_prompt
         sample["prompt"] = ti2v_prompt
         sample["ti2i_prompt"] = ti2i_prompt
-        sample["ti2t_prompt"] = None
-        sample["vlm_prompt"] = None
-        sample["ti2ti_prompt"] = None
+        sample["ti2t_prompt"] = ti2t_prompt
+        sample["vlm_prompt"] = ti2t_prompt
+        sample["ti2ti_prompt"] = ti2ti_prompt
+        sample["vlm_answer"] = answer_text
+        sample["ti2t_answer"] = answer_text
 
         puzzle_image = module.pad_image(puzzle_image, target_size=target_size)
         solution_image = module.pad_image(solution_image, target_size=target_size)

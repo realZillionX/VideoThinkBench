@@ -45,7 +45,9 @@ Each sample usually contains:
 - the solution image.
 - `ti2v_prompt` for image-conditioned video generation.
 - `ti2i_prompt` for image-conditioned image editing.
-- `ti2t_prompt = null` and `ti2ti_prompt = null`, because `visual_puzzle` does not enter the `TI2T` / `TI2TI` export branches.
+- `ti2t_prompt`, which is built from `question + options` for VLM-style answering.
+- `ti2ti_prompt`, which first asks the model to determine the correct option and then render the solved image.
+- `vlm_answer`, which mirrors `answer` for text-conditioned supervision branches.
 
 In the unified pipeline, these fields are converted into `CanonicalSample`, with the answer normalized into `correct_option`.
 
@@ -201,8 +203,8 @@ python3 cli.py data generate \
 
 ## Current Training Boundary
 
-`visual_puzzle` can be exported into `diffsynth-image` / `BAGEL` `edit` data and into `diffsynth-video` as pure `TI2V` samples.
+`visual_puzzle` can be exported into `diffsynth-image` / `BAGEL` `edit` data, into `ms-swift` / `BAGEL` `vlm` data, and into `diffsynth-video` as `TI2V + TI2TI` samples.
 
-It is intentionally excluded from `ms-swift` / `BAGEL` `vlm` exports, and its `diffsynth-video` rows leave `ti2ti_*` blank.
+Its `TI2T` prompt is built by concatenating `question` and `options`, while `answer` is mirrored into `vlm_answer` for downstream text supervision.
 
 The current `GRPO` reward uses normalized exact text matching, which is a good fit for answers that are usually single color words, shape words, or size words.

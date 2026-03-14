@@ -294,7 +294,7 @@ The generated `Vision-Centric` records now distinguish prompt / image routing by
 - `ti2v_prompt` and `ti2i_prompt` use the generation-side `image`.
 - `ti2t_prompt` and `ti2ti_prompt` use the reasoning-side `reasoning_image`.
 - `maze` always saves both images, with `reasoning_image` carrying cell IDs.
-- `visual_puzzle` defines `ti2v_prompt` and `ti2i_prompt`, but leaves `ti2t_prompt` empty, so it is excluded from `ms-swift` and `BAGEL` `vlm` exports.
+- `visual_puzzle` now defines all four prompt variants：`ti2t_prompt` is built from `question + options`，`vlm_answer` mirrors `answer`，and `ti2ti_prompt` asks the model to determine the correct option before rendering the solved image.
 
 ### Repository Structure
 
