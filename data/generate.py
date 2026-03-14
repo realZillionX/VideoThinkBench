@@ -69,9 +69,6 @@ def _build_visual_puzzle_ti2ti_prompt(sample: Dict[str, Any]) -> str:
 def _prune_visual_puzzle_record(sample: Dict[str, Any]) -> Dict[str, Any]:
     keep_keys = {
         "id",
-        "question",
-        "answer",
-        "options",
         "ti2v_prompt",
         "ti2i_prompt",
         "ti2t_prompt",

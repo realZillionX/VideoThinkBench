@@ -33,11 +33,8 @@ The unified mainline currently includes `10` tasks, all implemented in `data/vis
 
 ## Data Records
 
-Each sample usually contains:
+Each generated `data.json` sample usually contains:
 
-- `question`.
-- `answer`.
-- `options`.
 - the generation / reasoning puzzle image `image` (for this task family, `reasoning_image` is the same file).
 - the solution image.
 - `ti2v_prompt` for image-conditioned video generation.
@@ -47,7 +44,9 @@ Each sample usually contains:
 - `ti2t_answer`, which rewrites `answer` into a normalized sentence such as `Answer: Blue.`.
 - `ti2ti_answer`, which pairs `ti2t_answer` with `solution_image_path`.
 
-The old descriptive helper fields `caption` / `explanation` / `deduction` and the old compatibility fields `prompt` / `vlm_prompt` / `vlm_answer` are no longer written into the mainline `visual_puzzle` `data.json`.
+The generator still builds internal source fields such as `question`, `answer`, and `options` before assembling the four modality-specific prompts, but those source fields are no longer written into the final mainline `visual_puzzle` `data.json`.
+
+The old descriptive helper fields `caption` / `explanation` / `deduction` and the old compatibility fields `prompt` / `vlm_prompt` / `vlm_answer` are also no longer written into the mainline `visual_puzzle` `data.json`.
 
 In the unified pipeline, these fields are converted into `CanonicalSample`, with the answer normalized into `correct_option`.
 

@@ -1547,9 +1547,6 @@ def build_visual_puzzle_ti2ti_prompt(sample: dict) -> str:
 def prune_visual_puzzle_record(sample: dict) -> dict:
     keep_keys = {
         "id",
-        "question",
-        "answer",
-        "options",
         "ti2v_prompt",
         "ti2i_prompt",
         "ti2t_prompt",
