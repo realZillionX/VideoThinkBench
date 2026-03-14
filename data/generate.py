@@ -26,13 +26,13 @@ def _build_visual_puzzle_ti2v_prompt(sample: Dict[str, Any], instruction: str, c
     return " ".join(part for part in parts if part).strip()
 
 
-def _build_visual_puzzle_ti2t_prompt(sample: Dict[str, Any]) -> str:
+def _build_visual_puzzle_ti2i_prompt(sample: Dict[str, Any]) -> str:
     question = str(sample.get("question") or "").strip()
-    options = sample.get("options") or []
-    option_text = ", ".join(str(option).strip() for option in options if str(option).strip())
-    if option_text:
-        return f"Use the provided visual puzzle image to solve the task. {question} Choose from: {option_text}. Answer with the final option text only."
-    return f"Use the provided visual puzzle image to solve the task. {question} Answer with the final answer only."
+    return (
+        "Use the provided visual puzzle image as input. "
+        f"{question} Replace only the missing question-mark region with the correct answer while keeping every other shape unchanged. "
+        "Output the solved image."
+    )
 
 
 def load_generator_class(spec: TaskSpec):
@@ -178,12 +178,12 @@ def _generate_visual_puzzle_worker(
         sample["id"] = f"{spec.name}-{question_idx:02d}"
         instruction = module.pattern_instructions[spec.name]
         ti2v_prompt = _build_visual_puzzle_ti2v_prompt(sample, instruction, module.VIDEOGEN_INSTRUCTION_COMMON)
-        ti2t_prompt = _build_visual_puzzle_ti2t_prompt(sample)
+        ti2i_prompt = _build_visual_puzzle_ti2i_prompt(sample)
         sample["ti2v_prompt"] = ti2v_prompt
         sample["prompt"] = ti2v_prompt
-        sample["ti2i_prompt"] = None
-        sample["ti2t_prompt"] = ti2t_prompt
-        sample["vlm_prompt"] = ti2t_prompt
+        sample["ti2i_prompt"] = ti2i_prompt
+        sample["ti2t_prompt"] = None
+        sample["vlm_prompt"] = None
         sample["ti2ti_prompt"] = None
 
         puzzle_image = module.pad_image(puzzle_image, target_size=target_size)
