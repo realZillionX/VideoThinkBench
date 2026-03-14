@@ -30,6 +30,16 @@ def _resolve_prompt_value(
     return None
 
 
+def _normalize_ti2t_answer_text(raw_answer: object) -> str:
+    text = str(raw_answer or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if lowered.startswith("answer:"):
+        text = text.split(":", 1)[1].strip()
+    return text.rstrip(".").strip()
+
+
 def build_canonical_sample(
     record: Dict,
     *,
@@ -94,6 +104,12 @@ def build_canonical_sample(
         answer = CanonicalAnswer(path_cell_ids=[int(item) for item in path_ids])
     elif task_group == "visual_puzzle":
         answer_text = str(record.get("answer") or "").strip()
+        if not answer_text:
+            ti2ti_answer = record.get("ti2ti_answer")
+            if isinstance(ti2ti_answer, dict):
+                answer_text = _normalize_ti2t_answer_text(ti2ti_answer.get("text"))
+        if not answer_text:
+            answer_text = _normalize_ti2t_answer_text(record.get("ti2t_answer"))
         if not answer_text:
             return None
         answer = CanonicalAnswer(correct_option=answer_text)
