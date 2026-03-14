@@ -105,19 +105,18 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
             # 8. Final validation
             if not self.inside_canvas(target):
                 continue
-            
-            # We have a valid puzzle
-            break
 
-        # Store the geometric points for rendering
-        self.points = (source, p_mirror, m1, m2)
-        self.target_point = target
-        
-        # The candidates lie along the reflected ray
-        line_angle = math.atan2(target.y - p_mirror.y, target.x - p_mirror.x)
-        self.place_candidates_line(target, line_angle+math.pi/2)
+            line_angle = math.atan2(target.y - p_mirror.y, target.x - p_mirror.x)
+            try:
+                self.place_candidates_line(target, line_angle+math.pi/2)
+            except RuntimeError:
+                continue
 
-        return self.save_puzzle()
+            self.points = (source, p_mirror, m1, m2)
+            self.target_point = target
+            return self.save_puzzle()
+
+        raise RuntimeError("Failed to find valid ray reflection geometry after 999 tries")
 
     def build_record_extra(self) -> dict[str, object]:
         source, p_mirror, m1, m2 = self.points
