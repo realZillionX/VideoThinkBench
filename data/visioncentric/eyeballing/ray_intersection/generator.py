@@ -102,7 +102,9 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> RayIntersectionPuzzleRecord:
-        intersection = self.pick_target_point()
+        intersection = self.pick_target_point(
+            0.46, padding=self.candidate_anchor_padding(extra=self.canvas_short_side * 0.12),
+        )
         rays = self._build_rays(intersection.to_list())
         point_radius = self.point_radius
         self.place_candidates(intersection)
@@ -167,7 +169,7 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
         intersection: Tuple[float, float],
     ) -> List[RaySegment]:
         left, top, right, bottom = self.canvas_bounds()
-        min_sep = math.radians(35.0)
+        min_sep = math.radians(48.0)
         angles: List[float] = []
         attempts = 0
         while len(angles) < 3 and attempts < 400:
@@ -238,7 +240,7 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
         span = math.hypot(dx, dy)
         if span <= 1.0:
             return (ox, oy)
-        draw_fraction = self._rng.uniform(0.25, 0.35)
+        draw_fraction = self._rng.uniform(0.28, 0.4)
         start_dist = span * (1.0 - draw_fraction)
         ratio = start_dist / span
         sx = ox + dx * ratio

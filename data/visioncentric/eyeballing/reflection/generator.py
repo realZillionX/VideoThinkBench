@@ -29,59 +29,62 @@ class ReflectionGenerator(PointTargetPuzzleGenerator):
         reflection of that point across the line.
         """
         tries = 0
-        min_line_dist = self.canvas_short_side * 0.4
-        min_point_dist = self.canvas_short_side * 0.2
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
 
         while tries < 999:
-            # 1. Define the line with two points, ensuring it's reasonably long.
-            p1, p2 = self.pick_target_point(0.8), self.pick_target_point(0.8)
-            if self.distance(p1, p2) < min_line_dist:
-                tries += 1
-                continue
-
-            # 2. Define the source point to be reflected.
-            source_point = self.pick_target_point(0.8)
-
-            # 3. Calculate the reflection using vector projection.
-            # Vector for the line (from p1 to p2)
-            v_x, v_y = p2.x - p1.x, p2.y - p1.y
-            # Vector from p1 to the source point
-            w_x, w_y = source_point.x - p1.x, source_point.y - p1.y
-            
-            # Dot product of v with itself (squared magnitude)
-            dot_vv = v_x * v_x + v_y * v_y
-            if dot_vv == 0: # Avoid division by zero if p1 and p2 are the same point
-                tries += 1
-                continue
-            
-            # Dot product of w with v
-            dot_wv = w_x * v_x + w_y * v_y
-            
-            # The projection factor 't' determines the closest point on the line.
-            t = dot_wv / dot_vv
-
-            # q is the projection of source_point onto the line p1-p2.
-            q = Point(x=p1.x + t * v_x, y=p1.y + t * v_y)
-            
-            # Ensure the source point is not too close to the line.
-            if self.distance(source_point, q) < min_point_dist:
-                tries += 1
-                continue
-                
-            # The target point is the reflection. The vector from source to target
-            # is twice the vector from source to its projection 'q'.
-            target_point = Point(
-                x=source_point.x + 2 * (q.x - source_point.x),
-                y=source_point.y + 2 * (q.y - source_point.y),
+            tries += 1
+            axis_angle = self._rng.uniform(0.0, math.tau)
+            normal_angle = axis_angle + math.pi / 2 * self._rng.choice([-1, 1])
+            axis_midpoint = self.pick_target_point(
+                0.55, padding=candidate_padding + self.canvas_short_side * 0.14,
             )
 
-            # 4. Ensure the target point is within the canvas bounds.
-            if not self.inside_canvas(target_point):
-                tries += 1
+            try:
+                p1, p2 = self.sample_symmetric_segment(
+                    axis_midpoint,
+                    axis_angle,
+                    min_half_length=self.canvas_short_side * 0.16,
+                    max_half_length=self.canvas_short_side * 0.28,
+                    padding=self.line_width,
+                )
+                projection_point = self.sample_point_along_direction(
+                    axis_midpoint,
+                    axis_angle,
+                    min_distance=0.0,
+                    max_distance=self.canvas_short_side * 0.12,
+                    padding=self.line_width,
+                )
+            except RuntimeError:
                 continue
 
-            # A valid puzzle configuration has been found.
+            projection_point = Point(
+                x=(projection_point.x + axis_midpoint.x) * 0.5,
+                y=(projection_point.y + axis_midpoint.y) * 0.5,
+            )
+            _, t = self.project_point_onto_line(projection_point, p1, p2)
+            if not 0.2 <= t <= 0.8:
+                continue
+
+            offset_distance = self._rng.uniform(
+                self.canvas_short_side * 0.22,
+                self.canvas_short_side * 0.34,
+            )
+            source_point = self.point_on_ray(projection_point, normal_angle, offset_distance)
+            target_point = self.point_on_ray(projection_point, normal_angle + math.pi, offset_distance)
+
+            if not self.point_can_host_candidate(target_point):
+                continue
+            if not self.inside_canvas(source_point, padding=self.line_width):
+                continue
+            if self.distance_point_to_line(source_point, p1, p2) < self.canvas_short_side * 0.2:
+                continue
+            if self.distance(source_point, target_point) < self.canvas_short_side * 0.42:
+                continue
+            if min(self.distance(projection_point, p1), self.distance(projection_point, p2)) < self.canvas_short_side * 0.1:
+                continue
             break
+        else:
+            raise RuntimeError("Failed to generate a valid reflection puzzle.")
         
         # Store the geometric elements for rendering.
         self.line_points = (p1, p2)

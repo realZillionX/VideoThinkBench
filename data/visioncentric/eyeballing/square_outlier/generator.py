@@ -4,6 +4,7 @@
 from __future__ import annotations
 from typing import List, Optional, Sequence, Tuple
 from PIL import Image, ImageDraw, ImageFont
+import itertools
 import math
 from data.point_target_base import PointTargetPuzzleGenerator, PointTargetPuzzleRecord, Point, PointCandidate
 
@@ -22,6 +23,29 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
     )
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
+    def _forms_square(self, points: List[Point]) -> bool:
+        if len(points) != 4:
+            return False
+        distances = []
+        for i in range(4):
+            for j in range(i + 1, 4):
+                dx = points[i].x - points[j].x
+                dy = points[i].y - points[j].y
+                distances.append(dx * dx + dy * dy)
+        distances.sort()
+        if distances[0] <= 1e-6:
+            return False
+        side = distances[0]
+        diag = distances[-1]
+        side_tol = side * 0.08
+        diag_tol = diag * 0.08
+        return (
+            all(abs(value - side) <= side_tol for value in distances[:4])
+            and abs(distances[4] - diag) <= diag_tol
+            and abs(distances[5] - diag) <= diag_tol
+            and abs(diag - 2.0 * side) <= max(side_tol * 2.0, diag_tol)
+        )
+
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         """
         Creates a puzzle with five points, where four form a square and one is an outlier.
@@ -29,7 +53,7 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
         """
         tries = 0
         candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
-        min_point_distance = max(self.minimum_candidate_spacing(), self.canvas_short_side * 0.14)
+        min_point_distance = max(self.minimum_candidate_spacing(scale=1.05), self.canvas_short_side * 0.16)
         while tries < 999:
             # 1. Generate a square with a random size, rotation, and position.
             
@@ -77,7 +101,7 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
                 
                 # Ensure the outlier is not too close to any of the square's vertices.
                 min_dist = min(self.distance(potential_outlier, v) for v in square_points)
-                if min_dist > min_point_distance:
+                if min_dist > max(min_point_distance, self.canvas_short_side * 0.18):
                     target_point = potential_outlier
                     break
                 outlier_tries += 1
@@ -89,6 +113,14 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
             labels = ['A', 'B', 'C', 'D', 'E']
             all_points = square_points + [target_point]
             if not self.points_are_well_spaced(all_points, min_distance=min_point_distance):
+                tries += 1
+                continue
+            square_count = 0
+            for combo in itertools.combinations(all_points, 4):
+                combo_points = list(combo)
+                if self._forms_square(combo_points):
+                    square_count += 1
+            if square_count != 1:
                 tries += 1
                 continue
 

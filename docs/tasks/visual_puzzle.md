@@ -71,6 +71,11 @@ In addition, `data.generate` currently passes the following internal fields auto
 | `target_size`  | `(1280, 704)` | Final output resolution.             |
 | `unique`       | `True`        | Deduplicate by puzzle image content. |
 
+The visual puzzle generators now also include two quality-of-life safeguards that matter during large batch generation:
+
+- Font loading no longer hard-fails when the repository-local OpenSans files are absent. The generator first tries the configured font path, then common system fonts, and finally Pillow's default font.
+- Border-sensitive layouts such as `size_cycle` clamp text placement and shrink the outer ring geometry slightly so question marks, circles, and outlines do not touch the outermost canvas pixels.
+
 ## Task Fields
 
 These task classes use a `BaseModel`-style constructor, and their fields can be overridden directly through `task_config`.

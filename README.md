@@ -88,6 +88,8 @@ Visual Puzzles evaluate inductive reasoning over visual patterns involving color
 - **Gradient** tasks (color-size gradients, size cycles)
 - **Compositionality** tasks (polygon-color mapping, rectangle-height-color, overlapping squares, shape-size grids)
 
+The current generators also apply presentation guardrails for dataset stability: font lookup now falls back cleanly when the preferred OpenSans assets are unavailable, and pattern layouts such as `size_cycle` keep symbols and circles away from the outer canvas border instead of letting them graze or clip at the edge.
+
 |                    Task                    |                                        Puzzle                                         |                                        Solution                                         |
 | :----------------------------------------: | :-----------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: |
 |        **Color Hexagon** (Symmetry)        |    <img src="assets/examples/visual_puzzle/color_hexagon_puzzle.png" width="280"/>    |    <img src="assets/examples/visual_puzzle/color_hexagon_solution.png" width="280"/>    |

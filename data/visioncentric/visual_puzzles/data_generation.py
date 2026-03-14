@@ -42,6 +42,37 @@ except Exception:
 
 Point = Tuple[float, float]
 
+_MODULE_DIR = Path(__file__).resolve().parent
+
+
+def _load_font(font_spec: str, *, size: int) -> ImageFont.ImageFont:
+    candidates = []
+    if font_spec:
+        raw_path = Path(font_spec)
+        if raw_path.is_absolute():
+            candidates.append(raw_path)
+        else:
+            candidates.append(_MODULE_DIR / raw_path)
+            candidates.append(_MODULE_DIR.parent.parent.parent / raw_path)
+    candidates.extend(
+        [
+            Path("/System/Library/Fonts/Supplemental/Arial Unicode.ttf"),
+            Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        ]
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            try:
+                return ImageFont.truetype(str(candidate), size=size)
+            except OSError:
+                continue
+    for fallback_name in ("DejaVuSans.ttf", "Arial.ttf"):
+        try:
+            return ImageFont.truetype(fallback_name, size=size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
 
 class ColorGridPattern(BaseModel):
     image_size: int = 512
@@ -84,7 +115,7 @@ class ColorGridPattern(BaseModel):
         mapping = {k: v for k, v in zip(names, values)}
         i_answer = random.choice([0, 2, 6, 8, 1, 3, 5, 7])
         answer = ""
-        font = ImageFont.truetype(self.path_font, size=size // 10)
+        font = _load_font(self.path_font, size=size // 10)
 
         for k, lst in mapping.items():
             for i in lst:
@@ -185,7 +216,7 @@ class ColorHexagonPattern(BaseModel):
         answer = names[i_answer]
         puzzle_colors = colors.copy()
         puzzle_colors[i_answer] = "#eeeeee"  # Grey
-        font = ImageFont.truetype(self.path_font, size=size // 10)
+        font = _load_font(self.path_font, size=size // 10)
 
         # Draw the hexagon made of six triangles
         for i in range(6):
@@ -297,7 +328,7 @@ class ColorOverlapSquaresPattern(BaseModel):
         color_names = list(self.sample_color_names())
         solution_colors = [self.colors[n] for n in color_names]
         puzzle_colors = solution_colors[:]
-        font = ImageFont.truetype(self.path_font, size=size // 10)
+        font = _load_font(self.path_font, size=size // 10)
 
         if random.random() > 0.5:
             missing_index = 0
@@ -394,7 +425,7 @@ class ColorSizePattern(BaseModel):
         solution_image = Image.new("RGB", size=(size, size), color="white")
         puzzle_draw = ImageDraw.Draw(puzzle_image)
         solution_draw = ImageDraw.Draw(solution_image)
-        font = ImageFont.truetype(self.path_font, size=size // 10)
+        font = _load_font(self.path_font, size=size // 10)
 
         key = random.choice(sorted(self.colors))
         colors = self.colors[key]
@@ -528,7 +559,7 @@ class PolygonSidesColorPattern(BaseModel):
         solution_image = Image.new("RGB", size=(size, size), color="white")
         puzzle_draw = ImageDraw.Draw(puzzle_image)
         solution_draw = ImageDraw.Draw(solution_image)
-        font = ImageFont.truetype(self.path_font, size=50 * self.scale_factor)
+        font = _load_font(self.path_font, size=50 * self.scale_factor)
 
         sides = random.sample(range(3, 10), 3)
         side2col = dict(zip(sides, random.sample(list(self.colors.keys()), 3)))
@@ -642,7 +673,7 @@ class RectangleHeightColorPattern(BaseModel):
         draw.text(
             point,
             text=text,
-            font=ImageFont.truetype(self.path_font, size=size // 8),
+            font=_load_font(self.path_font, size=size // 8),
             anchor="mm",
             fill="black",
         )
@@ -747,7 +778,7 @@ class ShapeReflectPattern(BaseModel):
             draw.text(
                 center,
                 text="?",
-                font=ImageFont.truetype(self.path_font, size=size // 10),
+                font=_load_font(self.path_font, size=size // 10),
                 anchor="mm",
                 fill="black",
             )
@@ -844,7 +875,7 @@ class ShapeSizeGridPattern(BaseModel):
         draw.text(
             point,
             text=text,
-            font=ImageFont.truetype(self.path_font, size=size // 8),
+            font=_load_font(self.path_font, size=size // 8),
             anchor="mm",
             fill="black",
         )
@@ -973,10 +1004,17 @@ class SizeCyclePattern(BaseModel):
 
     def draw_text(self, draw: ImageDraw, point: Point, text: str):
         size = self.image_size * self.scale_factor
+        font = _load_font(self.path_font, size=size // 10)
+        text_bbox = font.getbbox(text)
+        half_width = (text_bbox[2] - text_bbox[0]) / 2.0
+        half_height = (text_bbox[3] - text_bbox[1]) / 2.0
+        safe_margin = max(8.0, size * 0.015)
+        safe_x = min(max(point[0], half_width + safe_margin), size - half_width - safe_margin)
+        safe_y = min(max(point[1], half_height + safe_margin), size - half_height - safe_margin)
         draw.text(
-            point,
+            (safe_x, safe_y),
             text=text,
-            font=ImageFont.truetype(self.path_font, size=size // 10),
+            font=font,
             anchor="mm",
             fill="black",
         )
@@ -992,9 +1030,9 @@ class SizeCyclePattern(BaseModel):
         center = size // 2, size // 2
         offset = random.randint(0, 360)
         mapping = dict(
-            small=(size * 0.050, size // 9, 0 + offset),
-            medium=(size * 0.075, size // 4, 20 + offset),
-            large=(size * 0.100, size // 2.5, 45 + offset),
+            small=(size * 0.048, round(size * 0.11), 0 + offset),
+            medium=(size * 0.072, round(size * 0.23), 20 + offset),
+            large=(size * 0.092, round(size * 0.32), 45 + offset),
         )
 
         names = []
@@ -1060,7 +1098,7 @@ class SizeGridPattern(BaseModel):
         solution_image = Image.new("RGB", size=(size, size), color="white")
         puzzle_draw = ImageDraw.Draw(puzzle_image)
         solution_draw = ImageDraw.Draw(solution_image)
-        font = ImageFont.truetype(self.path_font, size=size // 10)
+        font = _load_font(self.path_font, size=size // 10)
         a, b, c = size // 4, size // 2, size * 3 // 4
         positions = [(x, y) for x in [a, b, c] for y in [a, b, c]]
 
@@ -1143,7 +1181,7 @@ class NumbersTrianglePattern(BaseModel):
         draw.text(
             point,
             text=text,
-            font=ImageFont.truetype(self.path_font, size=size // 14),
+            font=_load_font(self.path_font, size=size // 14),
             anchor="mm",
             fill="black",
         )
@@ -1216,7 +1254,7 @@ class VennPattern(BaseModel):
         draw.text(
             position,
             text,
-            font=ImageFont.truetype(self.path_font, size=image.width // 16),
+            font=_load_font(self.path_font, size=image.width // 16),
             anchor="mm",
             fill="black",
         )

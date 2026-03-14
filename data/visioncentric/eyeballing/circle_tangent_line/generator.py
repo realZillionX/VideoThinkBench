@@ -25,13 +25,14 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         tries=0
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
         while tries<999:
             # 1. Define the circle's center and radius
-            center = self.pick_target_point(0.45) # Keep center away from edges
-            min_radius = self.canvas_short_side * 0.2
-            max_radius = self.canvas_short_side * 0.4
+            center = self.pick_target_point(0.42, padding=anchor_padding + self.canvas_short_side * 0.08)
+            min_radius = self.canvas_short_side * 0.22
+            max_radius = self.canvas_short_side * 0.36
             radius = self._rng.uniform(min_radius, max_radius)
-            circle_fits = self.circle_fits(center, radius, extra_padding=self.line_width)
+            circle_fits = self.circle_fits(center, radius, extra_padding=max(self.line_width, anchor_padding * 0.2))
             if not circle_fits:
                 tries += 1
                 continue
@@ -46,18 +47,24 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
             # 3. The tangent line is perpendicular to the radius
             tangent_angle = radius_angle + math.pi / 2
 
-            # 4. Define the target point on the tangent line
-            # Choose a distance from the point on the circle to the target
-            dist_from_poc = self._rng.uniform(0.2, 0.4) * self.canvas_short_side
-            # Randomly pick a direction along the tangent line
-            dist_from_poc *= self._rng.choice([-1, 1])
+            if self._rng.random() < 0.5:
+                tangent_angle += math.pi
+            try:
+                target_point = self.sample_point_along_direction(
+                    point_on_circle,
+                    tangent_angle,
+                    min_distance=self.canvas_short_side * 0.26,
+                    max_distance=self.canvas_short_side * 0.38,
+                    padding=anchor_padding,
+                )
+            except RuntimeError:
+                tries += 1
+                continue
 
-            target_point = Point(
-                x=point_on_circle.x + dist_from_poc * math.cos(tangent_angle),
-                y=point_on_circle.y + dist_from_poc * math.sin(tangent_angle)
-            )
-
-            if not self.point_can_host_candidate(target_point, extra_padding=self.canvas_short_side * 0.02):
+            if not self.point_can_host_candidate(target_point, extra_padding=self.canvas_short_side * 0.03):
+                tries += 1
+                continue
+            if self.distance(point_on_circle, target_point) < self.canvas_short_side * 0.26:
                 tries += 1
                 continue
             self.circle_center = center
@@ -66,7 +73,7 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
             self.target_point = target_point
             
             try:
-                self.place_candidates_line(target_point, tangent_angle + math.pi / 2 + self._rng.uniform(-0.06, 0.06))
+                self.place_candidates_line(target_point, tangent_angle + math.pi / 2 + self._rng.uniform(-0.05, 0.05))
             except RuntimeError:
                 tries += 1
                 continue

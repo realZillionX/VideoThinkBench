@@ -25,12 +25,12 @@ class TriangleCenterGenerator(PointTargetPuzzleGenerator):
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         p1, p2, p3 = self.sample_triangle_vertices(
-            jitter_ratio=0.72,
-            min_side_ratio=0.22,
-            min_area_ratio=0.045,
-            min_altitude_ratio=0.15,
-            min_angle_deg=32.0,
-            max_angle_deg=116.0,
+            jitter_ratio=0.68,
+            min_side_ratio=0.24,
+            min_area_ratio=0.055,
+            min_altitude_ratio=0.17,
+            min_angle_deg=38.0,
+            max_angle_deg=108.0,
         )
         center=Point(
             x=(p1.x + p2.x + p3.x) / 3,

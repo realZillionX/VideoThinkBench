@@ -49,27 +49,36 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         self.margin = 50
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
         tries = 0
         while tries < 999:
             tries += 1
             
             # 1. Define the mirror line segment
-            m1 = self.pick_target_point(0.7)
-            m2 = self.pick_target_point(0.7)
-            if self.distance(m1, m2) < self.canvas_short_side * 0.4:
+            mirror_mid = self.pick_target_point(0.52, padding=candidate_padding + self.canvas_short_side * 0.12)
+            mirror_angle = self._rng.uniform(0.0, math.tau)
+            try:
+                m1, m2 = self.sample_symmetric_segment(
+                    mirror_mid,
+                    mirror_angle,
+                    min_half_length=self.canvas_short_side * 0.2,
+                    max_half_length=self.canvas_short_side * 0.3,
+                    padding=self.line_width,
+                )
+            except RuntimeError:
                 continue
 
             # 2. Define the light source
-            source = self.pick_target_point(0.9)
+            source = self.pick_target_point(0.5, padding=self.canvas_short_side * 0.08)
 
             # 3. Ensure the source is not too close to the mirror line
             dx, dy = m2.x - m1.x, m2.y - m1.y
             dist_from_line = abs(dx * (source.y - m1.y) - dy * (source.x - m1.x)) / math.sqrt(dx*dx + dy*dy)
-            if dist_from_line < self.canvas_short_side * 0.2:
+            if dist_from_line < self.canvas_short_side * 0.22:
                 continue
 
             # 4. Pick a point on the mirror segment for the reflection to occur
-            reflect_ratio = self._rng.uniform(0.2, 0.8)  # Avoid the very ends of the mirror
+            reflect_ratio = self._rng.uniform(0.24, 0.76)  # Avoid the very ends of the mirror
             p_mirror = Point(
                 x=m1.x + reflect_ratio * (m2.x - m1.x),
                 y=m1.y + reflect_ratio * (m2.y - m1.y),
@@ -83,7 +92,7 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
             mag_mirror = math.sqrt(v_mirror[0]**2 + v_mirror[1]**2)
             if mag_in < 1e-6 or mag_mirror < 1e-6: continue
             cos_angle = abs(dot_product / (mag_in * mag_mirror))
-            if cos_angle > 0.95:  # Angle is < ~18 degrees, too shallow
+            if cos_angle > 0.88:  # Angle is < ~28 degrees, too shallow
                 continue
 
             # 6. The key insight: the reflected ray appears to come from the reflection of the source.
@@ -96,14 +105,20 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
             if ray_len < 1e-6: continue
             
             # Extend the ray to find a target point within the canvas
-            target_dist = self.canvas_short_side * self._rng.uniform(0.4, 0.9)
-            target = Point(
-                x=p_mirror.x - target_dist * (ray_dir_x / ray_len),
-                y=p_mirror.y - target_dist * (ray_dir_y / ray_len),
-            )
+            ray_angle = math.atan2(-ray_dir_y, -ray_dir_x)
+            try:
+                target = self.sample_point_along_direction(
+                    p_mirror,
+                    ray_angle,
+                    min_distance=self.canvas_short_side * 0.4,
+                    max_distance=self.canvas_short_side * 0.62,
+                    padding=candidate_padding,
+                )
+            except RuntimeError:
+                continue
             
             # 8. Final validation
-            if not self.inside_canvas(target):
+            if not self.point_can_host_candidate(target):
                 continue
 
             line_angle = math.atan2(target.y - p_mirror.y, target.x - p_mirror.x)

@@ -64,12 +64,12 @@ class IncenterGenerator(PointTargetPuzzleGenerator):
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         min_inradius = self.canvas_short_side * 0.12
         p1, p2, p3 = self.sample_triangle_vertices(
-            jitter_ratio=0.72,
-            min_side_ratio=0.22,
-            min_area_ratio=0.045,
-            min_altitude_ratio=0.15,
-            min_angle_deg=32.0,
-            max_angle_deg=116.0,
+            jitter_ratio=0.68,
+            min_side_ratio=0.24,
+            min_area_ratio=0.055,
+            min_altitude_ratio=0.17,
+            min_angle_deg=38.0,
+            max_angle_deg=108.0,
             validator=lambda a, b, c: calculate_incenter_and_inradius(a, b, c)[1] >= min_inradius,
         )
         incenter,r=calculate_incenter_and_inradius(p1,p2,p3)

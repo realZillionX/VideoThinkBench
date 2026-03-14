@@ -24,18 +24,18 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        self.margin = 50
-        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
+        self.margin = 64
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.06)
         for _ in range(999):
             line_angle = self._rng.uniform(0.0, math.tau)
             normal_angle = line_angle + math.pi / 2 * self._rng.choice([-1, 1])
-            through_point = self.pick_target_point(0.5, padding=anchor_padding + self.canvas_short_side * 0.14)
+            through_point = self.pick_target_point(0.46, padding=anchor_padding + self.canvas_short_side * 0.16)
             try:
                 reference_mid = self.sample_point_along_direction(
                     through_point,
                     normal_angle,
-                    min_distance=self.canvas_short_side * 0.18,
-                    max_distance=self.canvas_short_side * 0.28,
+                    min_distance=self.canvas_short_side * 0.2,
+                    max_distance=self.canvas_short_side * 0.3,
                     padding=self.line_width,
                 )
                 p_ref1 = self.sample_point_along_direction(
@@ -55,8 +55,8 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
                 target = self.sample_point_along_direction(
                     through_point,
                     normal_angle,
-                    min_distance=self.canvas_short_side * 0.26,
-                    max_distance=self.canvas_short_side * 0.40,
+                    min_distance=self.canvas_short_side * 0.28,
+                    max_distance=self.canvas_short_side * 0.38,
                     padding=anchor_padding,
                 )
                 self.place_candidates_line(target, line_angle + self._rng.uniform(-0.05, 0.05))

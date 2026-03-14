@@ -17,7 +17,7 @@ from typing import List, Optional, Sequence, Tuple
 from PIL import Image, ImageDraw, ImageFont
 
 from data.base import PathLike
-from data.point_target_base import PointCandidate, PointTargetPuzzleGenerator
+from data.point_target_base import Point, PointCandidate, PointTargetPuzzleGenerator
 
 
 @dataclass
@@ -97,7 +97,9 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self, *, puzzle_id: Optional[str] = None) -> MidpointPuzzleRecord:
-        midpoint = self.pick_target_point()
+        midpoint = self.pick_target_point(
+            0.48, padding=self.candidate_anchor_padding(extra=self.canvas_short_side * 0.12),
+        )
         segment = self._build_segment(midpoint.to_list())
         point_radius = self.point_radius
         self.place_candidates(midpoint)
@@ -178,35 +180,28 @@ class MidpointGenerator(PointTargetPuzzleGenerator):
         self,
         midpoint: Tuple[float, float],
     ) -> Segment:
-        left, top, right, bottom = self.canvas_bounds()
         mx, my = midpoint
-        attempts = 0
-        while attempts < 200:
-            attempts += 1
+        midpoint_point = Point(mx, my)
+        for _ in range(200):
             angle = self.rng.uniform(0.0, math.tau)
-            dx = math.cos(angle)
-            dy = math.sin(angle)
-            max_extent = float("inf")
-            if abs(dx) > 1e-6:
-                bound_x_pos = (right - mx) / dx if dx > 0 else (left - mx) / dx
-                max_extent = min(max_extent, abs(bound_x_pos))
-            if abs(dy) > 1e-6:
-                bound_y_pos = (bottom - my) / dy if dy > 0 else (top - my) / dy
-                max_extent = min(max_extent, abs(bound_y_pos))
-            max_extent = float(max(max_extent, 0.0))
-            max_extent *= 0.9
-            min_extent = max(40.0, 0.12 * min(right - left, bottom - top))
-            if max_extent < min_extent:
+            try:
+                start_point, end_point = self.sample_symmetric_segment(
+                    midpoint_point,
+                    angle,
+                    min_half_length=self.canvas_short_side * 0.12,
+                    max_half_length=self.canvas_short_side * 0.3,
+                    padding=self.point_radius + 8,
+                )
+            except RuntimeError:
                 continue
-            half_length = self.rng.uniform(min_extent, max_extent)
-            start = (mx - dx * half_length, my - dy * half_length)
-            end = (mx + dx * half_length, my + dy * half_length)
+            start = (start_point.x, start_point.y)
+            end = (end_point.x, end_point.y)
             if self._inside_bounds(start) and self._inside_bounds(end):
                 return Segment(start=start, end=end)
-        # Fallback: horizontal segment
-        half_length = min(0.3 * (right - left), 0.3 * (bottom - top))
-        start = (max(left + 10, mx - half_length), my)
-        end = (min(right - 10, mx + half_length), my)
+        left, top, right, bottom = self.canvas_bounds()
+        half_length = min(0.24 * (right - left), 0.24 * (bottom - top))
+        start = (max(left + 16, mx - half_length), my)
+        end = (min(right - 16, mx + half_length), my)
         return Segment(start=start, end=end)
 
     def _inside_bounds(self, point: Tuple[float, float]) -> bool:

@@ -239,6 +239,18 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
     ) -> float:
         return math.hypot(p1.x - p2.x, p1.y - p2.y)
 
+    def distance_to_canvas_edge(
+        self,
+        point: Point,
+    ) -> float:
+        left, top, right, bottom = self.canvas_bounds()
+        return min(
+            point.x - left,
+            right - point.x,
+            point.y - top,
+            bottom - point.y,
+        )
+
     def angle_between(
         self,
         angle1: float,
@@ -256,6 +268,36 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             x=origin.x + distance * math.cos(angle),
             y=origin.y + distance * math.sin(angle),
         )
+
+    def project_point_onto_line(
+        self,
+        point: Point,
+        line_point1: Point,
+        line_point2: Point,
+    ) -> Tuple[Point, float]:
+        dx = line_point2.x - line_point1.x
+        dy = line_point2.y - line_point1.y
+        denom = dx * dx + dy * dy
+        if denom <= 1e-9:
+            return line_point1, 0.0
+        t = (
+            (point.x - line_point1.x) * dx
+            + (point.y - line_point1.y) * dy
+        ) / denom
+        projection = Point(
+            x=line_point1.x + dx * t,
+            y=line_point1.y + dy * t,
+        )
+        return projection, t
+
+    def distance_point_to_line(
+        self,
+        point: Point,
+        line_point1: Point,
+        line_point2: Point,
+    ) -> float:
+        projection, _ = self.project_point_onto_line(point, line_point1, line_point2)
+        return self.distance(point, projection)
 
     def angle_at_vertex(
         self,
@@ -441,6 +483,42 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             raise RuntimeError("Requested distance range does not fit inside canvas")
         distance = self._rng.uniform(min_distance, upper)
         return self.point_on_ray(origin, angle, distance)
+
+    def sample_symmetric_segment(
+        self,
+        midpoint: Point,
+        angle: float,
+        *,
+        min_half_length: float,
+        max_half_length: Optional[float] = None,
+        padding: float = 0.0,
+    ) -> Tuple[Point, Point]:
+        forward_budget = self._max_travel_distance(
+            midpoint, angle, padding_x=padding, padding_y=padding,
+        )
+        backward_budget = self._max_travel_distance(
+            midpoint, angle + math.pi, padding_x=padding, padding_y=padding,
+        )
+        symmetric_budget = min(forward_budget, backward_budget)
+        if symmetric_budget < min_half_length:
+            raise RuntimeError("No feasible symmetric segment fits inside canvas")
+        upper = symmetric_budget if max_half_length is None else min(symmetric_budget, max_half_length)
+        if upper < min_half_length:
+            raise RuntimeError("Requested symmetric segment range does not fit inside canvas")
+        half_length = self._rng.uniform(min_half_length, upper * 0.98 if upper > min_half_length else upper)
+        return (
+            self.point_on_ray(midpoint, angle + math.pi, half_length),
+            self.point_on_ray(midpoint, angle, half_length),
+        )
+
+    def segment_fits(
+        self,
+        p1: Point,
+        p2: Point,
+        *,
+        padding: float = 0.0,
+    ) -> bool:
+        return self.inside_canvas(p1, padding=padding) and self.inside_canvas(p2, padding=padding)
 
     def clip_line_to_canvas(
         self,

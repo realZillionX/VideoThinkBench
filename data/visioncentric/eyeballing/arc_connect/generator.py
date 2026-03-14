@@ -76,6 +76,24 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         self.mask_top: float = 0.0
         self.mask_bottom: float = 0.0
 
+    def _arc_stays_inside(
+        self,
+        circle: CircleSpec,
+        theta_start: float,
+        theta_end: float,
+        *,
+        padding: float,
+        samples: int = 21,
+    ) -> bool:
+        width, height = self.canvas_dimensions
+        for idx in range(samples + 1):
+            ratio = idx / samples
+            theta = theta_start + (theta_end - theta_start) * ratio
+            px, py = self._point_on_circle(circle, theta)
+            if not (padding <= px <= width - padding and padding <= py <= height - padding):
+                return False
+        return True
+
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         width, height = self.canvas_dimensions
         self.mask_width = width * self.mask_fraction
@@ -85,12 +103,12 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         span_rad = math.radians(self.arc_span_deg)
         margin = self.margin
         candidate_pad_x, candidate_pad_y = self._candidate_safe_padding()
-        candidate_gap = max(self.minimum_candidate_spacing(scale=0.92), height * 0.08)
+        candidate_gap = max(self.minimum_candidate_spacing(scale=0.96), height * 0.09)
         stroke = max(3, int(round(min(width, height) * 0.015)))
 
         for _ in range(1000):
             # Restore original radius logic: uniform(0.38, 0.55) * min_dimension
-            radius = self.rng.uniform(0.38, 0.55) * min(width, height)
+            radius = self.rng.uniform(0.4, 0.52) * min(width, height)
             
             mask_left = self.mask_x_center - self.mask_width/2
             mask_right = self.mask_x_center + self.mask_width/2
@@ -146,7 +164,16 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
                 if not (self.mask_top < p_start[1] < self.mask_bottom): valid_group = False
                 if not (self.mask_top < p_end[1] < self.mask_bottom): valid_group = False
                 if p_end[0] <= mask_right: valid_group = False
-                if p_end[0] + candidate_pad_x >= width - margin: valid_group = False
+                if p_end[0] + candidate_pad_x + 8 >= width - margin: valid_group = False
+
+                cross_ys_center = self._get_y_at_x(c, self.mask_x_center)
+                if not cross_ys_center:
+                    valid_group = False
+                else:
+                    y_cross_center = min(cross_ys_center, key=lambda y: abs(y - y_cross))
+                    theta_center = math.atan2(y_cross_center - c.cy, self.mask_x_center - c.cx)
+                    if not self._arc_stays_inside(c, theta_center, theta_end, padding=stroke + 2):
+                        valid_group = False
                 
                 # Check left arc containment (theoretical left arc for this circle)
                 cross_ys_left = self._get_y_at_x(c, mask_left)
@@ -166,6 +193,8 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
                     if not (self.mask_top < p_left_start[1] < self.mask_bottom): valid_group = False
                     if not (self.mask_top < p_left_end[1] < self.mask_bottom): valid_group = False
                     if p_left_end[0] >= mask_left: valid_group = False
+                    if valid_group and not self._arc_stays_inside(c, theta_center, theta_left_end, padding=stroke + 2):
+                        valid_group = False
 
                 if not valid_group: break
                 
@@ -176,15 +205,26 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
             if valid_group:
                 self.circles = temp_circles
                 labels = ["A", "B", "C", "D", "E"]
-                label_offset = max(candidate_pad_x, 18.0)
+                label_offset = max(candidate_pad_x + 6.0, 22.0)
                 self.candidates = []
                 for pt, label in zip(temp_candidates_points, labels):
+                    candidate_x = pt[0] + label_offset
+                    if not self._point_within_canvas_coords(
+                        candidate_x,
+                        pt[1],
+                        padding_x=candidate_pad_x,
+                        padding_y=candidate_pad_y,
+                    ):
+                        valid_group = False
+                        break
                     candidate = PointCandidate(
-                        x=min(width - candidate_pad_x, pt[0] + label_offset),
+                        x=candidate_x,
                         y=pt[1],
                         label=label,
                     )
                     self.candidates.append(candidate)
+                if not valid_group:
+                    continue
                 if not self.validate_candidate_layout(
                     self.candidates, min_distance=self.minimum_candidate_spacing(scale=0.92),
                 ):

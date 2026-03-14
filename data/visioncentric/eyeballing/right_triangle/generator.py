@@ -42,16 +42,16 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
         return dot_product / (mag_ba * mag_bc)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        min_side_len = self.canvas_short_side * 0.22
+        min_side_len = self.canvas_short_side * 0.24
         max_side_len = self.canvas_short_side * 0.34
-        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
-        min_dist_between_points = max(self.canvas_short_side * 0.14, self.minimum_candidate_spacing())
-        ambiguity_threshold = 0.2
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
+        min_dist_between_points = max(self.canvas_short_side * 0.16, self.minimum_candidate_spacing(scale=1.05))
+        ambiguity_threshold = 0.28
 
         tries = 0
         while tries < 999999:
             # 1. Generate the right-angled triangle
-            p_right = self.pick_target_point(0.55, padding=candidate_padding + self.canvas_short_side * 0.1)
+            p_right = self.pick_target_point(0.5, padding=candidate_padding + self.canvas_short_side * 0.12)
             
             angle = self._rng.uniform(0, 2 * math.pi)
             len1 = self._rng.uniform(min_side_len, max_side_len)
@@ -69,6 +69,9 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
             right_triangle_pts = [p_right, p1, p2]
             
             if not all(self.point_can_host_candidate(p) for p in right_triangle_pts):
+                tries += 1
+                continue
+            if self.distance(p1, p2) < self.canvas_short_side * 0.34:
                 tries += 1
                 continue
 

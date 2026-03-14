@@ -29,9 +29,9 @@ class IsoscelesTrapezoidGenerator(PointTargetPuzzleGenerator):
             center = self.pick_target_point(0.45, padding=anchor_padding + self.canvas_short_side * 0.12)
             base_angle = self._rng.uniform(0.0, math.tau)
             axis_angle = base_angle + math.pi / 2
-            base_half = self.canvas_short_side * self._rng.uniform(0.18, 0.25)
-            top_half = base_half * self._rng.uniform(0.5, 0.78)
-            height = self.canvas_short_side * self._rng.uniform(0.18, 0.26)
+            base_half = self.canvas_short_side * self._rng.uniform(0.2, 0.26)
+            top_half = base_half * self._rng.uniform(0.52, 0.72)
+            height = self.canvas_short_side * self._rng.uniform(0.2, 0.28)
 
             bottom_center = self.point_on_ray(center, axis_angle + math.pi, height * 0.5)
             top_center = self.point_on_ray(center, axis_angle, height * 0.5)
@@ -43,9 +43,11 @@ class IsoscelesTrapezoidGenerator(PointTargetPuzzleGenerator):
             points = (p1, p2, p3, target_point)
             if not all(self.point_can_host_candidate(point) for point in points):
                 continue
-            if height < self.canvas_short_side * 0.18:
+            if height < self.canvas_short_side * 0.2:
                 continue
-            if 2 * top_half < self.canvas_short_side * 0.16:
+            if 2 * top_half < self.canvas_short_side * 0.18:
+                continue
+            if 2 * (base_half - top_half) < self.canvas_short_side * 0.12:
                 continue
             self.trapezoid_points = (p1, p2, p3, target_point)
             self.place_candidates(target_point)

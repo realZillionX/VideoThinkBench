@@ -28,42 +28,35 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        self.margin = 80
+        self.margin = 72
         candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
         tries = 0
-        min_dist = self.canvas_short_side * 0.25
         while tries < 999:
-            p1 = self.pick_target_point(0.55, padding=candidate_padding)
-            p2 = self.pick_target_point(0.55, padding=candidate_padding)
-            if distance(p1, p2) < min_dist:
+            midpoint = self.pick_target_point(
+                0.48, padding=candidate_padding + self.canvas_short_side * 0.14,
+            )
+            segment_angle = self._rng.uniform(0.0, math.tau)
+            try:
+                p1, p2 = self.sample_symmetric_segment(
+                    midpoint,
+                    segment_angle,
+                    min_half_length=self.canvas_short_side * 0.13,
+                    max_half_length=self.canvas_short_side * 0.22,
+                    padding=self.line_width,
+                )
+            except RuntimeError:
                 tries += 1
                 continue
 
-            # Calculate midpoint
-            midpoint = Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
-            
-            # Calculate perpendicular vector
-            dx = p2.x - p1.x
-            dy = p2.y - p1.y
-            perp_dx, perp_dy = -dy, dx
-
-            # Normalize the perpendicular vector
-            length = math.sqrt(perp_dx**2 + perp_dy**2)
-            if length == 0:
-                tries += 1
-                continue
-            
-            u_perp_dx, u_perp_dy = perp_dx / length, perp_dy / length
-
-            target_angle = math.atan2(u_perp_dy, u_perp_dx)
+            target_angle = segment_angle + math.pi / 2
             if self._rng.random() < 0.5:
                 target_angle += math.pi
             try:
                 target = self.sample_point_along_direction(
                     midpoint,
                     target_angle,
-                    min_distance=self.canvas_short_side * 0.24,
-                    max_distance=self.canvas_short_side * 0.36,
+                    min_distance=self.canvas_short_side * 0.26,
+                    max_distance=self.canvas_short_side * 0.38,
                     padding=candidate_padding,
                 )
             except RuntimeError:
@@ -75,9 +68,8 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
             
             # Place candidates along a line roughly perpendicular to the bisector itself
             # (i.e., parallel to the original p1-p2 segment)
-            angle = math.atan2(p2.y - p1.y, p2.x - p1.x)
             try:
-                self.place_candidates_line(target, angle + self._rng.uniform(-0.1, 0.1))
+                self.place_candidates_line(target, segment_angle + self._rng.uniform(-0.08, 0.08))
             except RuntimeError:
                 tries += 1
                 continue

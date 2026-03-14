@@ -28,10 +28,10 @@ class ParallelogramGenerator(PointTargetPuzzleGenerator):
         for _ in range(999):
             target_point = self.pick_target_point(0.45, padding=anchor_padding + self.canvas_short_side * 0.1)
             base_angle = self._rng.uniform(0.0, math.tau)
-            angle_delta = math.radians(self._rng.uniform(42.0, 122.0))
+            angle_delta = math.radians(self._rng.uniform(54.0, 116.0))
             second_angle = base_angle + angle_delta
-            side_a = self.canvas_short_side * self._rng.uniform(0.18, 0.28)
-            side_b = self.canvas_short_side * self._rng.uniform(0.18, 0.28)
+            side_a = self.canvas_short_side * self._rng.uniform(0.2, 0.3)
+            side_b = self.canvas_short_side * self._rng.uniform(0.2, 0.3)
             p1 = self.point_on_ray(target_point, base_angle, side_a)
             p2 = self.point_on_ray(target_point, second_angle, side_b)
             p3 = Point(
@@ -39,13 +39,13 @@ class ParallelogramGenerator(PointTargetPuzzleGenerator):
                 y=p1.y + p2.y - target_point.y,
             )
             points = (p1, p2, p3, target_point)
-            if not all(self.inside_canvas(point, padding=self.line_width) for point in points):
+            if not all(self.point_can_host_candidate(point, extra_padding=self.canvas_short_side * 0.01) for point in points):
                 continue
             area = abs(
                 (p1.x - target_point.x) * (p2.y - target_point.y)
                 - (p1.y - target_point.y) * (p2.x - target_point.x)
             )
-            if area < (self.canvas_short_side ** 2) * 0.04:
+            if area < (self.canvas_short_side ** 2) * 0.05:
                 continue
             self.parallelogram_points = (p1, p2, p3, target_point)
             self.place_candidates(target_point)

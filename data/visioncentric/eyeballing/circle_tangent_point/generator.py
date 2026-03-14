@@ -65,7 +65,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         
         # Define a narrow angular spread (e.g., 40 degrees total) for challenge
         # The wider the spread, the easier the visual distinction.
-        angular_spread = math.radians(self._rng.uniform(80.0, 120.0))
+        angular_spread = math.radians(self._rng.uniform(96.0, 132.0))
         
         # Calculate the angular separation between candidates
         angular_step = angular_spread / (len(labels) - 1)
@@ -94,10 +94,10 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         return True
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        min_R_ratio = 0.2
-        max_R_ratio = 0.4
-        min_dist_ratio = 1.5 # P must be at least 1.5 R from C
-        max_dist_ratio = 3.0 # P must be at most 3.0 R from C
+        min_R_ratio = 0.22
+        max_R_ratio = 0.36
+        min_dist_ratio = 1.7 # P must be at least 1.7 R from C
+        max_dist_ratio = 2.8 # P must be at most 2.8 R from C
 
         tries=0
         candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
@@ -129,6 +129,9 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             if not self.inside_canvas(external_point, padding=self.line_width) or not self.point_can_host_candidate(target_point):
                 tries += 1
                 continue
+            if self.distance(target_point, external_point) < self.canvas_short_side * 0.24:
+                tries += 1
+                continue
             
 
             self.center = center
@@ -145,7 +148,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
                     continue
                 dir1=math.atan2(center.y - candidate.y, center.x - candidate.x)
                 dir2=math.atan2(external_point.y - candidate.y, external_point.x - candidate.x)
-                if abs(math.cos(dir1 - dir2))<0.2:
+                if abs(math.cos(dir1 - dir2))<0.28:
                     break # Not tangent enough, retry
             else:
                 # Success
