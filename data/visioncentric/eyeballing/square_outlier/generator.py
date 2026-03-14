@@ -28,14 +28,16 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
         The outlier is the target.
         """
         tries = 0
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
+        min_point_distance = max(self.minimum_candidate_spacing(), self.canvas_short_side * 0.14)
         while tries < 999:
             # 1. Generate a square with a random size, rotation, and position.
             
             # The side length of the square.
-            side_length = self._rng.uniform(self.canvas_short_side * 0.3, self.canvas_short_side * 0.6)
+            side_length = self._rng.uniform(self.canvas_short_side * 0.28, self.canvas_short_side * 0.42)
             half_side = side_length / 2
             
-            center = self.pick_target_point(0.8)
+            center = self.pick_target_point(0.5, padding=candidate_padding + side_length * 0.75)
             
             # The rotation angle of the square.
             angle = self._rng.uniform(0, 2 * math.pi)
@@ -58,7 +60,7 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
                 rotated_y = p.x * sin_a + p.y * cos_a
                 final_point = Point(center.x + rotated_x, center.y + rotated_y)
                 
-                if not self.inside_canvas(final_point):
+                if not self.point_can_host_candidate(final_point):
                     valid_square = False
                     break
                 square_points.append(final_point)
@@ -71,16 +73,22 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
             target_point = None
             outlier_tries = 0
             while outlier_tries < 100:
-                potential_outlier = self.pick_target_point()
+                potential_outlier = self.pick_target_point(0.5, padding=candidate_padding)
                 
                 # Ensure the outlier is not too close to any of the square's vertices.
                 min_dist = min(self.distance(potential_outlier, v) for v in square_points)
-                if min_dist > side_length * 0.3:
+                if min_dist > min_point_distance:
                     target_point = potential_outlier
                     break
                 outlier_tries += 1
             
             if target_point is None: # Failed to place an outlier
+                tries += 1
+                continue
+
+            labels = ['A', 'B', 'C', 'D', 'E']
+            all_points = square_points + [target_point]
+            if not self.points_are_well_spaced(all_points, min_distance=min_point_distance):
                 tries += 1
                 continue
 
@@ -105,6 +113,8 @@ class SquareOutlierGenerator(PointTargetPuzzleGenerator):
             self.candidates.append(PointCandidate(x=p.x, y=p.y, label=label))
             if p == self.target_point:
                 self.correct_label = label
+        if not self.validate_candidate_layout(self.candidates, min_distance=min_point_distance * 0.95):
+            raise RuntimeError("Generated square outlier candidates do not fit the canvas")
 
         # 4. Save the puzzle data and return the record.
         record = self.save_puzzle()

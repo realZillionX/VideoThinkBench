@@ -24,24 +24,33 @@ class ParallelogramGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        target_point = self.pick_target_point()
-        tries=0
-        distance_threshold = self.canvas_short_side * 0.3
-        while tries<9999:
-            p1, p2 = self.pick_target_point(0.5), self.pick_target_point(0.5)
-            # Calculate the fourth point of the parallelogram
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.06)
+        for _ in range(999):
+            target_point = self.pick_target_point(0.45, padding=anchor_padding + self.canvas_short_side * 0.1)
+            base_angle = self._rng.uniform(0.0, math.tau)
+            angle_delta = math.radians(self._rng.uniform(42.0, 122.0))
+            second_angle = base_angle + angle_delta
+            side_a = self.canvas_short_side * self._rng.uniform(0.18, 0.28)
+            side_b = self.canvas_short_side * self._rng.uniform(0.18, 0.28)
+            p1 = self.point_on_ray(target_point, base_angle, side_a)
+            p2 = self.point_on_ray(target_point, second_angle, side_b)
             p3 = Point(
                 x=p1.x + p2.x - target_point.x,
                 y=p1.y + p2.y - target_point.y,
             )
-            angle1,angle2=math.atan2(p1.y-target_point.y,p1.x-target_point.x), math.atan2(p2.y-target_point.y,p2.x-target_point.x)
-            if not self.inside_canvas(p3) or self.distance(target_point, p1) < distance_threshold or self.distance(target_point, p2) < distance_threshold or abs(math.sin(angle2-angle1))<0.5:
-                tries+=1
+            points = (p1, p2, p3, target_point)
+            if not all(self.inside_canvas(point, padding=self.line_width) for point in points):
                 continue
-            break
-        self.parallelogram_points = (p1, p2, p3, target_point)
-        self.place_candidates(target_point)
-        return self.save_puzzle()
+            area = abs(
+                (p1.x - target_point.x) * (p2.y - target_point.y)
+                - (p1.y - target_point.y) * (p2.x - target_point.x)
+            )
+            if area < (self.canvas_short_side ** 2) * 0.04:
+                continue
+            self.parallelogram_points = (p1, p2, p3, target_point)
+            self.place_candidates(target_point)
+            return self.save_puzzle()
+        raise RuntimeError("Failed to generate a valid parallelogram puzzle.")
 
     def build_record_extra(self) -> dict[str, object]:
         return {

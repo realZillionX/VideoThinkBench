@@ -53,7 +53,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         
         return Point(Tx, Ty)
 
-    def place_candidates_on_circle(self, center: Point, R: float, true_point: Point) -> None:
+    def place_candidates_on_circle(self, center: Point, R: float, true_point: Point) -> bool:
         """Generates candidates all lying on the circle, centered angularly around the true point."""
         
         labels = list(self.option_labels)
@@ -65,7 +65,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         
         # Define a narrow angular spread (e.g., 40 degrees total) for challenge
         # The wider the spread, the easier the visual distinction.
-        angular_spread = math.radians(self._rng.uniform(30.0, 55.0))*3
+        angular_spread = math.radians(self._rng.uniform(80.0, 120.0))
         
         # Calculate the angular separation between candidates
         angular_step = angular_spread / (len(labels) - 1)
@@ -88,27 +88,24 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
                 p = true_point
 
             candidates.append(PointCandidate(x=p.x, y=p.y, label=labels[i]))
-            
+        if not self.validate_candidate_layout(candidates, min_distance=self.minimum_candidate_spacing(scale=0.9)):
+            return False
         self.candidates = candidates
+        return True
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        width, height = self.canvas_dimensions
         min_R_ratio = 0.2
         max_R_ratio = 0.4
         min_dist_ratio = 1.5 # P must be at least 1.5 R from C
         max_dist_ratio = 3.0 # P must be at most 3.0 R from C
 
         tries=0
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
         while tries < 999:
             # 1. Define Circle
             R = self.canvas_short_side * self._rng.uniform(min_R_ratio, max_R_ratio)
-            center = self.pick_target_point(R / self.canvas_short_side + 0.1)
-            circle_fits = (
-                center.x - R >= self.margin and
-                center.y - R >= self.margin and
-                center.x + R <= width - self.margin and
-                center.y + R <= height - self.margin
-            )
+            center = self.pick_target_point(0.4, padding=candidate_padding + self.canvas_short_side * 0.08)
+            circle_fits = self.circle_fits(center, R, extra_padding=candidate_padding)
             if not circle_fits:
                 tries += 1
                 continue
@@ -129,7 +126,7 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             # 3. Calculate Target Tangent Point T
             target_point = self.calculate_tangent_point(center, R, external_point)
             
-            if not self.inside_canvas(external_point) or not self.inside_canvas(target_point):
+            if not self.inside_canvas(external_point, padding=self.line_width) or not self.point_can_host_candidate(target_point):
                 tries += 1
                 continue
             
@@ -140,7 +137,9 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             self.target_point = target_point
             
             # 4. Place candidates on the circle's circumference
-            self.place_candidates_on_circle(center, R, target_point)
+            if not self.place_candidates_on_circle(center, R, target_point):
+                tries += 1
+                continue
             for candidate in self.candidates:
                 if candidate.label == self.correct_label:
                     continue
@@ -151,6 +150,9 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             else:
                 # Success
                 break
+            tries += 1
+        else:
+            raise RuntimeError("Failed to generate a valid circle tangent point puzzle.")
         
         record = self.save_puzzle()
         record.circle_center = self.center

@@ -22,15 +22,16 @@ class CircleCenterGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        target_point = self.pick_target_point()
+        target_point = self.pick_target_point(0.45, padding=self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04))
         self.target_point = target_point
+        left, top, right, bottom = self.canvas_bounds()
         r_max = min(
-            target_point.x,
-            target_point.y,
-            self.canvas_dimensions[0] - target_point.x,
-            self.canvas_dimensions[1] - target_point.y,
+            target_point.x - left,
+            target_point.y - top,
+            right - target_point.x,
+            bottom - target_point.y,
         )
-        r=(self._rng.random()*0.5+0.25)*r_max
+        r=self._rng.uniform(0.35, 0.58) * r_max
         self.r=r
         self.place_candidates(target_point)
         return self.save_puzzle()

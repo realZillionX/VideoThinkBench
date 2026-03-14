@@ -85,41 +85,31 @@ class OrthocenterGenerator(PointTargetPuzzleGenerator):
         return Point(x=foot_x, y=foot_y)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        tries = 0
-        min_side_length = self.canvas_short_side * 0.4
-        while tries < 999:
-            # Pick three vertices for the triangle
-            p1, p2, p3 = (
-                self.pick_target_point(0.8),
-                self.pick_target_point(0.8),
-                self.pick_target_point(0.8),
+        def _orthocenter_is_usable(a: Point, b: Point, c: Point) -> bool:
+            target_point = self._calculate_orthocenter(a, b, c)
+            return target_point is not None and self.point_can_host_candidate(
+                target_point, extra_padding=self.canvas_short_side * 0.02,
             )
-            
-            # Ensure the triangle is not too small or thin
-            if self.distance(p1, p2) < min_side_length or \
-               self.distance(p2, p3) < min_side_length or \
-               self.distance(p3, p1) < min_side_length:
-                tries += 1
-                continue
 
-            target_point = self._calculate_orthocenter(p1, p2, p3)
-            self.target_point=target_point
-
-            # Check if calculation was successful (non-collinear points)
-            # and if the target point is within the canvas bounds.
-            # The orthocenter can be outside the triangle for obtuse triangles.
-            if target_point is None or not self.inside_canvas(target_point):
-                tries += 1
-                continue
-            
-            # Found a valid configuration
-            self.triangle_points = (p1, p2, p3)
-            self.place_candidates(target_point)
-            record = self.save_puzzle()
-            record.triangle_points = self.triangle_points
-            return record
-        
-        raise RuntimeError("Failed to generate a valid orthocenter puzzle after many attempts.")
+        p1, p2, p3 = self.sample_triangle_vertices(
+            jitter_ratio=0.72,
+            min_side_ratio=0.24,
+            min_area_ratio=0.05,
+            min_altitude_ratio=0.16,
+            min_angle_deg=33.0,
+            max_angle_deg=118.0,
+            forbidden_angle_windows=((82.0, 98.0),),
+            validator=_orthocenter_is_usable,
+        )
+        target_point = self._calculate_orthocenter(p1, p2, p3)
+        if target_point is None:
+            raise RuntimeError("Failed to generate a usable orthocenter")
+        self.target_point = target_point
+        self.triangle_points = (p1, p2, p3)
+        self.place_candidates(target_point)
+        record = self.save_puzzle()
+        record.triangle_points = self.triangle_points
+        return record
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()

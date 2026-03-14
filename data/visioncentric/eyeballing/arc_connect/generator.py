@@ -73,13 +73,19 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         self.circles: List[CircleSpec] = []
         self.mask_x_center: float = 0.0
         self.mask_width: float = 0.0
+        self.mask_top: float = 0.0
+        self.mask_bottom: float = 0.0
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         width, height = self.canvas_dimensions
         self.mask_width = width * self.mask_fraction
         self.mask_x_center = width / 2.0
+        self.mask_top = float(self.margin)
+        self.mask_bottom = float(height - self.margin)
         span_rad = math.radians(self.arc_span_deg)
         margin = self.margin
+        candidate_pad_x, candidate_pad_y = self._candidate_safe_padding()
+        candidate_gap = max(self.minimum_candidate_spacing(scale=0.92), height * 0.08)
         stroke = max(3, int(round(min(width, height) * 0.015)))
 
         for _ in range(1000):
@@ -97,11 +103,14 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
             if abs(check_x_left - cx) >= radius or abs(check_x_right - cx) >= radius:
                 continue
 
-            gap = self.rng.uniform(height * 0.05, height * 0.08)
+            gap = self.rng.uniform(candidate_gap, candidate_gap * 1.15)
             
             # We want 5 candidate arcs. Let's space their crossings at mask_right evenly.
             # Pick center crossing Y for the middle candidate (index 2)
-            base_crossing_y = self.rng.uniform(height * 0.2, height * 0.8)
+            base_crossing_y = self.rng.uniform(
+                self.mask_top + 2.2 * gap,
+                self.mask_bottom - 2.2 * gap,
+            )
             
             # Generate 5 crossing Ys
             crossing_ys = [base_crossing_y + (i - 2) * gap for i in range(5)]
@@ -134,9 +143,10 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
                 p_end = self._point_on_circle(c, theta_end)
                 
                 # Check right arc containment
-                if not (margin < p_start[1] < height - margin): valid_group = False
-                if not (margin < p_end[1] < height - margin): valid_group = False
+                if not (self.mask_top < p_start[1] < self.mask_bottom): valid_group = False
+                if not (self.mask_top < p_end[1] < self.mask_bottom): valid_group = False
                 if p_end[0] <= mask_right: valid_group = False
+                if p_end[0] + candidate_pad_x >= width - margin: valid_group = False
                 
                 # Check left arc containment (theoretical left arc for this circle)
                 cross_ys_left = self._get_y_at_x(c, mask_left)
@@ -153,8 +163,8 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
                     p_left_start = (mask_left, y_cross_left)
                     p_left_end = self._point_on_circle(c, theta_left_end)
                     
-                    if not (margin < p_left_start[1] < height - margin): valid_group = False
-                    if not (margin < p_left_end[1] < height - margin): valid_group = False
+                    if not (self.mask_top < p_left_start[1] < self.mask_bottom): valid_group = False
+                    if not (self.mask_top < p_left_end[1] < self.mask_bottom): valid_group = False
                     if p_left_end[0] >= mask_left: valid_group = False
 
                 if not valid_group: break
@@ -166,10 +176,19 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
             if valid_group:
                 self.circles = temp_circles
                 labels = ["A", "B", "C", "D", "E"]
-                self.candidates = [
-                    PointCandidate(x=pt[0] + 15, y=pt[1], label=l) 
-                    for pt, l in zip(temp_candidates_points, labels)
-                ]
+                label_offset = max(candidate_pad_x, 18.0)
+                self.candidates = []
+                for pt, label in zip(temp_candidates_points, labels):
+                    candidate = PointCandidate(
+                        x=min(width - candidate_pad_x, pt[0] + label_offset),
+                        y=pt[1],
+                        label=label,
+                    )
+                    self.candidates.append(candidate)
+                if not self.validate_candidate_layout(
+                    self.candidates, min_distance=self.minimum_candidate_spacing(scale=0.92),
+                ):
+                    continue
                 self.correct_label = labels[self.rng.randint(0, 4)]
                 break
         else:
@@ -256,9 +275,9 @@ class ArcConnectGenerator(PointTargetPuzzleGenerator):
         if not highlight_label and mask_factor > 0.01:
             curr_w = self.mask_width * mask_factor
             mx1, mx2 = self.mask_x_center - curr_w / 2, self.mask_x_center + curr_w / 2
-            draw.rectangle((mx1, 0, mx2, height), fill=(240, 240, 240))
-            draw.line((mx1, 0, mx1, height), fill=(200, 200, 200), width=5)
-            draw.line((mx2, 0, mx2, height), fill=(200, 200, 200), width=5)
+            draw.rectangle((mx1, self.mask_top, mx2, self.mask_bottom), fill=(240, 240, 240))
+            draw.line((mx1, self.mask_top, mx1, self.mask_bottom), fill=(200, 200, 200), width=5)
+            draw.line((mx2, self.mask_top, mx2, self.mask_bottom), fill=(200, 200, 200), width=5)
 
         self.draw_candidates(draw, highlight_label=highlight_label)
         return base

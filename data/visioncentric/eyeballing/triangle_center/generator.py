@@ -24,23 +24,21 @@ class TriangleCenterGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        tries=0
-        while tries<999:
-            p1,p2,p3=self.pick_target_point(0.8), self.pick_target_point(0.8), self.pick_target_point(0.8)
-            center=Point(
-                x=(p1.x + p2.x + p3.x) / 3,
-                y=(p1.y + p2.y + p3.y) / 3,
-            )
-            p12=Point(x=(p1.x + p2.x)/2, y=(p1.y + p2.y)/2)
-            p23=Point(x=(p2.x + p3.x)/2, y=(p2.y + p3.y)/2)
-            p31=Point(x=(p3.x + p1.x)/2, y=(p3.y + p1.y)/2)
-            d1=math.sqrt((center.x - p12.x)**2 + (center.y - p12.y)**2)
-            d2=math.sqrt((center.x - p23.x)**2 + (center.y - p23.y)**2)
-            d3=math.sqrt((center.x - p31.x)**2 + (center.y - p31.y)**2)
-            if min(d1,d2,d3)<self.canvas_short_side*0.3:
-                tries+=1
-                continue
-            break
+        p1, p2, p3 = self.sample_triangle_vertices(
+            jitter_ratio=0.72,
+            min_side_ratio=0.22,
+            min_area_ratio=0.045,
+            min_altitude_ratio=0.15,
+            min_angle_deg=32.0,
+            max_angle_deg=116.0,
+        )
+        center=Point(
+            x=(p1.x + p2.x + p3.x) / 3,
+            y=(p1.y + p2.y + p3.y) / 3,
+        )
+        p12=Point(x=(p1.x + p2.x)/2, y=(p1.y + p2.y)/2)
+        p23=Point(x=(p2.x + p3.x)/2, y=(p2.y + p3.y)/2)
+        p31=Point(x=(p3.x + p1.x)/2, y=(p3.y + p1.y)/2)
         self.triangle_points = (p1, p2, p3)
         self.midpoints = (p23, p31, p12)
         self.target_point = center

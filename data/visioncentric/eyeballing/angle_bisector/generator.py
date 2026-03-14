@@ -31,26 +31,35 @@ class AngleBisectorGenerator(PointTargetPuzzleGenerator):
 
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        self.margin=50
-        tries=0
-        distance_threshold = self.canvas_short_side * 0.3
-        while tries<999:
-            p0, p1, p2 = self.pick_target_point(0.7), self.pick_target_point(0.7), self.pick_target_point(0.7)
-            angle1,angle2=math.atan2(p1.y-p0.y,p1.x-p0.x), math.atan2(p2.y-p0.y,p2.x-p0.x)
-            mid_angle_value=mid_angle(angle1,angle2)
-            length=self.canvas_short_side*self._rng.uniform(0.5,1.0)
-            target=Point(
-                x=p0.x+length*math.cos(mid_angle_value),
-                y=p0.y+length*math.sin(mid_angle_value),
-            )
-            if not self.inside_canvas(target) or self.distance(p0, p1) < distance_threshold or self.distance(p0, p2) < distance_threshold or abs(math.sin(angle2-angle1))<0.3:
-                tries+=1
+        self.margin = 50
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
+        for _ in range(999):
+            vertex = self.pick_target_point(0.55, padding=anchor_padding + self.canvas_short_side * 0.12)
+            opening = math.radians(self._rng.uniform(38.0, 118.0))
+            bisector_angle = self._rng.uniform(0.0, math.tau)
+            angle1 = bisector_angle - opening / 2.0
+            angle2 = bisector_angle + opening / 2.0
+            ray_min = self.canvas_short_side * 0.22
+            ray_max = self.canvas_short_side * 0.38
+            target_min = self.canvas_short_side * 0.28
+            target_max = self.canvas_short_side * 0.42
+            try:
+                p1 = self.sample_point_along_direction(
+                    vertex, angle1, min_distance=ray_min, max_distance=ray_max, padding=self.line_width,
+                )
+                p2 = self.sample_point_along_direction(
+                    vertex, angle2, min_distance=ray_min, max_distance=ray_max, padding=self.line_width,
+                )
+                target = self.sample_point_along_direction(
+                    vertex, bisector_angle, min_distance=target_min, max_distance=target_max, padding=anchor_padding,
+                )
+                self.place_candidates_line(target, bisector_angle + math.pi / 2 + self._rng.uniform(-0.06, 0.06))
+            except RuntimeError:
                 continue
-            break
-        self.points = (p2, p0, p1)
-        self.target_point = target
-        self.place_candidates_line(target,mid_angle_value+math.pi/2+self._rng.uniform(-0.1,0.1))
-        return self.save_puzzle()
+            self.points = (p1, vertex, p2)
+            self.target_point = target
+            return self.save_puzzle()
+        raise RuntimeError("Failed to find valid angle bisector geometry after 999 tries")
 
     def build_record_extra(self) -> dict[str, object]:
         angle1 = math.atan2(self.points[0].y - self.points[1].y, self.points[0].x - self.points[1].x)

@@ -29,10 +29,12 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
         self.margin = 80
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
         tries = 0
         min_dist = self.canvas_short_side * 0.25
         while tries < 999:
-            p1, p2 = self.pick_target_point(0.7), self.pick_target_point(0.7)
+            p1 = self.pick_target_point(0.55, padding=candidate_padding)
+            p2 = self.pick_target_point(0.55, padding=candidate_padding)
             if distance(p1, p2) < min_dist:
                 tries += 1
                 continue
@@ -53,15 +55,20 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
             
             u_perp_dx, u_perp_dy = perp_dx / length, perp_dy / length
 
-            # Pick a random distance along the bisector
-            dist_from_mid = self._rng.choice([-1, 1]) * self._rng.uniform(
-                self.canvas_short_side * 0.4, self.canvas_short_side * 1.0
-            )
-            
-            target = Point(
-                midpoint.x + dist_from_mid * u_perp_dx,
-                midpoint.y + dist_from_mid * u_perp_dy
-            )
+            target_angle = math.atan2(u_perp_dy, u_perp_dx)
+            if self._rng.random() < 0.5:
+                target_angle += math.pi
+            try:
+                target = self.sample_point_along_direction(
+                    midpoint,
+                    target_angle,
+                    min_distance=self.canvas_short_side * 0.24,
+                    max_distance=self.canvas_short_side * 0.36,
+                    padding=candidate_padding,
+                )
+            except RuntimeError:
+                tries += 1
+                continue
 
             self.points = (p1, p2)
             self.target_point = target
@@ -69,12 +76,19 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
             # Place candidates along a line roughly perpendicular to the bisector itself
             # (i.e., parallel to the original p1-p2 segment)
             angle = math.atan2(p2.y - p1.y, p2.x - p1.x)
-            self.place_candidates_line(target, angle + self._rng.uniform(-0.1, 0.1))
+            try:
+                self.place_candidates_line(target, angle + self._rng.uniform(-0.1, 0.1))
+            except RuntimeError:
+                tries += 1
+                continue
             
             if not self.check_candidates_inside():
                 tries += 1
                 continue
             break
+
+        else:
+            raise RuntimeError("Failed to find valid perpendicular bisector geometry after 999 tries")
 
         record = self.save_puzzle()
         record.points = self.points
@@ -95,11 +109,8 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
             midpoint = Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
             dx = p2.x - p1.x
             dy = p2.y - p1.y
-            perp_dx, perp_dy = -dy, dx
-            
-            # Extend the bisector line far off-canvas to ensure it crosses the entire image
-            line_p1 = Point(midpoint.x - perp_dx * 2, midpoint.y - perp_dy * 2)
-            line_p2 = Point(midpoint.x + perp_dx * 2, midpoint.y + perp_dy * 2)
+            line_angle = math.atan2(dx, -dy)
+            line_p1, line_p2 = self.clip_line_to_canvas(midpoint, line_angle, padding=self.line_width)
             self.draw_line(draw, [line_p1, line_p2])
             self.draw_circle(draw, self.target_point, 5)
 

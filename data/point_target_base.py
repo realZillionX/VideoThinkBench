@@ -206,14 +206,31 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         right = width - self.margin
         bottom = height - self.margin
         return left, top, right, bottom
+
+    def _point_within_canvas_coords(
+        self,
+        x: float,
+        y: float,
+        *,
+        padding_x: float = 0.0,
+        padding_y: Optional[float] = None,
+    ) -> bool:
+        if padding_y is None:
+            padding_y = padding_x
+        left, top, right, bottom = self.canvas_bounds()
+        return (
+            left + padding_x <= x <= right - padding_x
+            and top + padding_y <= y <= bottom - padding_y
+        )
     
     def inside_canvas(
         self,
         point: Point,
+        *,
+        padding: float = 0.0,
     ) -> bool:
         x, y = point.to_list()
-        left, top, right, bottom = self.canvas_bounds()
-        return (left <= x <= right) and (top <= y <= bottom)
+        return self._point_within_canvas_coords(x, y, padding_x=padding, padding_y=padding)
     
     def distance(
         self,
@@ -221,18 +238,293 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         p2: Point,
     ) -> float:
         return math.hypot(p1.x - p2.x, p1.y - p2.y)
+
+    def angle_between(
+        self,
+        angle1: float,
+        angle2: float,
+    ) -> float:
+        return abs((angle2 - angle1 + math.pi) % (2 * math.pi) - math.pi)
+
+    def point_on_ray(
+        self,
+        origin: Point,
+        angle: float,
+        distance: float,
+    ) -> Point:
+        return Point(
+            x=origin.x + distance * math.cos(angle),
+            y=origin.y + distance * math.sin(angle),
+        )
+
+    def angle_at_vertex(
+        self,
+        p1: Point,
+        vertex: Point,
+        p2: Point,
+    ) -> float:
+        v1x = p1.x - vertex.x
+        v1y = p1.y - vertex.y
+        v2x = p2.x - vertex.x
+        v2y = p2.y - vertex.y
+        mag1 = math.hypot(v1x, v1y)
+        mag2 = math.hypot(v2x, v2y)
+        if mag1 <= 1e-6 or mag2 <= 1e-6:
+            return 0.0
+        cosine = max(-1.0, min(1.0, (v1x * v2x + v1y * v2y) / (mag1 * mag2)))
+        return math.degrees(math.acos(cosine))
+
+    def triangle_angles(
+        self,
+        p1: Point,
+        p2: Point,
+        p3: Point,
+    ) -> Tuple[float, float, float]:
+        return (
+            self.angle_at_vertex(p2, p1, p3),
+            self.angle_at_vertex(p1, p2, p3),
+            self.angle_at_vertex(p1, p3, p2),
+        )
     
     @property
     def canvas_short_side(self) -> int:
         width, height = self.canvas_dimensions
         return min(width, height)
 
+    def triangle_area(
+        self,
+        p1: Point,
+        p2: Point,
+        p3: Point,
+    ) -> float:
+        return abs((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x)) / 2.0
+
+    def triangle_side_lengths(
+        self,
+        p1: Point,
+        p2: Point,
+        p3: Point,
+    ) -> Tuple[float, float, float]:
+        return (
+            self.distance(p1, p2),
+            self.distance(p2, p3),
+            self.distance(p3, p1),
+        )
+
+    def sample_triangle_vertices(
+        self,
+        *,
+        jitter_ratio: float = 0.8,
+        min_side_ratio: float = 0.18,
+        min_area_ratio: float = 0.03,
+        min_altitude_ratio: float = 0.12,
+        min_angle_deg: Optional[float] = None,
+        max_angle_deg: Optional[float] = None,
+        forbidden_angle_windows: Sequence[Tuple[float, float]] = (),
+        max_attempts: int = 999,
+        validator: Optional[Callable[[Point, Point, Point], bool]] = None,
+    ) -> Tuple[Point, Point, Point]:
+        min_side = self.canvas_short_side * min_side_ratio
+        min_area = (self.canvas_short_side ** 2) * min_area_ratio
+        min_altitude = self.canvas_short_side * min_altitude_ratio
+        for _ in range(max_attempts):
+            p1 = self.pick_target_point(jitter_ratio)
+            p2 = self.pick_target_point(jitter_ratio)
+            p3 = self.pick_target_point(jitter_ratio)
+            area = self.triangle_area(p1, p2, p3)
+            if area < min_area:
+                continue
+            side_lengths = self.triangle_side_lengths(p1, p2, p3)
+            if min(side_lengths) < min_side:
+                continue
+            longest_side = max(side_lengths)
+            if longest_side <= 1e-6:
+                continue
+            if (2.0 * area / longest_side) < min_altitude:
+                continue
+            angles = self.triangle_angles(p1, p2, p3)
+            if min_angle_deg is not None and min(angles) < min_angle_deg:
+                continue
+            if max_angle_deg is not None and max(angles) > max_angle_deg:
+                continue
+            if any(
+                lower <= angle <= upper
+                for angle in angles
+                for lower, upper in forbidden_angle_windows
+            ):
+                continue
+            if validator is not None and not validator(p1, p2, p3):
+                continue
+            return p1, p2, p3
+        raise RuntimeError("Failed to sample a valid triangle configuration")
+
+    def candidate_anchor_padding(
+        self,
+        *,
+        extra: float = 0.0,
+    ) -> float:
+        pad_x, pad_y = self._candidate_safe_padding()
+        return max(pad_x, pad_y) + float(extra)
+
+    def minimum_candidate_spacing(
+        self,
+        *,
+        scale: float = 1.0,
+    ) -> float:
+        pad_x, pad_y = self._candidate_safe_padding()
+        base = max(self.point_radius * 2.8, pad_x * 1.9, pad_y * 1.9)
+        return base * max(0.1, scale)
+
+    def point_can_host_candidate(
+        self,
+        point: Point,
+        *,
+        extra_padding: float = 0.0,
+    ) -> bool:
+        padding = self.candidate_anchor_padding(extra=extra_padding)
+        return self.inside_canvas(point, padding=padding)
+
+    def points_are_well_spaced(
+        self,
+        points: Sequence[Point],
+        *,
+        min_distance: Optional[float] = None,
+    ) -> bool:
+        threshold = self.minimum_candidate_spacing() if min_distance is None else float(min_distance)
+        for idx, point in enumerate(points):
+            for other in points[idx + 1 :]:
+                if self.distance(point, other) < threshold:
+                    return False
+        return True
+
+    def validate_candidate_layout(
+        self,
+        candidates: Sequence[PointCandidate],
+        *,
+        min_distance: Optional[float] = None,
+    ) -> bool:
+        if not all(self._candidate_fits(candidate) for candidate in candidates):
+            return False
+        points = [Point(candidate.x, candidate.y) for candidate in candidates]
+        threshold = self.minimum_candidate_spacing(scale=0.82) if min_distance is None else min_distance
+        return self.points_are_well_spaced(points, min_distance=threshold)
+
+    def circle_fits(
+        self,
+        center: Point,
+        radius: float,
+        *,
+        extra_padding: float = 0.0,
+    ) -> bool:
+        return self._point_within_canvas_coords(
+            center.x,
+            center.y,
+            padding_x=radius + extra_padding,
+            padding_y=radius + extra_padding,
+        )
+
+    def sample_point_along_direction(
+        self,
+        origin: Point,
+        angle: float,
+        *,
+        min_distance: float,
+        max_distance: Optional[float] = None,
+        padding: float = 0.0,
+    ) -> Point:
+        budget = self._max_travel_distance(origin, angle, padding_x=padding, padding_y=padding)
+        if budget < min_distance:
+            raise RuntimeError("No feasible distance along direction inside canvas")
+        safe_budget = max(0.0, budget * 0.98)
+        upper = safe_budget if max_distance is None else min(safe_budget, max_distance)
+        if upper < min_distance:
+            raise RuntimeError("Requested distance range does not fit inside canvas")
+        distance = self._rng.uniform(min_distance, upper)
+        return self.point_on_ray(origin, angle, distance)
+
+    def clip_line_to_canvas(
+        self,
+        anchor: Point,
+        angle: float,
+        *,
+        padding: float = 0.0,
+    ) -> Tuple[Point, Point]:
+        forward = self._max_travel_distance(anchor, angle, padding_x=padding, padding_y=padding)
+        backward = self._max_travel_distance(anchor, angle + math.pi, padding_x=padding, padding_y=padding)
+        return (
+            self.point_on_ray(anchor, angle + math.pi, backward),
+            self.point_on_ray(anchor, angle, forward),
+        )
+
+    def _candidate_safe_padding(
+        self,
+        label: Optional[str] = None,
+    ) -> Tuple[float, float]:
+        font = self._get_candidate_font()
+        labels = [label] if label is not None else list(self.option_labels)
+        max_text_width = 0
+        max_text_height = 0
+        for item in labels:
+            text_bbox = font.getbbox(item)
+            max_text_width = max(max_text_width, text_bbox[2] - text_bbox[0])
+            max_text_height = max(max_text_height, text_bbox[3] - text_bbox[1])
+        pad_x = max(
+            self.point_radius + self.CANDIDATE_HIGHLIGHT_OUTLINE_WIDTH,
+            math.ceil(max_text_width / 2),
+        )
+        pad_y = max(
+            self.point_radius + self.CANDIDATE_HIGHLIGHT_OUTLINE_WIDTH,
+            max_text_height + max(0, -self.CANDIDATE_LABEL_OFFSET_Y),
+        )
+        return float(pad_x + 1), float(pad_y + 1)
+
+    def _candidate_fits(self, candidate: PointCandidate) -> bool:
+        pad_x, pad_y = self._candidate_safe_padding(candidate.label)
+        return self._point_within_canvas_coords(
+            candidate.x,
+            candidate.y,
+            padding_x=pad_x,
+            padding_y=pad_y,
+        )
+
+    def _max_travel_distance(
+        self,
+        origin: Point,
+        angle: float,
+        *,
+        padding_x: float = 0.0,
+        padding_y: Optional[float] = None,
+    ) -> float:
+        if padding_y is None:
+            padding_y = padding_x
+        left, top, right, bottom = self.canvas_bounds()
+        dx = math.cos(angle)
+        dy = math.sin(angle)
+        limits: List[float] = []
+        if dx > 1e-6:
+            limits.append((right - padding_x - origin.x) / dx)
+        elif dx < -1e-6:
+            limits.append((left + padding_x - origin.x) / dx)
+        if dy > 1e-6:
+            limits.append((bottom - padding_y - origin.y) / dy)
+        elif dy < -1e-6:
+            limits.append((top + padding_y - origin.y) / dy)
+        positives = [value for value in limits if value >= 0.0]
+        return min(positives) if positives else 0.0
+
     def pick_target_point(
         self,
         jitter_ratio: float = 0.36,
+        padding: float = 0.0,
     ) -> Point:
         jitter_ratio/=2 # jitter_ratio = 1 means full spread across the canvas
         left, top, right, bottom = self.canvas_bounds()
+        left += padding
+        top += padding
+        right -= padding
+        bottom -= padding
+        if left >= right or top >= bottom:
+            raise ValueError("padding leaves no drawable area on canvas")
         width, height = right - left, bottom - top
         center_x = left + width * 0.5
         center_y = top + height * 0.5
@@ -246,27 +538,53 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         radius = self.point_radius
         base_x, base_y = true_point.x, true_point.y
         labels = list(self.option_labels)
-        correct_index = self._rng.randint(0, len(labels)-1)
-        correct_label = labels[correct_index]
-        candidates: List[PointCandidate] = []
         target_count = len(labels)
-        spread = max(18.0, 0.9 * radius)*2
+        if target_count == 0:
+            raise RuntimeError("option_labels must contain at least one label")
         if angle is None:
             angle = self._rng.uniform(0.0, math.tau)
+        pad_x, pad_y = self._candidate_safe_padding()
+        if not self._point_within_canvas_coords(base_x, base_y, padding_x=pad_x, padding_y=pad_y):
+            raise RuntimeError("Candidate anchor is too close to the canvas boundary")
+
+        default_spread = self.minimum_candidate_spacing()
+        min_spread = max(default_spread * 0.92, radius * 1.8)
+        forward_budget = self._max_travel_distance(true_point, angle, padding_x=pad_x, padding_y=pad_y)
+        backward_budget = self._max_travel_distance(true_point, angle + math.pi, padding_x=pad_x, padding_y=pad_y)
+
+        feasible: List[Tuple[float, int]] = []
+        roomy: List[Tuple[float, int]] = []
+        for correct_index in range(target_count):
+            forward_steps = target_count - 1 - correct_index
+            backward_steps = correct_index
+            allowed_spread = default_spread
+            if forward_steps > 0:
+                allowed_spread = min(allowed_spread, forward_budget / forward_steps)
+            if backward_steps > 0:
+                allowed_spread = min(allowed_spread, backward_budget / backward_steps)
+            if allowed_spread >= min_spread:
+                feasible.append((allowed_spread, correct_index))
+                if allowed_spread >= default_spread:
+                    roomy.append((allowed_spread, correct_index))
+        if not feasible:
+            raise RuntimeError("Failed to fit line candidates within the canvas")
+
+        chosen_allowed_spread, correct_index = self._rng.choice(roomy or feasible)
+        spread = default_spread if chosen_allowed_spread >= default_spread else max(min_spread, chosen_allowed_spread * 0.98)
         dx,dy=math.cos(angle)*spread, math.sin(angle)*spread
+        correct_label = labels[correct_index]
+        candidates: List[PointCandidate] = []
         for i in range(target_count):
             cx = base_x + dx*(i-correct_index)
             cy = base_y + dy*(i-correct_index)
             label = labels[i]
             candidates.append(PointCandidate(x=cx, y=cy, label=label))
+        if not self.validate_candidate_layout(candidates, min_distance=min_spread * 0.95):
+            raise RuntimeError("Line candidates still exceed the canvas after fitting")
         self.candidates, self.correct_label= candidates, correct_label
 
     def check_candidates_inside(self)->bool:
-        for candidate in self.candidates:
-            point=Point(candidate.x,candidate.y)
-            if not self.inside_canvas(point):
-                return False
-        return True
+        return all(self._candidate_fits(candidate) for candidate in self.candidates)
     
     def place_candidates(
         self,
@@ -274,6 +592,7 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
     ) -> None:
         radius = self.point_radius
         left, top, right, bottom = self.canvas_bounds()
+        pad_x, pad_y = self._candidate_safe_padding()
         base_x, base_y = true_point.x, true_point.y
         labels = list(self.option_labels)
         self._rng.shuffle(labels)
@@ -283,22 +602,25 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
         target_count = len(labels)
         max_attempts = 600
         attempt = 0
-        spread = max(18.0, 0.9 * radius)*2
+        spread = self.minimum_candidate_spacing()
+        min_candidate_distance = max(radius * 2.6, spread * 0.95)
         while len(candidates) < target_count and attempt < max_attempts:
             attempt += 1
             angle = self._rng.uniform(0.0, math.tau)
             distance = self._rng.uniform(spread * 0.8, spread * 1.8)
             cx = base_x + math.cos(angle) * distance
             cy = base_y + math.sin(angle) * distance
-            inside_bounds = (
-                left + radius <= cx <= right - radius and
-                top + radius <= cy <= bottom - radius
+            inside_bounds = self._point_within_canvas_coords(
+                cx,
+                cy,
+                padding_x=pad_x,
+                padding_y=pad_y,
             )
             if not inside_bounds:
                 continue
             too_close = False
             for existing in candidates:
-                if math.hypot(existing.x - cx, existing.y - cy) < radius * 1.2:
+                if math.hypot(existing.x - cx, existing.y - cy) < min_candidate_distance:
                     too_close = True
                     break
             if too_close:
@@ -309,23 +631,35 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
                 base_x = cx
                 base_y = cy
         if len(candidates) < target_count:
-            padding = radius * 1.6
             needed = target_count - len(candidates)
-            for i in range(needed):
-                shift_x = padding if i % 2 == 0 else -padding
-                shift_y = padding if (i // 2) % 2 == 0 else -padding
-                cx = base_x + shift_x
-                cy = base_y + shift_y
-                if cx < left + radius:
-                    cx = left + radius
-                elif cx > right - radius:
-                    cx = right - radius
-                if cy < top + radius:
-                    cy = top + radius
-                elif cy > bottom - radius:
-                    cy = bottom - radius
+            fallback_offsets = [
+                (1, 0),
+                (-1, 0),
+                (0, 1),
+                (0, -1),
+                (1, 1),
+                (-1, 1),
+                (1, -1),
+                (-1, -1),
+                (2, 0),
+                (-2, 0),
+            ]
+            for ox, oy in fallback_offsets:
+                if len(candidates) >= target_count:
+                    break
+                cx = base_x + ox * spread
+                cy = base_y + oy * spread
+                if not self._point_within_canvas_coords(cx, cy, padding_x=pad_x, padding_y=pad_y):
+                    continue
+                point = Point(cx, cy)
+                if any(self.distance(point, Point(existing.x, existing.y)) < min_candidate_distance for existing in candidates):
+                    continue
                 label = labels[len(candidates)]
                 candidates.append(PointCandidate(x=cx, y=cy, label=label))
+            if len(candidates) < target_count:
+                raise RuntimeError("Failed to place a non-overlapping candidate layout")
+        if not self.validate_candidate_layout(candidates, min_distance=min_candidate_distance * 0.95):
+            raise RuntimeError("Candidate layout exceeds canvas or becomes too crowded")
         self.candidates, self.correct_label= candidates, correct_label
 
     def draw_candidates(

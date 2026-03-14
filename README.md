@@ -69,6 +69,8 @@ VideoThinkBench is a comprehensive benchmark for evaluating video generation mod
 
 Eyeballing Puzzles evaluate a model's ability to perform geometric reasoning through visual estimation. They are divided into **Point Tasks** (e.g., finding midpoints, circle centers, incenters), **Line Tasks** (e.g., drawing parallels, perpendiculars, tangent lines), and **Shape Tasks** (e.g., completing parallelograms, right triangles). The model must identify or draw the correct geometric element among labeled candidates.
 
+The current generators include geometry-quality guardrails so sampled puzzles stay legible: candidate circles plus their labels remain inside the drawable canvas, line-style candidate rows are reflowed instead of clipping at the border, and triangle / quadrilateral tasks reject tiny-area, near-degenerate, or overly ambiguous configurations before writing `data.json`.
+
 |           Task            |                                    Puzzle                                    |                                    Solution                                    |
 | :-----------------------: | :--------------------------------------------------------------------------: | :----------------------------------------------------------------------------: |
 | **Circle Center** (Point) | <img src="assets/examples/eyeballing/circle_center_puzzle.png" width="280"/> | <img src="assets/examples/eyeballing/circle_center_solution.png" width="280"/> |

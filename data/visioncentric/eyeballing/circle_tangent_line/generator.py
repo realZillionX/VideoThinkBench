@@ -24,20 +24,14 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        width, height = self.canvas_dimensions
         tries=0
         while tries<999:
             # 1. Define the circle's center and radius
-            center = self.pick_target_point(0.6) # Keep center away from edges
+            center = self.pick_target_point(0.45) # Keep center away from edges
             min_radius = self.canvas_short_side * 0.2
             max_radius = self.canvas_short_side * 0.4
             radius = self._rng.uniform(min_radius, max_radius)
-            circle_fits = (
-                center.x - radius >= self.margin and
-                center.y - radius >= self.margin and
-                center.x + radius <= width - self.margin and
-                center.y + radius <= height - self.margin
-            )
+            circle_fits = self.circle_fits(center, radius, extra_padding=self.line_width)
             if not circle_fits:
                 tries += 1
                 continue
@@ -63,19 +57,24 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
                 y=point_on_circle.y + dist_from_poc * math.sin(tangent_angle)
             )
 
+            if not self.point_can_host_candidate(target_point, extra_padding=self.canvas_short_side * 0.02):
+                tries += 1
+                continue
             self.circle_center = center
             self.circle_radius = radius
             self.point_on_circle = point_on_circle
             self.target_point = target_point
             
-            self.place_candidates_line(target_point, tangent_angle+math.pi/2+self._rng.uniform(-0.1,0.1))
-            # 5. Ensure the target point is within the canvas
-            if not self.check_candidates_inside():
+            try:
+                self.place_candidates_line(target_point, tangent_angle + math.pi / 2 + self._rng.uniform(-0.06, 0.06))
+            except RuntimeError:
                 tries += 1
                 continue
             
             # If everything is valid, break the loop
             break
+        else:
+            raise RuntimeError("Failed to find valid tangent-line geometry after 999 tries")
 
         
         record = self.save_puzzle()

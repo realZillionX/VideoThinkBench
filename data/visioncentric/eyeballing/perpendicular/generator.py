@@ -24,36 +24,61 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        self.margin=50
-        tries=0
-        while tries<999:
-            p1,p2=self.pick_target_point(0.8), self.pick_target_point(0.8)
-            angle=math.atan2(p2.y - p1.y, p2.x - p1.x)+math.pi/2*self._rng.choice([-1,1])
-            length=self.canvas_short_side*self._rng.uniform(0.3,0.6)
-            target=Point(
-                x=p1.x+length*math.cos(angle),
-                y=p1.y+length*math.sin(angle),
-            )
-            distance=self.distance(p1,p2)
-            if distance<self.canvas_short_side*0.3 or not self.inside_canvas(target):
-                tries+=1
+        self.margin = 50
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
+        for _ in range(999):
+            line_angle = self._rng.uniform(0.0, math.tau)
+            normal_angle = line_angle + math.pi / 2 * self._rng.choice([-1, 1])
+            through_point = self.pick_target_point(0.5, padding=anchor_padding + self.canvas_short_side * 0.14)
+            try:
+                reference_mid = self.sample_point_along_direction(
+                    through_point,
+                    normal_angle,
+                    min_distance=self.canvas_short_side * 0.18,
+                    max_distance=self.canvas_short_side * 0.28,
+                    padding=self.line_width,
+                )
+                p_ref1 = self.sample_point_along_direction(
+                    reference_mid,
+                    line_angle,
+                    min_distance=self.canvas_short_side * 0.14,
+                    max_distance=self.canvas_short_side * 0.22,
+                    padding=self.line_width,
+                )
+                p_ref2 = self.sample_point_along_direction(
+                    reference_mid,
+                    line_angle + math.pi,
+                    min_distance=self.canvas_short_side * 0.14,
+                    max_distance=self.canvas_short_side * 0.22,
+                    padding=self.line_width,
+                )
+                target = self.sample_point_along_direction(
+                    through_point,
+                    normal_angle,
+                    min_distance=self.canvas_short_side * 0.26,
+                    max_distance=self.canvas_short_side * 0.40,
+                    padding=anchor_padding,
+                )
+                self.place_candidates_line(target, line_angle + self._rng.uniform(-0.05, 0.05))
+            except RuntimeError:
                 continue
-            break
-        self.points = (p1, p2)
-        self.target_point = target
-        self.place_candidates_line(target,angle+math.pi/2)
-        return self.save_puzzle()
+            if self.distance(p_ref1, p_ref2) < self.canvas_short_side * 0.28:
+                continue
+            self.points = (through_point, p_ref1, p_ref2)
+            self.target_point = target
+            return self.save_puzzle()
+        raise RuntimeError("Failed to find valid perpendicular geometry after 999 tries")
 
     def build_record_extra(self) -> dict[str, object]:
         return {
-            "reference_line_endpoints": [self.points[0].to_list(), self.points[1].to_list()],
+            "reference_line_endpoints": [self.points[1].to_list(), self.points[2].to_list()],
             "through_point": self.points[0].to_list(),
         }
 
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
-        self.draw_line(draw,self.points)
+        self.draw_line(draw,self.points[1:])
         self.draw_circle(draw,self.points[0],7)
         if highlight_label:
             self.draw_line(draw,[self.points[0],self.target_point])

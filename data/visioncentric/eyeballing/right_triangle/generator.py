@@ -42,19 +42,20 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
         return dot_product / (mag_ba * mag_bc)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        min_side_len = self.canvas_short_side * 0.2
-        max_side_len = self.canvas_short_side * 0.8
-        min_dist_between_points = self.canvas_short_side * 0.1
+        min_side_len = self.canvas_short_side * 0.22
+        max_side_len = self.canvas_short_side * 0.34
+        candidate_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.04)
+        min_dist_between_points = max(self.canvas_short_side * 0.14, self.minimum_candidate_spacing())
         ambiguity_threshold = 0.2
 
         tries = 0
         while tries < 999999:
             # 1. Generate the right-angled triangle
-            p_right = self.pick_target_point(0.7)
+            p_right = self.pick_target_point(0.55, padding=candidate_padding + self.canvas_short_side * 0.1)
             
             angle = self._rng.uniform(0, 2 * math.pi)
             len1 = self._rng.uniform(min_side_len, max_side_len)
-            len2 = self._rng.uniform(min_side_len, max_side_len)
+            len2 = max(min_side_len, min(max_side_len, len1 * self._rng.uniform(0.8, 1.25)))
 
             p1 = Point(
                 x=p_right.x + len1 * math.cos(angle),
@@ -67,7 +68,7 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
             
             right_triangle_pts = [p_right, p1, p2]
             
-            if not all(self.inside_canvas(p) for p in right_triangle_pts):
+            if not all(self.point_can_host_candidate(p) for p in right_triangle_pts):
                 tries += 1
                 continue
 
@@ -76,7 +77,7 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
             distractors_ok = True
             for _ in range(2):
                 for _d_try in range(100):
-                    d = self.pick_target_point()
+                    d = self.pick_target_point(0.5, padding=candidate_padding)
                     if all(self.distance(d, p) > min_dist_between_points for p in all_points):
                         all_points.append(d)
                         break
@@ -110,6 +111,9 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
             if is_ambiguous:
                 tries += 1
                 continue
+            if not self.points_are_well_spaced(all_points, min_distance=min_dist_between_points):
+                tries += 1
+                continue
             
             # Success!
             self.target_point = p_right
@@ -124,6 +128,9 @@ class RightTriangleGenerator(PointTargetPuzzleGenerator):
                 self.candidates.append(PointCandidate(x=p.x, y=p.y, label=label))
                 if p == self.target_point:
                     self.correct_label = label
+            if not self.validate_candidate_layout(self.candidates, min_distance=min_dist_between_points * 0.95):
+                tries += 1
+                continue
             
             record = self.save_puzzle()
             record.right_triangle_points = self.right_triangle_points

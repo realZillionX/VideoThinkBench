@@ -38,31 +38,50 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        self.margin=80
-        tries=0
-        distance_threshold = self.canvas_short_side * 0.3
-        while tries<9999:
-            p0, p1, p2 = self.pick_target_point(0.7), self.pick_target_point(0.7), self.pick_target_point(0.7)
-            distance=distanceToLine(p0, p1, p2)
-            angle=math.atan2(p2.y - p1.y, p2.x - p1.x)
-            length=self.canvas_short_side*self._rng.uniform(0.5,1.0)
-            target=Point(
-                x=p0.x+length*math.cos(angle),
-                y=p0.y+length*math.sin(angle),
-            )
-            if not self.inside_canvas(target) or self.distance(p1, p2) < distance_threshold or distance < distance_threshold:
-                tries+=1
+        self.margin = 80
+        anchor_padding = self.candidate_anchor_padding(extra=self.canvas_short_side * 0.05)
+        for _ in range(999):
+            line_angle = self._rng.uniform(0.0, math.tau)
+            normal_angle = line_angle + math.pi / 2 * self._rng.choice([-1, 1])
+            through_point = self.pick_target_point(0.5, padding=anchor_padding + self.canvas_short_side * 0.16)
+            try:
+                reference_mid = self.sample_point_along_direction(
+                    through_point,
+                    normal_angle,
+                    min_distance=self.canvas_short_side * 0.18,
+                    max_distance=self.canvas_short_side * 0.28,
+                    padding=self.line_width,
+                )
+                p1 = self.sample_point_along_direction(
+                    reference_mid,
+                    line_angle,
+                    min_distance=self.canvas_short_side * 0.14,
+                    max_distance=self.canvas_short_side * 0.22,
+                    padding=self.line_width,
+                )
+                p2 = self.sample_point_along_direction(
+                    reference_mid,
+                    line_angle + math.pi,
+                    min_distance=self.canvas_short_side * 0.14,
+                    max_distance=self.canvas_short_side * 0.22,
+                    padding=self.line_width,
+                )
+                target = self.sample_point_along_direction(
+                    through_point,
+                    line_angle,
+                    min_distance=self.canvas_short_side * 0.28,
+                    max_distance=self.canvas_short_side * 0.42,
+                    padding=anchor_padding,
+                )
+                self.place_candidates_line(target, line_angle + math.pi / 2 + self._rng.uniform(-0.05, 0.05))
+            except RuntimeError:
                 continue
-            self.points = (p0, p1, p2)
+            if self.distance(p1, p2) < self.canvas_short_side * 0.28:
+                continue
+            self.points = (through_point, p1, p2)
             self.target_point = target
-            self.place_candidates_line(target,angle+math.pi/2+self._rng.uniform(-0.1,0.1))
-            if not self.check_candidates_inside():
-                tries += 1
-                continue
-            break
-        else:
-            raise RuntimeError("Failed to find valid parallel geometry after 9999 tries")
-        return self.save_puzzle()
+            return self.save_puzzle()
+        raise RuntimeError("Failed to find valid parallel geometry after 999 tries")
 
     def build_record_extra(self) -> dict[str, object]:
         return {

@@ -61,6 +61,12 @@ Task-local evaluators live alongside each task implementation.
 
 Most of them reuse the shared candidate-point logic from `data/point_target_base.py`.
 
+The shared generator now keeps each candidate circle plus its label footprint inside the drawable margin. For line-style tasks, it automatically chooses a label position and spacing that keep the full candidate row on-canvas instead of clipping at the image border.
+
+Triangle-based point tasks such as `triangle_center`, `incenter`, `circumcenter`, and `orthocenter` also reject triangles whose minimum side length, area, altitude, or angle quality are too small. This removes nearly collapsed triangles and avoids acute / obtuse cases that sit too close to a right triangle.
+
+Shape-completion tasks such as `parallelogram`, `isosceles_trapezoid`, `right_triangle`, and `square_outlier` now resample when the target shape becomes too flat, too tiny, or pushes candidate markers against the canvas edge. `arc_connect` also keeps the central mask and arc endpoints away from the image border so the puzzle frame stays clean.
+
 The batch offline evaluation entry point is `data/evaluation/offline/eyeballing.py`.
 
 ## Parameters Exposed by the Unified CLI

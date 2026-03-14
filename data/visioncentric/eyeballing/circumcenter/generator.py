@@ -69,21 +69,24 @@ class CircumcenterGenerator(PointTargetPuzzleGenerator):
     DEFAULT_TI2I_PROMPT = PointTargetPuzzleGenerator.strip_video_instruction(DEFAULT_TI2V_PROMPT)
 
     def create_puzzle(self) -> PointTargetPuzzleRecord:
-        width, height = self.canvas_dimensions
-        tries=0
-        while tries<999:
-            p1,p2,p3=self.pick_target_point(0.8), self.pick_target_point(0.8), self.pick_target_point(0.8)
-            circumcenter,r=calculate_circumcenter(p1,p2,p3)
-            circle_fits = (
-                circumcenter.x - r >= self.margin and
-                circumcenter.y - r >= self.margin and
-                circumcenter.x + r <= width - self.margin and
-                circumcenter.y + r <= height - self.margin
-            )
-            if r<self.canvas_short_side*0.1 or not self.inside_canvas(circumcenter) or not circle_fits:
-                tries+=1
-                continue
-            break
+        min_radius = self.canvas_short_side * 0.12
+
+        def _circle_is_usable(a: Point, b: Point, c: Point) -> bool:
+            circumcenter, r = calculate_circumcenter(a, b, c)
+            if r < min_radius or circumcenter == 0:
+                return False
+            return self.circle_fits(circumcenter, r, extra_padding=self.line_width)
+
+        p1, p2, p3 = self.sample_triangle_vertices(
+            jitter_ratio=0.72,
+            min_side_ratio=0.22,
+            min_area_ratio=0.045,
+            min_altitude_ratio=0.15,
+            min_angle_deg=32.0,
+            max_angle_deg=112.0,
+            validator=_circle_is_usable,
+        )
+        circumcenter,r=calculate_circumcenter(p1,p2,p3)
         self.triangle_points = (p1, p2, p3)
         self.target_point = circumcenter
         self.r = r
