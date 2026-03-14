@@ -25,13 +25,13 @@ class ParallelGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/parallel"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows one black reference segment of medium thickness and one separate small black circle with a thick outline marking the point that a new segment must pass through. "
+        "A square white canvas shows one black reference segment of medium thickness and one separate small hollow marker with white fill and a thick black outline marking the point that a new segment must pass through. "
         "Five candidate markers A-E sit near the hidden parallel direction on a short straight row; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the reference segment, the through-point circle, and the candidate row, then draws a single black segment of medium thickness starting at the small marked point and extending toward the correct candidate in a direction parallel to the reference segment. "
+        "The video first holds the reference segment, the through-point marker, and the candidate row, then draws a single black segment of medium thickness starting just outside that hollow marker and extending toward the correct candidate in a direction parallel to the reference segment. "
         "In the final frame, only the candidate on that new parallel segment changes to pale red fill with a dark red outline, while the other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A white canvas shows one black reference line, one separate small black circle indicating a required through-point, "
+        "A white canvas shows one black reference line, one separate small hollow white marker outlined in black indicating a required through-point, "
         "and five labeled candidate circles A-E. Determine which candidate lies on the line through the small circle that is "
         "parallel to the reference line. Answer with one option from A-E."
     )

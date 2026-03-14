@@ -32,9 +32,8 @@ class MazeLabyrinthGenerator(MazePuzzleGenerator):
     DEFAULT_TI2V_PROMPT = (
         "A square-format video shows a circular labyrinth on a very dark charcoal background. The maze is made of pale "
         "gray concentric ring corridors and a pale gray central disk, separated by thick black circular walls and black "
-        "radial spokes, with a solid red start dot on the outer ring and a solid red goal dot at the center. The animation "
-        "begins with the static labyrinth, then a thick bright red path is progressively drawn through the centers of "
-        "connected ring segments and radial passages without crossing any black wall. After the line reaches the center, the "
+        "radial spokes, with a solid red start dot centered inside the outer ring corridor and a solid red goal dot at the center. The animation "
+        "begins with the static labyrinth, then a thick bright red path is progressively drawn as smooth arcs along ring-center lines and straight radial segments through shared openings, without crossing any black wall. After the line reaches the center, the "
         "completed route holds for one second. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT = (

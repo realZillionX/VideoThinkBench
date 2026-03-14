@@ -11,13 +11,13 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles that require identifying a line tangent to a circle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_line"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows one large unfilled circle drawn with a black outline of medium thickness, plus one small black circle with a thick outline sitting exactly on the circumference to mark the tangency point. "
+        "A square white canvas shows one large unfilled circle drawn with a black outline of medium thickness, plus one small hollow marker with white fill and a thick black outline sitting exactly on the circumference to mark the tangency point. "
         "Five candidate markers A-E form a short straight row near the hidden tangent direction; each is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the circle, the marked contact point, and the candidate row, then draws a single black tangent segment of medium thickness starting at the contact point and extending in one direction toward the correct candidate. "
+        "The video first holds the circle, the marked contact point, and the candidate row, then draws a single black tangent segment of medium thickness starting just outside that hollow tangency marker and extending in one direction toward the correct candidate. "
         "In the final frame, only the candidate on that tangent segment changes to pale red fill with a dark red outline, while the others remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A large black circle is shown on a white canvas with one marked point on the circumference and five labeled "
+        "A large black circle is shown on a white canvas with one hollow marked point on the circumference and five labeled "
         "candidate circles A-E nearby. Determine which candidate lies on the line tangent to the circle at the marked "
         "contact point, where the tangent is perpendicular to the radius at that point. Answer with one option from A-E."
     )

@@ -11,13 +11,13 @@ class PerpendicularGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the center of a triangle."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows one black reference segment of medium thickness and one small black circle with a thick outline centered on the marked through-point. "
+        "A square white canvas shows one black reference segment of medium thickness and one small hollow marker with white fill and a thick black outline centered on the marked through-point. "
         "Five candidate markers A-E sit near the hidden perpendicular direction on a short straight row; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the reference segment, the marked through-point circle, and the candidate row, then draws one black segment of medium thickness starting at that marked point and extending toward the correct candidate at a right angle to the reference segment. "
+        "The video first holds the reference segment, the marked through-point marker, and the candidate row, then draws one black segment of medium thickness starting just outside that hollow marker and extending toward the correct candidate at a right angle to the reference segment. "
         "In the final state, only the candidate on this perpendicular segment changes to pale red fill with a dark red outline, while the other markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A white canvas shows one black reference line, one small black circle marking a through-point, and five labeled "
+        "A white canvas shows one black reference line, one small hollow white marker outlined in black marking a through-point, and five labeled "
         "candidate circles A-E. Determine which candidate lies on the line through the small circle that is perpendicular to "
         "the reference line. Answer with one option from A-E."
     )

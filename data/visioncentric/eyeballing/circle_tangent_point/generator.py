@@ -8,13 +8,13 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find the point on a circle where the tangent line from an external point touches."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/circle_tangent_point"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows one large unfilled circle drawn with a black outline of medium thickness and one small black external point with a thick outline outside the circle. "
+        "A square white canvas shows one large unfilled circle drawn with a black outline of medium thickness and one small hollow external marker with white fill and a thick black outline outside the circle. "
         "Exactly five candidate markers A-E lie directly on the circumference itself; each candidate is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the circle, the external point, and the five circumference markers, then draws a black tangent segment of medium thickness from the external point to the correct candidate and also draws a black radius of medium thickness from the otherwise unmarked center of the circle to that same candidate. "
+        "The video first holds the circle, the external marker, and the five circumference markers, then reveals the circle center as a small hollow white marker outlined in black, draws a black tangent segment from the external marker to the correct candidate, and finally draws a black radius from the center marker to that same candidate. "
         "In the final state, that tangency candidate alone changes to pale red fill with a dark red outline, while the other four circumference markers stay white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A large black circle and one black external point are shown on a white canvas, with five labeled candidate circles "
+        "A large black circle and one hollow external point are shown on a white canvas, with five labeled candidate circles "
         "A-E placed on the circumference. Identify the point of tangency where the line from the external point just touches "
         "the circle and the radius to that point is perpendicular to the tangent. Answer with one option from A-E."
     )

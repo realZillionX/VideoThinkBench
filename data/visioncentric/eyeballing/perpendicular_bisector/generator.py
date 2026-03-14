@@ -15,13 +15,13 @@ class PerpendicularBisectorGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles to find a point on the perpendicular bisector of a line segment."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/perpendicular_bisector"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows two small black endpoint circles with thick outlines connected by one black segment of medium thickness. "
+        "A square white canvas shows two small hollow endpoint markers with white fill and thick black outlines connected by one black segment of medium thickness that stops at the marker boundaries. "
         "Five candidate markers A-E are arranged near the hidden perpendicular bisector; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the endpoint circles, the connecting segment, and the candidate markers, then draws a long black bisector line of medium thickness through the segment midpoint in the perpendicular direction so it runs across the canvas. "
+        "The video first holds the endpoint markers, the connecting segment, and the candidate markers, then draws a long black bisector line of medium thickness through the segment midpoint in the perpendicular direction so it runs across the canvas. "
         "In the final frame, only the candidate lying on that perpendicular bisector changes to pale red fill with a dark red outline, while all other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A white canvas shows two small endpoint circles connected by a black segment and five labeled candidate circles "
+        "A white canvas shows two small hollow endpoint circles connected by a black segment and five labeled candidate circles "
         "A-E. Determine which candidate lies on the perpendicular bisector of the segment, meaning it is on the line "
         "through the midpoint that is perpendicular to the segment. Answer with one option from A-E."
     )

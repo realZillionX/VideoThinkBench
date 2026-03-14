@@ -11,13 +11,13 @@ class RayReflectGenerator(PointTargetPuzzleGenerator):
     """Generate puzzles where a ray reflects off a line."""
     DEFAULT_OUTPUT_DIR="data/visioncentric/eyeballing/ray_reflect"
     DEFAULT_TI2V_PROMPT=(
-        "A square white canvas shows one black mirror segment of medium thickness, one small black source point with a thick outline away from the mirror, and only a short incoming black ray stub with a thin stroke extending from the source toward the mirror. "
+        "A square white canvas shows one black mirror segment of medium thickness, one small hollow source marker with white fill and a thick black outline away from the mirror, and only a short incoming black ray stub with a thin stroke extending from just outside the source marker toward the mirror. "
         "Five candidate markers A-E are placed near the hidden outgoing direction on a short row; each marker is a small white circle with a thin dark gray outline and a black uppercase letter. "
-        "The video first holds the mirror, the source point, the short incoming stub, and the candidate markers, then extends that incoming ray to the reflection point on the mirror and continues it away from the mirror as a matching thin reflected segment toward the correct candidate. "
+        "The video first holds the mirror, the source marker, the short incoming stub, and the candidate markers, then extends that incoming ray to the reflection point on the mirror and continues it away from the mirror as a matching thin reflected segment toward the correct candidate. "
         "In the final frame, only the candidate on the reflected ray changes to pale red fill with a dark red outline, while the other markers remain white. In portrait. Static camera."
     )
     DEFAULT_VLM_PROMPT=(
-        "A white canvas shows a black mirror line, a small black source point, a short incoming ray segment, and five "
+        "A white canvas shows a black mirror line, a small hollow white source marker outlined in black, a short incoming ray segment, and five "
         "labeled candidate circles A-E. Mentally reflect the light ray off the mirror and determine which candidate lies on "
         "the outgoing reflected ray. Answer with one option from A-E."
     )

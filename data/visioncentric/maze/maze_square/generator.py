@@ -33,7 +33,7 @@ class MazeGenerator(MazePuzzleGenerator):
         "A square-format video shows a square maze on a pure black background. The maze is a centered regular grid of "
         "square cells where walkable corridor cells are solid white, wall cells are solid black, and the start cell and "
         "goal cell are two solid red squares placed at opposite corners of the grid. The animation begins with the static "
-        "maze, then a thick bright red path is progressively drawn through the centers of side-adjacent white cells without "
+        "maze, then a thick bright red square-cornered path with a flat square head is progressively drawn through the centers of side-adjacent white cells without "
         "entering any black wall cell. After the route reaches the goal, the completed red line holds for one second with "
         "the red endpoint cells still visible. In portrait. Static camera."
     )
