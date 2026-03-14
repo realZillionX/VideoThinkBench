@@ -21,10 +21,16 @@ def export_diffsynth_video(
         if not sample.assets.solution_video or not prompt:
             continue
         raw = sample.extra.get("raw_record") or {}
-        vlm_answer = raw.get("ti2t_answer") or raw.get("vlm_answer")
+        ti2ti_answer = raw.get("ti2ti_answer") if isinstance(raw, dict) else None
         ti2ti_enabled = bool(sample.prompt_for("ti2ti"))
-        ti2ti_text = str(vlm_answer) if vlm_answer and ti2ti_enabled else None
-        ti2ti_image = sample.assets.image_for_reasoning() if ti2ti_enabled else None
+        ti2ti_text = None
+        if ti2ti_enabled and isinstance(ti2ti_answer, dict):
+            text_value = str(ti2ti_answer.get("text") or "").strip()
+            ti2ti_text = text_value or None
+        if ti2ti_enabled and ti2ti_text is None:
+            fallback_text = str(raw.get("ti2t_answer") or raw.get("vlm_answer") or "").strip()
+            ti2ti_text = fallback_text or None
+        ti2ti_image = sample.assets.solution_image if ti2ti_enabled else None
         rows.append(
             {
                 "video": sample.assets.solution_video,

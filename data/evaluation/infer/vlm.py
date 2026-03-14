@@ -21,7 +21,7 @@ def _extract_query_and_images(sample: dict) -> tuple[str, list]:
 
 def _score_prediction(prediction: str, solution: str) -> Optional[float]:
     try:
-        from core.vlm_rewards import reward_eyeballing, reward_maze
+        from core.vlm_rewards import reward_eyeballing, reward_maze, reward_visual_puzzle
     except Exception:
         return None
 
@@ -31,6 +31,8 @@ def _score_prediction(prediction: str, solution: str) -> Optional[float]:
     try:
         if sol.startswith("[") and sol.endswith("]"):
             return float(reward_maze([prediction], [sol])[0])
+        if len(sol.strip()) > 1:
+            return float(reward_visual_puzzle([prediction], [sol])[0])
         return float(reward_eyeballing([prediction], [sol])[0])
     except Exception:
         return None

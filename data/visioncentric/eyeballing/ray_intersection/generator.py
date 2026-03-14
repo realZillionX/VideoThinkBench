@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from data.base import PathLike
 from data.point_target_base import PointTargetPuzzleGenerator, PointCandidate
+from core.prompts import format_ti2t_answer
 
 
 @dataclass
@@ -50,11 +51,11 @@ class RayIntersectionPuzzleRecord:
     correct_option: str
     image: str
     solution_image_path: str
-    vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
     ti2t_prompt: Optional[str] = None
     ti2ti_prompt: Optional[str] = None
-    vlm_answer: Optional[str] = None
+    ti2t_answer: Optional[str] = None
+    ti2ti_answer: Optional[dict] = None
     seed: Optional[int] = None
     reasoning_image: Optional[str] = None
     solution_video_path: Optional[str] = None
@@ -65,11 +66,11 @@ class RayIntersectionPuzzleRecord:
         return {
             "id": self.id,
             "ti2v_prompt": self.ti2v_prompt,
-            "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
             "ti2t_prompt": self.ti2t_prompt,
             "ti2ti_prompt": self.ti2ti_prompt,
-            "vlm_answer": self.vlm_answer,
+            "ti2t_answer": self.ti2t_answer,
+            "ti2ti_answer": self.ti2ti_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             "intersection": list(self.intersection),
@@ -158,11 +159,14 @@ class RayIntersectionGenerator(PointTargetPuzzleGenerator):
             correct_option=self.correct_label,
             image=self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
-            vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
             ti2t_prompt=self.ti2t_prompt,
             ti2ti_prompt=self.ti2ti_prompt,
-            vlm_answer=self.correct_label,
+            ti2t_answer=format_ti2t_answer(self.correct_label),
+            ti2ti_answer={
+                "text": format_ti2t_answer(self.correct_label),
+                "image": self.relativize_path(solution_path),
+            },
             seed=self.seed,
             reasoning_image=self.relativize_path(puzzle_path),
             solution_video_path=video_rel_path,

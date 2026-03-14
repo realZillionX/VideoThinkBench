@@ -24,6 +24,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from core.prompts import ensure_image_conditioned_prompt
+from core.prompts import format_ti2t_answer
 from data.base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 from data.video_encoding import encode_rgb_frames_to_mp4
 
@@ -159,7 +160,6 @@ class MazePuzzleRecord:
 
     id: str
     ti2v_prompt: str
-    vlm_prompt: str
     ti2i_prompt: str
     canvas_dimensions: Tuple[int, int]
     start_point: Tuple[float, float]
@@ -169,7 +169,8 @@ class MazePuzzleRecord:
     reasoning_image: Optional[str] = None
     ti2t_prompt: Optional[str] = None
     ti2ti_prompt: Optional[str] = None
-    vlm_answer: Optional[str] = None
+    ti2t_answer: Optional[str] = None
+    ti2ti_answer: Optional[Dict[str, object]] = None
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     solution_video_path: Optional[str] = None
@@ -180,11 +181,11 @@ class MazePuzzleRecord:
         payload: Dict[str, Any] = {
             "id": self.id,
             "ti2v_prompt": self.ti2v_prompt,
-            "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
             "ti2t_prompt": self.ti2t_prompt,
             "ti2ti_prompt": self.ti2ti_prompt,
-            "vlm_answer": self.vlm_answer,
+            "ti2t_answer": self.ti2t_answer,
+            "ti2ti_answer": self.ti2ti_answer,
             "canvas_dimensions": [int(self.canvas_dimensions[0]), int(self.canvas_dimensions[1])],
             "start_point": [float(self.start_point[0]), float(self.start_point[1])],
             "goal_point": [float(self.goal_point[0]), float(self.goal_point[1])],
@@ -210,7 +211,10 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
     DEFAULT_VLM_PROMPT: Optional[str] = "Find a path connecting the two red dots without touching the black walls in the maze. Each traversable region has its ID printed on it. Present your answer as a list of IDs. Example: [1, 4, 3, 2]. Must answer now without asking for clarifications."
     DEFAULT_TI2I_PROMPT: Optional[str] = _strip_video_instruction(DEFAULT_TI2V_PROMPT)
     DEFAULT_TI2T_PROMPT: Optional[str] = DEFAULT_VLM_PROMPT
-    DEFAULT_TI2TI_PROMPT: Optional[str] = DEFAULT_VLM_PROMPT
+    DEFAULT_TI2TI_PROMPT: Optional[str] = (
+        "Use the provided reasoning image as input. Find a path connecting the two red dots without touching the black walls in the maze. "
+        "Each traversable region has its ID printed on it. Determine the correct path, then generate the solved maze image by drawing the red path and removing the cell ID numbers from the final image."
+    )
 
     def __init__(
         self,
@@ -262,7 +266,6 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             self.DEFAULT_TI2TI_PROMPT or self.DEFAULT_TI2T_PROMPT or self.DEFAULT_VLM_PROMPT or "",
             mode="ti2ti",
         )
-        self.vlm_prompt = self.ti2t_prompt
         self.prompt = self.ti2v_prompt
         self.show_cell_id = show_cell_id
         self.video = video
@@ -486,15 +489,14 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
                 video_rel = self.relativize_path(actual_video_path)
                 video_fps = self._last_video_fps
                 video_num_frames = self._last_video_num_frames
-        # Derive vlm_answer from solution path cell IDs
-        vlm_answer: Optional[str] = None
+        # Derive TI2T answer from solution path cell IDs
+        ti2t_answer: Optional[str] = None
         path_ids = extra_payload.get("solution_path_cell_ids")
         if isinstance(path_ids, list):
-            vlm_answer = str(path_ids)
+            ti2t_answer = format_ti2t_answer(str(path_ids))
         return MazePuzzleRecord(
             id=record_id,
             ti2v_prompt=record_ti2v_prompt,
-            vlm_prompt=self.vlm_prompt,
             ti2i_prompt=_strip_video_instruction(record_ti2v_prompt) or self.ti2i_prompt,
             ti2t_prompt=self.ti2t_prompt,
             ti2ti_prompt=self.ti2ti_prompt,
@@ -504,7 +506,11 @@ class MazePuzzleGenerator(AbstractPuzzleGenerator[MazePuzzleRecord]):
             image=self.relativize_path(puzzle_path),
             reasoning_image=self.relativize_path(reasoning_path) if reasoning_path is not None else self.relativize_path(puzzle_path),
             solution_image_path=self.relativize_path(solution_path),
-            vlm_answer=vlm_answer,
+            ti2t_answer=ti2t_answer,
+            ti2ti_answer={
+                "text": ti2t_answer,
+                "image": self.relativize_path(solution_path),
+            } if ti2t_answer else None,
             seed=self.seed,
             extra=extra_payload,
             solution_video_path=video_rel,

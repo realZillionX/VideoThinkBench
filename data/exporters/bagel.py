@@ -23,6 +23,15 @@ def _solution_text(sample: CanonicalSample) -> str:
     return solution
 
 
+def _ti2t_answer_text(sample: CanonicalSample) -> str:
+    raw = sample.extra.get("raw_record") or {}
+    if isinstance(raw, dict):
+        answer_text = str(raw.get("ti2t_answer") or "").strip()
+        if answer_text:
+            return answer_text
+    return _solution_text(sample)
+
+
 def _normalize_modes(modes: Iterable[str]) -> list[str]:
     normalized: list[str] = []
     for mode in modes:
@@ -146,7 +155,7 @@ def _write_edit_dataset(
             sample_ids.append(sample.id)
             task_groups.append(sample.task_group)
             task_types.append(sample.task_type)
-            answers.append(_solution_text(sample))
+            answers.append(_ti2t_answer_text(sample))
 
         if not sample_ids:
             chunk_rows.clear()
@@ -218,7 +227,7 @@ def _write_vlm_dataset(samples: Sequence[CanonicalSample], *, output_dir: Path) 
                     },
                     {
                         "from": "gpt",
-                        "value": _solution_text(sample),
+                        "value": _ti2t_answer_text(sample),
                     },
                 ],
             }

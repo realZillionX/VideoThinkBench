@@ -25,6 +25,7 @@ import numpy as np
 
 from .base import AbstractPuzzleEvaluator, AbstractPuzzleGenerator, PathLike
 from core.prompts import ensure_image_conditioned_prompt
+from core.prompts import format_ti2t_answer
 
 from PIL import Image, ImageFont, ImageDraw
 
@@ -79,11 +80,11 @@ class PointTargetPuzzleRecord:
     solution_image_path: str
     point_radius: int
     line_width: int
-    vlm_prompt: Optional[str] = None
     ti2i_prompt: Optional[str] = None
     ti2t_prompt: Optional[str] = None
     ti2ti_prompt: Optional[str] = None
-    vlm_answer: Optional[str] = None
+    ti2t_answer: Optional[str] = None
+    ti2ti_answer: Optional[Dict[str, object]] = None
     seed: Optional[int] = None
     extra: Dict[str, Any] = field(default_factory=dict)
     reasoning_image: Optional[str] = None
@@ -95,11 +96,11 @@ class PointTargetPuzzleRecord:
         payload = {
             "id": self.id,
             "ti2v_prompt": self.ti2v_prompt,
-            "vlm_prompt": self.vlm_prompt,
             "ti2i_prompt": self.ti2i_prompt,
             "ti2t_prompt": self.ti2t_prompt,
             "ti2ti_prompt": self.ti2ti_prompt,
-            "vlm_answer": self.vlm_answer,
+            "ti2t_answer": self.ti2t_answer,
+            "ti2ti_answer": self.ti2ti_answer,
             "canvas_dimensions": list(self.canvas_dimensions),
             "margin": self.margin,
             # Handle list of dataclass objects
@@ -934,11 +935,14 @@ class PointTargetPuzzleGenerator(AbstractPuzzleGenerator):
             solution_image_path=self.relativize_path(self.solution_path),
             point_radius=self.point_radius,
             line_width=self.line_width,
-            vlm_prompt=self.vlm_prompt,
             ti2i_prompt=self.ti2i_prompt,
             ti2t_prompt=self.ti2t_prompt,
             ti2ti_prompt=self.ti2ti_prompt,
-            vlm_answer=self.correct_label,
+            ti2t_answer=format_ti2t_answer(self.correct_label),
+            ti2ti_answer={
+                "text": format_ti2t_answer(self.correct_label),
+                "image": self.relativize_path(self.solution_path),
+            },
             seed=self.seed,
             extra=self.build_record_extra(),
             reasoning_image=self.relativize_path(self.puzzle_path),

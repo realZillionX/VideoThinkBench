@@ -21,6 +21,7 @@ def _extract_answer_content(completion: str) -> str:
 
 def _normalize_free_text(text: str) -> str:
     normalized = _extract_answer_content(text).strip().lower()
+    normalized = re.sub(r"^answer\s*:\s*", "", normalized)
     normalized = normalized.strip(" \t\r\n\"'`.,;:!?()[]{}")
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized
@@ -29,8 +30,8 @@ def _normalize_free_text(text: str) -> str:
 def reward_eyeballing(completions, solution, **kwargs):
     rewards = []
     for completion, sol in zip(completions, solution):
-        text = _extract_answer_content(completion).strip()
-        sol = sol.strip()
+        text = _normalize_free_text(completion)
+        sol = _normalize_free_text(sol)
         if len(text) != 1 or not text.isalpha():
             rewards.append(-1.0)
             continue

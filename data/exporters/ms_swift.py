@@ -19,11 +19,21 @@ def _solution_text(sample: CanonicalSample) -> str:
     return solution
 
 
+def _ti2t_answer_text(sample: CanonicalSample) -> str:
+    raw = sample.extra.get("raw_record") or {}
+    if isinstance(raw, dict):
+        answer_text = str(raw.get("ti2t_answer") or "").strip()
+        if answer_text:
+            return answer_text
+    return _solution_text(sample)
+
+
 def _build_entry(sample: CanonicalSample, mode: str) -> dict:
     prompt = sample.prompt_for("ti2t")
     if not prompt:
         raise ValueError(f"Sample {sample.id} does not define a TI2T prompt")
     solution = _solution_text(sample)
+    assistant_text = _ti2t_answer_text(sample)
     entry = {
         "id": sample.id,
         "messages": [{"role": "user", "content": build_vlm_user_prompt(prompt, mode)}],
@@ -33,7 +43,7 @@ def _build_entry(sample: CanonicalSample, mode: str) -> dict:
         "task_group": sample.task_group,
     }
     if mode == "sft":
-        entry["messages"].append({"role": "assistant", "content": solution})
+        entry["messages"].append({"role": "assistant", "content": assistant_text})
     return entry
 
 

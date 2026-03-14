@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from data.scan import build_canonical_sample, dedup_samples, write_manifest
 from data.registry import TASK_SPECS, TaskSpec, resolve_requested_tasks
 from core.io import read_json, write_json
+from core.prompts import format_ti2t_answer
 
 
 def _build_visual_puzzle_ti2v_prompt(sample: Dict[str, Any], instruction: str, common_instruction: str) -> str:
@@ -211,15 +212,14 @@ def _generate_visual_puzzle_worker(
         ti2i_prompt = _build_visual_puzzle_ti2i_prompt(sample)
         ti2t_prompt = _build_visual_puzzle_ti2t_prompt(sample)
         ti2ti_prompt = _build_visual_puzzle_ti2ti_prompt(sample)
-        answer_text = str(sample.get("answer") or "").strip() or None
+        raw_answer = str(sample.get("answer") or "").strip() or None
+        ti2t_answer = format_ti2t_answer(raw_answer) if raw_answer else None
         sample["ti2v_prompt"] = ti2v_prompt
         sample["prompt"] = ti2v_prompt
         sample["ti2i_prompt"] = ti2i_prompt
         sample["ti2t_prompt"] = ti2t_prompt
-        sample["vlm_prompt"] = ti2t_prompt
         sample["ti2ti_prompt"] = ti2ti_prompt
-        sample["vlm_answer"] = answer_text
-        sample["ti2t_answer"] = answer_text
+        sample["ti2t_answer"] = ti2t_answer
 
         puzzle_image = module.pad_image(puzzle_image, target_size=target_size)
         solution_image = module.pad_image(solution_image, target_size=target_size)
@@ -244,6 +244,10 @@ def _generate_visual_puzzle_worker(
         sample["image"] = image_path.relative_to(output_dir).as_posix()
         sample["reasoning_image"] = sample["image"]
         sample["solution_image_path"] = solution_path.relative_to(output_dir).as_posix()
+        sample["ti2ti_answer"] = {
+            "text": ti2t_answer,
+            "image": sample["solution_image_path"],
+        } if ti2t_answer else None
         sample["solution_video_path"] = solution_video_rel
         sample["video_fps"] = video_fps_val
         sample["video_num_frames"] = video_num_frames_val
@@ -345,6 +349,21 @@ def _merge_worker_records(task_dir: Path, worker_dirs: Sequence[Path]) -> List[D
                     if isinstance(item, str):
                         remapped_paths[item] = moved_item
                 record["images"] = remapped_images
+            ti2ti_answer = record.get("ti2ti_answer")
+            if isinstance(ti2ti_answer, dict):
+                image_value = ti2ti_answer.get("image")
+                if isinstance(image_value, str):
+                    if image_value in remapped_paths:
+                        ti2ti_answer["image"] = remapped_paths[image_value]
+                    else:
+                        moved_image = _move_asset_value(
+                            image_value,
+                            worker_dir=worker_dir,
+                            task_dir=task_dir,
+                            worker_name=worker_name,
+                        )
+                        ti2ti_answer["image"] = moved_image
+                        remapped_paths[image_value] = moved_image
             merged.append(record)
     return merged
 

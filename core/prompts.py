@@ -50,6 +50,19 @@ def ensure_image_conditioned_prompt(prompt: Optional[str], *, mode: str) -> str:
     return normalized
 
 
+def format_ti2t_answer(answer: Optional[str]) -> str:
+    text = str(answer or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if lowered.startswith("answer:"):
+        text = text.split(":", 1)[1].strip()
+    text = text.rstrip(".")
+    if text and text[0].isalpha():
+        text = text[0].upper() + text[1:]
+    return f"Answer: {text}."
+
+
 def normalize_prompt_for_task(task_group: str, prompt_raw: str) -> str:
     if task_group == "maze":
         return MAZE_TRAIN_PROMPT

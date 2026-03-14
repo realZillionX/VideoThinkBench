@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from core.prompts import format_ti2t_answer
 
 from data.video_encoding import encode_rgb_frames_to_mp4
 try:
@@ -1586,15 +1587,14 @@ def create_data(
         ti2i_prompt = build_visual_puzzle_ti2i_prompt(sample)
         ti2t_prompt = build_visual_puzzle_ti2t_prompt(sample)
         ti2ti_prompt = build_visual_puzzle_ti2ti_prompt(sample)
-        answer_text = str(sample.get("answer") or "").strip() or None
+        raw_answer = str(sample.get("answer") or "").strip() or None
+        ti2t_answer = format_ti2t_answer(raw_answer) if raw_answer else None
         sample["ti2v_prompt"] = ti2v_prompt
         sample["prompt"] = ti2v_prompt
         sample["ti2i_prompt"] = ti2i_prompt
         sample["ti2t_prompt"] = ti2t_prompt
-        sample["vlm_prompt"] = ti2t_prompt
         sample["ti2ti_prompt"] = ti2ti_prompt
-        sample["vlm_answer"] = answer_text
-        sample["ti2t_answer"] = answer_text
+        sample["ti2t_answer"] = ti2t_answer
 
         puzzle_image = pad_image(puzzle_image, target_size=target_size)
         solution_image = pad_image(solution_image, target_size=target_size)
@@ -1606,6 +1606,10 @@ def create_data(
         sample["image"] = str(image_path.relative_to(pattern_dir))
         sample["reasoning_image"] = sample["image"]
         sample["solution_image_path"] = str(solution_path.relative_to(pattern_dir))
+        sample["ti2ti_answer"] = {
+            "text": ti2t_answer,
+            "image": sample["solution_image_path"],
+        } if ti2t_answer else None
 
         samples.append(sample)
         progress.update()
