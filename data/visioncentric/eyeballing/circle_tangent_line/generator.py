@@ -90,17 +90,30 @@ class CircleTangentLineGenerator(PointTargetPuzzleGenerator):
         record.point_on_circle = self.point_on_circle
         return record
 
+    def _draw_contact_marker(self, draw) -> None:
+        self.draw_anchor_marker(draw, self.point_on_circle, 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_contact_marker(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
         # Draw the main circle
         self.draw_circle(draw, self.circle_center, self.circle_radius)
-        # Highlight the point on the circumference where the tangent touches
-        self.draw_circle(draw, self.point_on_circle, 7)
 
         # In the solution image, draw the tangent line segment
         if highlight_label:
-            self.draw_line(draw, [self.point_on_circle, self.target_point])
+            line_start, line_end = self.trim_segment(
+                self.point_on_circle,
+                self.target_point,
+                start_offset=9.0,
+                end_offset=float(self.point_radius),
+            )
+            self.draw_line(draw, [line_start, line_end])
+
+        # Draw the tangency marker above the circle arc and tangent line.
+        self._draw_contact_marker(draw)
 
         self.draw_candidates(
             draw,
