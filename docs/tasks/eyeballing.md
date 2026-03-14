@@ -67,6 +67,8 @@ Triangle-based point tasks such as `triangle_center`, `incenter`, `circumcenter`
 
 Shape-completion tasks such as `parallelogram`, `isosceles_trapezoid`, `right_triangle`, and `square_outlier` now resample when the target shape becomes too flat, too tiny, or pushes candidate markers against the canvas edge. `arc_connect` also keeps the central mask and arc endpoints away from the image border so the puzzle frame stays clean.
 
+Line-construction tasks now also keep anchor markers visually on top of animated strokes. In particular, `perpendicular` redraws the through-point marker above the solution segment, and `circle_tangent_point` redraws the external point while adding a small center marker when the radius-to-tangent construction appears.
+
 The batch offline evaluation entry point is `data/evaluation/offline/eyeballing.py`.
 
 ## Parameters Exposed by the Unified CLI

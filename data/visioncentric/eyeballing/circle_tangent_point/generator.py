@@ -163,14 +163,20 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
         record.external_point = self.external_point
         return record
 
+    def _draw_external_point(self, draw) -> None:
+        self.draw_circle(draw, self.external_point, 7)
+
+    def _draw_center_marker(self, draw) -> None:
+        self.draw_circle(draw, self.center, 7)
+
+    def _video_overlay_extras(self, draw: ImageDraw.ImageDraw) -> None:
+        self._draw_external_point(draw)
+
     def _render(self, highlight_label: Optional[str]) -> Image.Image:
         draw, base = self.get_draw_base()
         
         # Draw the main circle
         self.draw_circle(draw, self.center, self.r)
-        
-        # Draw the external point (a smaller solid dot)
-        self.draw_circle(draw, self.external_point, 7)
 
         # Highlight the solution if rendering the answer image
         if highlight_label:
@@ -179,7 +185,10 @@ class CircleTangentPointGenerator(PointTargetPuzzleGenerator):
             
             # Optionally, draw the radius CT to emphasize the perpendicular relationship
             self.draw_line(draw, [self.center, self.target_point])
+            self._draw_center_marker(draw)
 
+        # Draw the external point above animated / solution lines.
+        self._draw_external_point(draw)
 
         # Draw all candidate points
         self.draw_candidates(

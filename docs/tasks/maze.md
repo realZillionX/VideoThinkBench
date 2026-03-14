@@ -90,6 +90,8 @@ The current default pipeline carves the maze with DFS and then finds the canonic
 
 ## `maze_hexagon`
 
+The hexagon renderer now draws blocked edges as short filled wall polygons instead of line segments plus oversized corner caps. This keeps wall joins smoother and avoids the small outward corner bumps that could otherwise appear at obstacle turns.
+
 ### Main Parameters
 
 | Parameter        | Default | Description                            |

@@ -348,7 +348,6 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
 
         for cell in self.cells:
             self._draw_cell_walls(draw, cell, passages)
-        self._draw_wall_corner_caps(draw, passages)
 
         self._draw_marker(draw, start_cell, START_COLOR)
         self._draw_marker(draw, goal_cell, GOAL_COLOR)
@@ -377,39 +376,38 @@ class MazeHexagonGenerator(MazePuzzleGenerator):
             a_idx, b_idx = EDGE_CORNER_INDICES[direction_index]
             a = outer_corners[a_idx]
             b = outer_corners[b_idx]
-            draw.line([a, b], fill=WALL_COLOR, width=self.wall_thickness)
+            self._draw_wall_segment(draw, a, b)
 
-    def _draw_wall_corner_caps(
+    def _draw_wall_segment(
         self,
         draw: ImageDraw.ImageDraw,
-        passages: Dict[Axial, Set[Axial]],
+        start: Tuple[float, float],
+        end: Tuple[float, float],
     ) -> None:
-        wt_half = self.wall_thickness / 2
-        wall_corners_drawn: Set[Tuple[int, int]] = set()
-        for cell in self.cells:
-            center = self._cell_center_from_cell(cell)
-            outer_corners = self._hex_corners(center, self.cell_radius)
-            for direction_index, delta in enumerate(DIRECTIONS):
-                neighbor = (cell[0] + delta[0], cell[1] + delta[1])
-                has_neighbor = neighbor in self.cell_set
-                connected = has_neighbor and neighbor in passages[cell]
-                if has_neighbor and connected:
-                    continue
-                a_idx, b_idx = EDGE_CORNER_INDICES[direction_index]
-                for corner in (outer_corners[a_idx], outer_corners[b_idx]):
-                    key = (round(corner[0]), round(corner[1]))
-                    if key in wall_corners_drawn:
-                        continue
-                    wall_corners_drawn.add(key)
-                    draw.ellipse(
-                        (
-                            corner[0] - wt_half,
-                            corner[1] - wt_half,
-                            corner[0] + wt_half,
-                            corner[1] + wt_half,
-                        ),
-                        fill=WALL_COLOR,
-                    )
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        length = math.hypot(dx, dy)
+        if length <= 1e-6:
+            return
+        ux = dx / length
+        uy = dy / length
+        nx = -uy
+        ny = ux
+        half = self.wall_thickness / 2.0
+        extend = half * 0.55
+        start_x = start[0] - ux * extend
+        start_y = start[1] - uy * extend
+        end_x = end[0] + ux * extend
+        end_y = end[1] + uy * extend
+        draw.polygon(
+            [
+                (start_x + nx * half, start_y + ny * half),
+                (start_x - nx * half, start_y - ny * half),
+                (end_x - nx * half, end_y - ny * half),
+                (end_x + nx * half, end_y + ny * half),
+            ],
+            fill=WALL_COLOR,
+        )
 
     def _draw_marker(self, draw: ImageDraw.ImageDraw, cell: Axial, color: Tuple[int, int, int]) -> None:
         x, y = self._cell_center_from_cell(cell)
